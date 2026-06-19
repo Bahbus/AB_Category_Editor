@@ -114,6 +114,16 @@ function getCategories() {
   return data.Categories;
 }
 
+function updateExportControls() {
+  const disabled = getCategories().length === 0;
+  for (const id of ['showExportCopy', 'downloadBase64']) {
+    const button = el(id);
+    if (!button) continue;
+    button.disabled = disabled;
+    button.title = disabled ? 'Add or import at least one category before exporting.' : '';
+  }
+}
+
 function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
@@ -448,8 +458,7 @@ async function lookupReferencedIds(options = {}) {
   const failures = [];
 
   try {
-    setStatus(`Looking up ${uncached} uncached referenced ID name(s)...`);
-    showBusy(quiet ? 'Auto-looking up imported IDs' : 'Looking up referenced IDs', `${uncached} uncached ID name(s)`, 0);
+    showBusy('Looking up IDs', `0/${uncached} complete`, 0);
 
     const work = [
       ['ItemUICategory', [...ids.ItemUICategory]],
@@ -466,7 +475,6 @@ async function lookupReferencedIds(options = {}) {
         }
         done++;
         const percent = uncached ? (done / uncached) * 100 : 100;
-        setStatus(`ID lookup ${done}/${uncached} complete...`);
         updateBusy(`${done}/${uncached} complete · ${sheet} #${id}`, percent);
       }
     }
@@ -491,6 +499,7 @@ function maybeAutoLookupImportedIds() {
   const auto = el('autoLookupImport');
   if (!auto || !auto.checked) return;
   lookupReferencedIds({ quiet: true }).catch(err => {
+    hideBusy(true);
     setStatus('Automatic ID lookup failed: ' + err.message, 'warn');
   });
 }
@@ -512,257 +521,6 @@ async function searchXivapi(sheet, text) {
   if (!res.ok) throw new Error(`Search failed: HTTP ${res.status}`);
   const json = await res.json();
   return json.results || [];
-}
-
-async function fetchItemRowsPage(after, signal) {
-  const params = new URLSearchParams({
-    fields: 'Name',
-    limit: '1000',
-    language: 'en'
-  });
-  if (after !== null && after !== undefined) params.set('after', String(after));
-  const res = await fetch(`${XIVAPI_BASE}/sheet/Item?${params.toString()}`, { signal });
-  if (!res.ok) throw new Error(`Item sheet fetch failed: HTTP ${res.status}`);
-  const json = await res.json();
-  return json.rows || [];
-}
-
-function itemNameFromRow(row) {
-  return row?.fields?.Name || row?.Name || '';
-}
-
-function selectedCategory() {
-  const cats = getCategories();
-  if (selectedIndex < 0 || selectedIndex >= cats.length) return null;
-  ensureShape(cats[selectedIndex]);
-  return cats[selectedIndex];
-}
-
-async function scanItemIdsByRegex(pattern, options = {}) {
-  const { caseInsensitive = true, maxMatches = 1000, signal, onProgress } = options;
-  const flags = caseInsensitive ? 'i' : '';
-  const rx = new RegExp(pattern, flags);
-  const matches = [];
-  let after = null;
-  let scanned = 0;
-  let pages = 0;
-  let stoppedByLimit = false;
-
-  while (true) {
-    if (signal?.aborted) throw new DOMException('Canceled', 'AbortError');
-    const rows = await fetchItemRowsPage(after, signal);
-    if (!rows.length) break;
-    pages++;
-
-    for (const row of rows) {
-      const id = row.row_id;
-      const name = itemNameFromRow(row);
-      after = id;
-      scanned++;
-      if (!name) continue;
-      rx.lastIndex = 0;
-      if (rx.test(name)) {
-        matches.push({ id, name });
-        const cache = lookupCache.Item || (lookupCache.Item = {});
-        cache[String(id)] = name;
-        if (maxMatches > 0 && matches.length >= maxMatches) {
-          stoppedByLimit = true;
-          saveLookupCache();
-          onProgress?.({ scanned, pages, matches: matches.length, stoppedByLimit });
-          return { matches, scanned, pages, stoppedByLimit };
-        }
-      }
-    }
-
-    saveLookupCache();
-    onProgress?.({ scanned, pages, matches: matches.length, stoppedByLimit });
-    await new Promise(resolve => setTimeout(resolve, 0));
-  }
-
-  saveLookupCache();
-  return { matches, scanned, pages, stoppedByLimit };
-}
-
-function renderRegexResults(box, matches) {
-  box.innerHTML = '';
-  if (!matches.length) {
-    box.innerHTML = '<span class="hint">No matches yet.</span>';
-    return;
-  }
-  for (const match of matches.slice(0, 500)) {
-    const row = document.createElement('div');
-    row.className = 'regex-result-row';
-    row.innerHTML = `<span class="regex-id">#${escapeHtml(match.id)}</span><span>${escapeHtml(match.name)}</span>`;
-    box.appendChild(row);
-  }
-  if (matches.length > 500) {
-    const more = document.createElement('div');
-    more.className = 'hint';
-    more.textContent = `Showing first 500 of ${matches.length} matches. The IDs still get added if you choose Add.`;
-    box.appendChild(more);
-  }
-}
-
-function openRegexToItemIdsTool() {
-  const cat = selectedCategory();
-  if (!cat) {
-    setStatus('Select a category first.', 'warn');
-    return;
-  }
-  const patterns = cat.Rules.AllowedItemNamePatterns || [];
-  let lastMatches = [];
-  let aborter = null;
-
-  const wrap = document.createElement('div');
-  wrap.innerHTML = `
-    <p class="hint">This scans XIVAPI's Item sheet, tests English item names with JavaScript regex, then lets you add the matched Item IDs to this category. If the original filter uses .NET-only regex features, JavaScript may complain, because naturally regex has dialects like a cursed language family.</p>
-    <div class="grid cols-2">
-      <div>
-        <label>Use an existing regex from this category</label>
-        <select id="regexPatternSelect"></select>
-      </div>
-      <div>
-        <label>Max matches to collect</label>
-        <input id="regexMaxMatches" type="number" min="0" step="1" value="1000">
-      </div>
-    </div>
-    <div style="margin-top:10px;">
-      <label>Regex pattern</label>
-      <input id="regexPatternInput" placeholder="Example: ^Grade (XI|XII) .*Materia$">
-    </div>
-    <div class="row" style="margin-top:10px;">
-      <label class="check"><input id="regexCaseInsensitive" type="checkbox" checked> Case-insensitive</label>
-      <span class="hint">Set max matches to 0 for unlimited.</span>
-    </div>
-    <div class="row" style="margin-top:12px;">
-      <button id="regexStart" class="primary">Scan Items</button>
-      <button id="regexCancel" disabled>Cancel</button>
-      <button id="regexAddIds" disabled>Add matched IDs</button>
-      <button id="regexAddAndRemove" disabled>Add IDs + remove this regex</button>
-    </div>
-    <p class="status" id="regexStatus" style="margin-top:10px;">Ready.</p>
-    <div class="regex-results" id="regexResults"><span class="hint">No scan results yet.</span></div>
-  `;
-
-  openModal('Convert Regex Filter → Item IDs', wrap);
-
-  const select = document.getElementById('regexPatternSelect');
-  const patternInput = document.getElementById('regexPatternInput');
-  const status = document.getElementById('regexStatus');
-  const resultsBox = document.getElementById('regexResults');
-  const startBtn = document.getElementById('regexStart');
-  const cancelBtn = document.getElementById('regexCancel');
-  const addBtn = document.getElementById('regexAddIds');
-  const addRemoveBtn = document.getElementById('regexAddAndRemove');
-
-  select.innerHTML = '';
-  if (patterns.length) {
-    patterns.forEach((pattern, i) => {
-      const opt = document.createElement('option');
-      opt.value = pattern;
-      opt.textContent = `${i + 1}. ${pattern}`;
-      select.appendChild(opt);
-    });
-  }
-  const custom = document.createElement('option');
-  custom.value = '__custom__';
-  custom.textContent = 'Custom pattern...';
-  select.appendChild(custom);
-  patternInput.value = patterns[0] || '';
-  select.onchange = () => {
-    if (select.value !== '__custom__') patternInput.value = select.value;
-  };
-
-  function setRegexButtons(scanning) {
-    startBtn.disabled = scanning;
-    cancelBtn.disabled = !scanning;
-    addBtn.disabled = scanning || !lastMatches.length;
-    addRemoveBtn.disabled = scanning || !lastMatches.length;
-  }
-
-  startBtn.onclick = async () => {
-    const pattern = patternInput.value.trim();
-    if (!pattern) {
-      status.textContent = 'Enter or choose a regex first.';
-      status.className = 'status warn';
-      return;
-    }
-
-    const maxRaw = Number(document.getElementById('regexMaxMatches').value);
-    const maxMatches = Number.isFinite(maxRaw) ? Math.max(0, Math.floor(maxRaw)) : 1000;
-    const caseInsensitive = document.getElementById('regexCaseInsensitive').checked;
-    lastMatches = [];
-    renderRegexResults(resultsBox, lastMatches);
-    addBtn.disabled = true;
-    addRemoveBtn.disabled = true;
-    aborter = new AbortController();
-    setRegexButtons(true);
-    showBusy('Scanning Item names', 'Starting XIVAPI Item sheet scan...', null);
-
-    try {
-      // Compile once early so regex errors appear before we touch the network.
-      new RegExp(pattern, caseInsensitive ? 'i' : '');
-      const result = await scanItemIdsByRegex(pattern, {
-        caseInsensitive,
-        maxMatches,
-        signal: aborter.signal,
-        onProgress: p => {
-          status.textContent = `Scanned ${p.scanned.toLocaleString()} items across ${p.pages} page(s); found ${p.matches.toLocaleString()} match(es).`;
-          status.className = 'status';
-          updateBusy(`Scanned ${p.scanned.toLocaleString()} items · ${p.matches.toLocaleString()} matches`, null);
-        }
-      });
-      lastMatches = result.matches;
-      renderRegexResults(resultsBox, lastMatches);
-      const stopped = result.stoppedByLimit ? ' Stopped at max match limit.' : '';
-      status.textContent = `Done. Scanned ${result.scanned.toLocaleString()} items; found ${lastMatches.length.toLocaleString()} match(es).${stopped}`;
-      status.className = result.stoppedByLimit ? 'status warn' : 'status ok';
-      updateBusy(`Done · ${lastMatches.length.toLocaleString()} matches`, 100);
-      setStatus(`Regex scan complete: ${lastMatches.length.toLocaleString()} item ID(s) matched.`, 'ok');
-    } catch (err) {
-      if (err.name === 'AbortError') {
-        status.textContent = 'Scan canceled.';
-        status.className = 'status warn';
-        setStatus('Regex scan canceled.', 'warn');
-      } else {
-        status.textContent = err.message;
-        status.className = 'status err';
-        setStatus('Regex scan failed: ' + err.message, 'err');
-      }
-    } finally {
-      hideBusy();
-      aborter = null;
-      setRegexButtons(false);
-    }
-  };
-
-  cancelBtn.onclick = () => {
-    if (aborter) aborter.abort();
-  };
-
-  function addMatches(removePattern) {
-    const ids = cat.Rules.AllowedItemIds || (cat.Rules.AllowedItemIds = []);
-    const before = ids.length;
-    const existing = new Set(ids.map(Number));
-    for (const match of lastMatches) {
-      if (!existing.has(Number(match.id))) {
-        ids.push(Number(match.id));
-        existing.add(Number(match.id));
-      }
-    }
-    const added = ids.length - before;
-    if (removePattern) {
-      const current = patternInput.value.trim();
-      cat.Rules.AllowedItemNamePatterns = (cat.Rules.AllowedItemNamePatterns || []).filter(p => p !== current);
-    }
-    markDirty(removePattern ? 'Matched item IDs added and regex removed' : 'Matched item IDs added');
-    renderAll();
-    closeModal();
-    setStatus(`Added ${added.toLocaleString()} new Item ID(s) from regex match.`, 'ok');
-  }
-
-  addBtn.onclick = () => addMatches(false);
-  addRemoveBtn.onclick = () => addMatches(true);
 }
 
 function listEditor(title, arr, parser, formatter, hint='', lookupSheet=null) {
@@ -837,8 +595,7 @@ function listEditor(title, arr, parser, formatter, hint='', lookupSheet=null) {
     lookupButton.onclick = async () => {
       try {
         lookupButton.disabled = true;
-        setStatus(`Looking up ${arr.length} ${sheetLabel(lookupSheet)} ID(s)...`);
-        showBusy(`Looking up ${sheetLabel(lookupSheet)} names`, `${arr.length} ID(s) queued`, 0);
+        showBusy(`Looking up ${sheetLabel(lookupSheet)} names`, `0/${arr.length} complete`, 0);
         let count = 0;
         for (const id of arr) {
           if (!lookupName(lookupSheet, id)) {
@@ -927,6 +684,223 @@ function listEditor(title, arr, parser, formatter, hint='', lookupSheet=null) {
   return card;
 }
 
+async function fetchItemRowsPage(after=null, limit=3000) {
+  const params = new URLSearchParams({
+    fields: 'Name',
+    limit: String(limit),
+    language: 'en'
+  });
+  if (after !== null && after !== undefined) params.set('after', String(after));
+  const res = await fetch(`${XIVAPI_BASE}/sheet/Item?${params.toString()}`);
+  if (!res.ok) throw new Error(`Item sheet scan failed: HTTP ${res.status}`);
+  return await res.json();
+}
+
+function extractSheetRows(payload) {
+  if (Array.isArray(payload?.rows)) return payload.rows;
+  if (Array.isArray(payload?.results)) return payload.results;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload)) return payload;
+  return [];
+}
+
+function extractNextCursor(payload, rows) {
+  if (payload?.pagination?.next) return payload.pagination.next;
+  if (payload?.next) return payload.next;
+  if (payload?.next_after) return payload.next_after;
+  if (payload?.cursor?.next) return payload.cursor.next;
+  const last = rows[rows.length - 1];
+  const lastId = last?.row_id ?? last?.rowId ?? last?.id;
+  return lastId ?? null;
+}
+
+function rowId(row) {
+  return row?.row_id ?? row?.rowId ?? row?.id;
+}
+
+function rowName(row) {
+  return row?.fields?.Name || row?.Name || row?.name || '';
+}
+
+function uniqueById(items) {
+  const seen = new Set();
+  const out = [];
+  for (const item of items) {
+    if (seen.has(item.id)) continue;
+    seen.add(item.id);
+    out.push(item);
+  }
+  return out;
+}
+
+function openRegexToItemIdsTool() {
+  const cat = getCategories()[selectedIndex];
+  if (!cat) return;
+  ensureShape(cat);
+  const patterns = cat.Rules.AllowedItemNamePatterns || [];
+  const wrap = document.createElement('div');
+  const options = patterns.map((pattern, index) => `<option value="${index}">${escapeHtml(pattern)}</option>`).join('');
+  wrap.innerHTML = `
+    <p class="hint">Select an existing regex or type a custom one. The scan matches JavaScript regex against English Item names from XIVAPI.</p>
+    <div class="grid cols-2">
+      <div>
+        <label>Existing pattern</label>
+        <select id="regexPatternSelect">
+          <option value="custom">Custom regex</option>
+          ${options}
+        </select>
+      </div>
+      <div>
+        <label>Regex flags</label>
+        <input id="regexFlags" value="i" placeholder="Example: i">
+      </div>
+    </div>
+    <div style="margin-top:10px;">
+      <label>Regex</label>
+      <input id="regexPatternInput" value="${escapeHtml(patterns[0] || '')}" placeholder="Example: ^Augmented .*">
+    </div>
+    <div class="grid cols-3" style="margin-top:10px;">
+      <div>
+        <label>Max matches to collect</label>
+        <input id="regexMaxMatches" type="number" min="1" step="1" value="5000">
+      </div>
+      <div>
+        <label>Page size</label>
+        <input id="regexPageSize" type="number" min="100" max="5000" step="100" value="3000">
+      </div>
+      <div>
+        <label>When adding IDs</label>
+        <select id="regexRemovePattern">
+          <option value="keep">Keep regex filter</option>
+          <option value="remove">Remove selected regex filter</option>
+        </select>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <button id="runRegexScan" class="primary">Scan matching items</button>
+      <button id="addRegexMatches" disabled>Add matched IDs</button>
+    </div>
+    <p class="hint" id="regexScanSummary"></p>
+    <div class="regex-results" id="regexResults"></div>
+  `;
+
+  openModal('Regex → Item IDs', wrap);
+
+  const select = document.getElementById('regexPatternSelect');
+  const input = document.getElementById('regexPatternInput');
+  const addButton = document.getElementById('addRegexMatches');
+  const resultsBox = document.getElementById('regexResults');
+  const summary = document.getElementById('regexScanSummary');
+  let matches = [];
+
+  select.onchange = () => {
+    if (select.value === 'custom') return;
+    input.value = patterns[Number(select.value)] || '';
+  };
+  if (patterns.length) select.value = '0';
+
+  document.getElementById('runRegexScan').onclick = async () => {
+    matches = [];
+    addButton.disabled = true;
+    resultsBox.innerHTML = '';
+    summary.textContent = '';
+
+    let regex;
+    try {
+      regex = new RegExp(input.value, document.getElementById('regexFlags').value || '');
+    } catch (err) {
+      setStatus('Invalid regex: ' + err.message, 'err');
+      return;
+    }
+
+    const maxMatches = Math.max(1, Number(document.getElementById('regexMaxMatches').value) || 5000);
+    const pageSize = Math.max(100, Math.min(5000, Number(document.getElementById('regexPageSize').value) || 3000));
+    let after = null;
+    let scanned = 0;
+    let pages = 0;
+    let keepGoing = true;
+
+    showBusy('Scanning items', 'Starting Item sheet scan...', 0);
+    try {
+      while (keepGoing) {
+        const payload = await fetchItemRowsPage(after, pageSize);
+        const rows = extractSheetRows(payload);
+        pages++;
+        if (!rows.length) break;
+
+        for (const row of rows) {
+          const id = rowId(row);
+          const name = rowName(row);
+          if (id === undefined || !name) continue;
+          scanned++;
+          regex.lastIndex = 0;
+          if (regex.test(name)) {
+            matches.push({ id: Number(id), name });
+            const cache = lookupCache.Item || (lookupCache.Item = {});
+            cache[String(id)] = name;
+            if (matches.length >= maxMatches) {
+              keepGoing = false;
+              break;
+            }
+          }
+        }
+
+        saveLookupCache();
+        updateBusy(`${scanned.toLocaleString()} items scanned · ${matches.length.toLocaleString()} matches`, null);
+
+        const next = extractNextCursor(payload, rows);
+        if (!next || next === after || !keepGoing) break;
+        after = next;
+      }
+
+      matches = uniqueById(matches);
+      summary.textContent = `${matches.length.toLocaleString()} match(es) found after scanning ${scanned.toLocaleString()} item row(s).`;
+      resultsBox.innerHTML = '';
+      for (const item of matches.slice(0, 300)) {
+        const row = document.createElement('div');
+        row.className = 'regex-result-row';
+        row.innerHTML = `<span class="regex-id">#${escapeHtml(item.id)}</span><span>${escapeHtml(item.name)}</span>`;
+        resultsBox.appendChild(row);
+      }
+      if (matches.length > 300) {
+        const more = document.createElement('p');
+        more.className = 'hint';
+        more.textContent = `Showing first 300 of ${matches.length.toLocaleString()} matches.`;
+        resultsBox.appendChild(more);
+      }
+      addButton.disabled = matches.length === 0;
+      setStatus('Regex scan complete', 'ok');
+    } catch (err) {
+      setStatus('Regex scan failed: ' + err.message, 'err');
+    } finally {
+      hideBusy();
+    }
+  };
+
+  addButton.onclick = () => {
+    if (!matches.length) return;
+    const ids = cat.Rules.AllowedItemIds || (cat.Rules.AllowedItemIds = []);
+    const existing = new Set(ids.map(Number));
+    let added = 0;
+    for (const item of matches) {
+      if (existing.has(Number(item.id))) continue;
+      ids.push(Number(item.id));
+      existing.add(Number(item.id));
+      added++;
+    }
+
+    if (document.getElementById('regexRemovePattern').value === 'remove' && select.value !== 'custom') {
+      const idx = Number(select.value);
+      if (!Number.isNaN(idx)) cat.Rules.AllowedItemNamePatterns.splice(idx, 1);
+    }
+
+    markDirty(`Added ${added} item IDs`);
+    setStatus(`Added ${added} item ID(s).`, 'ok');
+    closeModal();
+    renderAll();
+  };
+}
+
 function renderColorSection(cat) {
   const color = document.createElement('div');
   color.className = 'card';
@@ -997,8 +971,7 @@ function renderColorSection(cat) {
       readout.textContent = `${hex} · RGBA(${componentTo255(cat.Color.X)}, ${componentTo255(cat.Color.Y)}, ${componentTo255(cat.Color.Z)}, ${a255})`;
       picker.value = colorToHex(cat.Color);
       hexInput.value = hex;
-
-    };
+    }
 
     picker.oninput = e => {
       const rgb = hexToRgb01(e.target.value);
@@ -1024,6 +997,7 @@ function renderColorSection(cat) {
       updateColorVisuals();
       markDirty('Hex RGBA color changed');
     };
+
     updateColorVisuals();
   }, 0);
 
@@ -1245,6 +1219,7 @@ function renderEditor() {
 function renderAll() {
   renderList();
   renderEditor();
+  updateExportControls();
 }
 
 function downloadText(filename, text, type='application/json') {
@@ -1386,6 +1361,11 @@ el('uploadFile').onclick = () => {
 };
 
 el('showExportCopy').onclick = async () => {
+  if (getCategories().length === 0) {
+    updateExportControls();
+    setStatus('Add or import at least one category before exporting.', 'warn');
+    return;
+  }
   showBusy('Generating export', 'Compressing JSON to gzip+Base64...', null);
   try {
     const b64 = await makeBase64Export();
@@ -1423,6 +1403,11 @@ el('showExportCopy').onclick = async () => {
 };
 
 el('downloadBase64').onclick = async () => {
+  if (getCategories().length === 0) {
+    updateExportControls();
+    setStatus('Add or import at least one category before downloading.', 'warn');
+    return;
+  }
   showBusy('Generating download', 'Compressing JSON to gzip+Base64...', null);
   try {
     const b64 = await makeBase64Export();
