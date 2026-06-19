@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>AetherBags Category Editor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <h1>AetherBags Category Editor</h1>
+      <div class="sub"><span id="format"></span> · <span id="count"></span> categories · <span id="saveState" class="save-state">Saved</span></div>
+    </div>
+    <div class="search">
+      <input id="search" placeholder="Search names, descriptions, regex, IDs">
+      <div class="row">
+        <button id="addCategory" class="small">Add category</button>
+        <button id="sortByOrder" class="small">Sort by Order</button>
+        <button id="renumber" class="small">Renumber</button>
+      </div>
+      <label class="check"><input id="autoRenumberDrag" type="checkbox" checked> Auto-renumber after drag</label>
+      <div class="status" id="listStatus"></div>
+    </div>
+    <div class="list" id="categoryList"></div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <input id="fileInput" class="hidden" type="file" accept=".txt,text/plain">
+      <button id="showImport">Import/Paste</button>
+      <button id="showExportCopy" class="primary">Export/Copy</button>
+      <button id="uploadFile">Upload</button>
+      <button id="downloadBase64">Download</button>
+      <button id="showRaw">Raw JSON</button>
+      <button id="lookupReferencedIds">Lookup IDs</button>
+      <label class="check"><input id="autoLookupImport" type="checkbox" checked> Auto-lookup imported IDs</label>
+      <span class="spacer"></span>
+      <span class="hidden" id="status" aria-live="polite"></span>
+    </div>
+
+    <section class="editor" id="editor">
+      <div class="card">
+        <h2>No category selected</h2>
+        <p class="hint">Import an existing AetherBags config, paste gzip+Base64, or add a new category from scratch. Referenced Item/UI Category IDs can be auto-matched to English names on import.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="modal-backdrop hidden" id="modalBackdrop">
+  <div class="modal">
+    <div class="row" style="justify-content: space-between; margin-bottom: 10px;">
+      <h2 id="modalTitle" style="margin:0;">Modal</h2>
+      <button id="closeModal">Close</button>
+    </div>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<div class="busy-overlay hidden" id="busyOverlay" aria-live="polite" aria-busy="true">
+  <div class="busy-spinner"></div>
+  <div>
+    <div class="busy-title" id="busyTitle">Working</div>
+    <div class="busy-detail" id="busyDetail">Working...</div>
+  </div>
+  <div class="busy-progress"><div class="busy-progress-fill indeterminate" id="busyProgressFill"></div></div>
+</div>
+
+<div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+
+<script src="app.js"></script>
+</body>
+</html>
