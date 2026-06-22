@@ -135,13 +135,35 @@
     padding: 7px 10px;
     font-size: inherit;
   }
+  .topbar-group-options,
+  .topbar-group-tools,
+  .topbar-group-help {
+    gap: 6px;
+    padding: 5px 7px;
+  }
+  .topbar-group-tools button,
+  .topbar-group-help button {
+    min-height: 32px;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+  .topbar-group-help .icon-button {
+    width: 32px;
+    padding-inline: 0;
+    border-radius: 10px;
+    font-weight: 700;
+    line-height: 1;
+  }
   .topbar-group-options .check {
     max-width: 220px;
+    font-size: 13px;
   }
   .topbar .spacer { flex: 1 1 24px; }
   @media (max-width: 760px) {
     .topbar { align-items: flex-start; }
     .topbar-group { flex: 1 1 100%; }
+    .topbar-group-tools,
+    .topbar-group-help { flex: 1 1 auto; }
     .topbar .spacer { display: none; }
   }
   .brand {
@@ -302,6 +324,65 @@
   .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .top-editor-grid {
+    container: top-editor / inline-size;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: stretch;
+  }
+  .top-editor-grid > .basics-card {
+    flex: 2 1 540px;
+    min-width: min(100%, 540px);
+  }
+  .top-editor-grid > .color-card {
+    flex: 1 1 540px;
+    min-width: min(100%, 540px);
+  }
+  @container top-editor (min-width: 1094px) {
+    .top-editor-grid > .color-card:not(.is-wrapped) {
+      max-width: min(100%, 702px);
+    }
+  }
+  .top-editor-grid > .color-card.is-wrapped {
+    max-width: none;
+  }
+  .basic-fields-grid {
+    margin-top: 12px;
+  }
+  .basic-meta-grid {
+    grid-template-columns: minmax(110px, 1fr) minmax(110px, 1fr) auto auto;
+    align-items: end;
+    margin-top: 12px;
+  }
+  .basic-meta-grid .check {
+    min-height: 36px;
+    align-items: center;
+  }
+  .rgb-grid {
+    grid-template-columns: repeat(3, minmax(4.5rem, 1fr));
+  }
+  .rgb-grid > div,
+  .rgb-grid input {
+    min-width: 4.5rem;
+  }
+  .alpha-slider-wrap {
+    display: grid;
+    gap: 6px;
+  }
+  .alpha-slider-label {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .alpha-slider-label label {
+    margin-bottom: 0;
+  }
+  .alpha-slider-label output {
+    color: var(--muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+  }
   .row {
     display: flex;
     gap: 8px;
@@ -390,13 +471,19 @@
   }
   .color-layout {
     display: grid;
-    grid-template-columns: 150px minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 14px;
-    align-items: start;
+    align-items: stretch;
+  }
+  .color-preview-field {
+    display: flex;
+    min-width: 0;
   }
   .color-preview {
-    width: 128px;
-    height: 128px;
+    height: 100%;
+    min-height: 190px;
+    width: auto;
+    aspect-ratio: 1;
     border-radius: 14px;
     border: 1px solid var(--border);
     background-image:
@@ -593,7 +680,7 @@
       height: 100vh;
     }
     .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
-    .grid.cols-2, .grid.cols-3, .grid.cols-4, .color-layout { grid-template-columns: 1fr; }
+    .grid.cols-2, .grid.cols-3, .grid.cols-4, .color-layout, .basic-meta-grid, .rgb-grid { grid-template-columns: 1fr; }
   }
   .rarity-checkbox-grid {
     display: grid;

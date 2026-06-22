@@ -43,20 +43,19 @@ function renderAllowedRaritiesEditor(cat, deps) {
 function renderColorSection(cat, deps) {
   const { renderAll, markDirty } = deps;
   const color = document.createElement('div');
-  color.className = 'card';
+  color.className = 'card color-card';
   color.innerHTML = '<h3>Color</h3>';
 
   const layout = document.createElement('div');
   layout.className = 'color-layout';
 
   const left = document.createElement('div');
+  left.className = 'color-preview-field';
   left.innerHTML = `
-    <label for="rgbPicker">Preview / color picker</label>
     <div class="color-preview" title="Click to open the color picker">
       <div class="color-fill" id="colorFill"></div>
       <input class="color-native-input" id="rgbPicker" type="color" value="${colorToHex(cat.Color)}" aria-label="Pick RGB color">
     </div>
-    <p class="hint" id="colorReadout" style="margin-bottom:0;"></p>
   `;
 
   const right = document.createElement('div');
@@ -66,7 +65,7 @@ function renderColorSection(cat, deps) {
   hexWrap.innerHTML = `<label for="hexColorInput">Hex RGBA</label><input id="hexColorInput" placeholder="#RRGGBBAA" value="${colorToHexRGBA(cat.Color).toUpperCase()}">`;
 
   const nums = document.createElement('div');
-  nums.className = 'grid cols-4';
+  nums.className = 'grid cols-3 rgb-grid';
 
   function makeRgbaNumber(label, getValue, setValue) {
     const wrap = document.createElement('div');
@@ -91,19 +90,29 @@ function renderColorSection(cat, deps) {
   nums.append(
     makeRgbaNumber('R', () => componentTo255(cat.Color.X), n => { cat.Color.X = n / 255; }),
     makeRgbaNumber('G', () => componentTo255(cat.Color.Y), n => { cat.Color.Y = n / 255; }),
-    makeRgbaNumber('B', () => componentTo255(cat.Color.Z), n => { cat.Color.Z = n / 255; }),
-    makeRgbaNumber('A', () => componentTo255(cat.Color.W), n => { cat.Color.W = n / 255; })
+    makeRgbaNumber('B', () => componentTo255(cat.Color.Z), n => { cat.Color.Z = n / 255; })
   );
 
-  right.append(hexWrap, nums);
+  const alphaWrap = document.createElement('div');
+  alphaWrap.className = 'alpha-slider-wrap';
+  alphaWrap.innerHTML = `
+    <div class="alpha-slider-label">
+      <label for="alphaSlider">A</label>
+      <output id="alphaValue" for="alphaSlider">${escapeHtml(componentTo255(cat.Color.W))}</output>
+    </div>
+    <input id="alphaSlider" type="range" min="0" max="255" step="1" value="${escapeHtml(componentTo255(cat.Color.W))}" aria-label="Alpha">
+  `;
+
+  right.append(hexWrap, nums, alphaWrap);
   layout.append(left, right);
   color.append(layout);
 
   setTimeout(() => {
     const fill = el('colorFill');
-    const readout = el('colorReadout');
     const picker = el('rgbPicker');
     const hexInput = el('hexColorInput');
+    const alphaSlider = el('alphaSlider');
+    const alphaValue = el('alphaValue');
 
     function validHex(value) {
       return /^#?[0-9a-fA-F]{8}$/.test(value.trim());
@@ -113,9 +122,10 @@ function renderColorSection(cat, deps) {
       const hex = colorToHexRGBA(cat.Color).toUpperCase();
       const a255 = componentTo255(cat.Color.W);
       fill.style.background = rgbaCss(cat.Color);
-      readout.textContent = `${hex} · RGBA(${componentTo255(cat.Color.X)}, ${componentTo255(cat.Color.Y)}, ${componentTo255(cat.Color.Z)}, ${a255})`;
       picker.value = colorToHex(cat.Color);
       hexInput.value = hex;
+      alphaSlider.value = String(a255);
+      alphaValue.textContent = String(a255);
     }
 
     picker.oninput = e => {
@@ -164,6 +174,15 @@ function renderColorSection(cat, deps) {
       }
     });
 
+    alphaSlider.oninput = e => {
+      const n = Number(e.target.value);
+      cat.Color.W = n / 255;
+      alphaValue.textContent = String(n);
+      updateColorVisuals();
+      markDirty();
+    };
+    alphaSlider.onchange = () => renderAll();
+
     updateColorVisuals();
     setHexValidity(hexInput.value);
   }, 0);
@@ -176,6 +195,8 @@ export function renderEditor(deps) {
   let selectedIndex = getSelectedIndex();
   const cats = getCategories();
   const root = el('editor');
+  root._topEditorLayoutCleanup?.();
+  root._topEditorLayoutCleanup = null;
   root.innerHTML = '';
 
   if (!cats.length) {
@@ -204,27 +225,46 @@ export function renderEditor(deps) {
   root.appendChild(header);
 
   const basics = document.createElement('div');
-  basics.className = 'card';
+  basics.className = 'card basics-card';
   basics.innerHTML = '<h3>Basics</h3>';
-  const checks = document.createElement('div');
-  checks.className = 'row';
-  checks.append(
+  const grid = document.createElement('div');
+  grid.className = 'grid basic-fields-grid';
+  grid.append(
+    textInput('Name', cat.Name, v => { cat.Name = v; markDirty(); }),
+    textInput('Description', cat.Description, v => { cat.Description = v; markDirty(); })
+  );
+
+  const metaGrid = document.createElement('div');
+  metaGrid.className = 'grid basic-meta-grid';
+  metaGrid.append(
+    numberInput('Order', cat.Order, v => { cat.Order = v; markDirty(); }),
+    numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirty(); }),
     checkbox('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirty(); }),
     checkbox('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirty(); })
   );
 
-  const grid = document.createElement('div');
-  grid.className = 'grid cols-2';
-  grid.append(
-    textInput('Name', cat.Name, v => { cat.Name = v; markDirty(); }),
-    textInput('Description', cat.Description, v => { cat.Description = v; markDirty(); }),
-    numberInput('Order', cat.Order, v => { cat.Order = v; markDirty(); }),
-    numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirty(); })
-  );
-  basics.append(checks, grid);
-  root.appendChild(basics);
+  basics.append(grid, metaGrid);
 
-  root.appendChild(renderColorSection(cat, deps));
+  const topEditorGrid = document.createElement('div');
+  topEditorGrid.className = 'top-editor-grid';
+  const colorCard = renderColorSection(cat, deps);
+  topEditorGrid.append(basics, colorCard);
+  root.appendChild(topEditorGrid);
+
+  function syncColorWrapState() {
+    colorCard.classList.toggle('is-wrapped', colorCard.offsetTop > basics.offsetTop);
+  }
+  requestAnimationFrame(syncColorWrapState);
+  if ('ResizeObserver' in window) {
+    const observer = new ResizeObserver(syncColorWrapState);
+    observer.observe(topEditorGrid);
+    observer.observe(basics);
+    observer.observe(colorCard);
+    root._topEditorLayoutCleanup = () => observer.disconnect();
+  } else {
+    window.addEventListener('resize', syncColorWrapState);
+    root._topEditorLayoutCleanup = () => window.removeEventListener('resize', syncColorWrapState);
+  }
 
   const rules = cat.Rules;
   const ruleGrid = document.createElement('div');
