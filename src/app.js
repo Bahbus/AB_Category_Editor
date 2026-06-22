@@ -49,6 +49,18 @@ function errorMessage(prefix, err) {
   return `${prefix}: ${err.message}`;
 }
 
+function confirmReplacingCurrentWork() {
+  if (!dirty) return Promise.resolve(true);
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `<p class="hint">Current unexported changes will be replaced. Export or download them first if you want to keep them.</p><div class="row" style="margin-top:8px;"><button id="confirmReplaceWork" class="danger">Replace current data</button><button id="cancelReplaceWork">Cancel</button></div>`;
+  return new Promise(resolve => {
+    let confirmed = false;
+    openModal('Replace current data?', wrap, { onClose: () => resolve(confirmed) });
+    document.getElementById('confirmReplaceWork').onclick = () => { confirmed = true; closeModal(); };
+    document.getElementById('cancelReplaceWork').onclick = () => closeModal();
+  });
+}
+
 function updateExportControls() {
   const disabled = getCategories().length === 0;
   for (const id of ['showExportCopy', 'downloadBase64']) {
@@ -88,7 +100,7 @@ async function lookupReferencedIds(options = {}) {
   const total = countReferencedIds(ids);
   const uncached = countUncachedReferencedIds(ids, lookupName);
   if (!total) { if (!quiet) setStatus('No referenced Item/UI Category IDs to look up.', 'warn'); return; }
-  if (!uncached) { if (!quiet) setStatus(`All ${total} referenced ID name(s) already cached.`, 'ok'); renderAll(); return; }
+  if (!uncached) { if (!quiet) setStatus(`All ${total} referenced ID name(s) already cached.`, 'ok'); commitActiveField(); renderAll(); return; }
   const lookupButton = el('lookupReferencedIds');
   if (lookupButton) lookupButton.disabled = true;
   const failures = [];
@@ -101,7 +113,7 @@ async function lookupReferencedIds(options = {}) {
       const batchFailures = await fetchLookupBatch(sheet, missing, { onProgress(doneForSheet, totalForSheet) { const done = Math.min(uncached, priorCached + doneForSheet); const percent = uncached ? (done / uncached) * 100 : 100; updateBusy(`${done}/${uncached} checked · ${sheetLabel(sheet)} batch ${Math.ceil(doneForSheet / LOOKUP_BATCH_SIZE)}/${Math.ceil(totalForSheet / LOOKUP_BATCH_SIZE)}`, percent); } });
       failures.push(...batchFailures.map(failure => `${failure.sheet} ${failure.id}`));
     }
-    saveLookupCache(); renderAll();
+    saveLookupCache(); commitActiveField(); renderAll();
     if (failures.length) { const shown = failures.slice(0, 5).join(', '); const more = failures.length > 5 ? `, +${failures.length - 5} more` : ''; setStatus(`Lookup finished with ${failures.length} failure(s): ${shown}${more}`, 'warn'); }
     else setStatus(`Lookup complete: ${uncached} new name(s) cached.`, 'ok');
   } finally { hideBusy(); if (lookupButton) lookupButton.disabled = false; }
@@ -115,12 +127,16 @@ function maybeAutoLookupImportedIds() {
 
 async function importText(text, sourceLabel='Import') {
   const parsed = await parseImportedText(text);
-  const importSummary = applyValidatedConfig(validateConfig(parsed));
+  const validation = validateConfig(parsed);
+  if (!(await confirmReplacingCurrentWork())) return false;
+  const importSummary = applyValidatedConfig(validation);
   selectedIndex = getCategories().length ? 0 : -1;
   markSaved('No changes');
   setStatus(sourceLabel ? `${sourceLabel}: ${importSummary}` : importSummary, 'ok');
+  commitActiveField();
   renderAll();
   maybeAutoLookupImportedIds();
+  return true;
 }
 
 el('search').oninput = renderList;
@@ -162,24 +178,59 @@ el('downloadBase64').onclick = async () => {
   finally { hideBusy(); }
 };
 
-el('fileInput').onchange = async e => { commitActiveField(); const file = e.target.files[0]; if (!file) return; try { await importText(await file.text(), file.name); } catch (err) { setStatus(errorMessage('Could not load file', err), 'err'); } };
+el('fileInput').onchange = async e => {
+  commitActiveField();
+  const file = e.target.files[0];
+  if (!file) return;
+  try {
+    await importText(await file.text(), file.name);
+  } catch (err) { setStatus(errorMessage('Could not load file', err), 'err'); }
+};
 
-el('showImport').onclick = () => {
+function showImportModal(initialText = '') {
   commitActiveField();
   const wrap = document.createElement('div');
-  wrap.innerHTML = `<p class="hint">Paste either formatted JSON or the gzip+Base64 blob. Then click Import.</p><div id="importError" class="modal-error hidden" role="alert"></div><textarea id="importText" class="raw" placeholder="Paste JSON or gzip+Base64 here"></textarea><div class="row" style="margin-top:8px;"><button id="importNow" class="primary">Import</button></div>`;
+  wrap.innerHTML = `<p class="hint">Paste either formatted JSON or the gzip+Base64 blob. Then click Import.</p><div id="importError" class="modal-error hidden" role="alert"></div><textarea id="importText" class="raw" placeholder="Paste JSON or gzip+Base64 here">${escapeHtml(initialText)}</textarea><div class="row" style="margin-top:8px;"><button id="importNow" class="primary">Import</button></div>`;
   openModal('Import / Paste', wrap);
-  document.getElementById('importNow').onclick = async () => { commitActiveField(); try { setInlineError('importError', ''); await importText(document.getElementById('importText').value.trim(), ''); closeModal(); } catch (err) { const message = errorMessage('Import failed', err); setInlineError('importError', message); setStatus(message, 'err'); } };
-};
+  document.getElementById('importNow').onclick = async () => {
+    commitActiveField();
+    const text = document.getElementById('importText').value.trim();
+    try {
+      setInlineError('importError', '');
+      if (!(await importText(text, ''))) { showImportModal(text); return; }
+      closeModal();
+    } catch (err) { const message = errorMessage('Import failed', err); setInlineError('importError', message); setStatus(message, 'err'); }
+  };
+}
 
-el('showRaw').onclick = () => {
+el('showImport').onclick = () => showImportModal();
+
+function showRawModal(initialText = JSON.stringify(data, null, 2), initialError = '') {
   commitActiveField();
   const wrap = document.createElement('div');
-  wrap.innerHTML = `<p class="hint">This is the full JSON config. Edit carefully; invalid JSON cannot be applied.</p><textarea id="rawFull" class="raw">${escapeHtml(JSON.stringify(data, null, 2))}</textarea><div class="row" style="margin-top:8px;"><button id="applyRawFull" class="primary">Apply full JSON</button><button id="copyRawFull">Copy</button></div><p class="hint" id="rawCopyStatus"></p>`;
+  wrap.innerHTML = `<p class="hint">This is the full JSON config. Edit carefully; invalid JSON cannot be applied.</p><div id="rawError" class="modal-error hidden" role="alert"></div><textarea id="rawFull" class="raw">${escapeHtml(initialText)}</textarea><div class="row" style="margin-top:8px;"><button id="applyRawFull" class="primary">Apply full JSON</button><button id="copyRawFull">Copy</button></div><p class="hint" id="rawCopyStatus"></p>`;
   openModal('Raw JSON', wrap);
-  document.getElementById('applyRawFull').onclick = () => { commitActiveField(); try { applyValidatedConfig(validateConfig(JSON.parse(document.getElementById('rawFull').value))); selectedIndex = getCategories().length ? 0 : -1; closeModal(); markDirty(); renderAll(); maybeAutoLookupImportedIds(); } catch (err) { setStatus(errorMessage('Invalid full JSON', err), 'err'); } };
+  setInlineError('rawError', initialError);
+  document.getElementById('applyRawFull').onclick = async () => {
+    commitActiveField();
+    const text = document.getElementById('rawFull').value;
+    let validation;
+    try { validation = validateConfig(JSON.parse(text)); }
+    catch (err) { const message = errorMessage('Invalid full JSON', err); setInlineError('rawError', message); setStatus(message, 'err'); return; }
+    setInlineError('rawError', '');
+    if (!(await confirmReplacingCurrentWork())) { showRawModal(text); return; }
+    applyValidatedConfig(validation);
+    selectedIndex = getCategories().length ? 0 : -1;
+    closeModal();
+    markDirty();
+    commitActiveField();
+    renderAll();
+    maybeAutoLookupImportedIds();
+  };
   document.getElementById('copyRawFull').onclick = async () => { commitActiveField(); const ok = await copyTextToClipboard(document.getElementById('rawFull').value); document.getElementById('rawCopyStatus').textContent = ok ? 'Copied to clipboard.' : 'Copy failed. Select the text manually.'; setStatus(ok ? 'Copied full JSON' : 'Copy failed. Select the text manually.', ok ? 'ok' : 'warn'); };
-};
+}
+
+el('showRaw').onclick = () => showRawModal();
 
 el('closeModal').onclick = closeModal;
 el('modalBackdrop').onclick = e => { if (e.target === el('modalBackdrop')) closeModal(); };

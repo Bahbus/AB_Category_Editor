@@ -30,7 +30,7 @@
   <main class="main">
     <div class="topbar" aria-label="Editor controls">
       <input id="fileInput" class="hidden" type="file" accept=".txt,.json,.base64,.b64,text/plain,application/json">
-      <div class="topbar-group topbar-group-file" aria-label="File and data controls">
+      <div class="topbar-group topbar-group-file" role="group" aria-label="File and data controls">
         <span class="topbar-group-label">File / Data</span>
         <button id="showImport">Import/Paste</button>
         <button id="uploadFile">Upload</button>
@@ -38,17 +38,17 @@
         <button id="downloadBase64">Download</button>
         <button id="showRaw">Raw JSON</button>
       </div>
-      <div class="topbar-group topbar-group-options" aria-label="Import options">
+      <span class="spacer" aria-hidden="true"></span>
+      <div class="topbar-group topbar-group-options" role="group" aria-label="Import options">
         <span class="topbar-group-label">Options</span>
         <label class="check"><input id="autoLookupImport" type="checkbox" checked> Auto-lookup imported IDs</label>
       </div>
-      <div class="topbar-group topbar-group-tools" aria-label="Lookup tools">
+      <div class="topbar-group topbar-group-tools" role="group" aria-label="Lookup tools">
         <span class="topbar-group-label">Tools</span>
         <button id="lookupReferencedIds">Lookup IDs</button>
         <button id="showLookupCache">Lookup Cache</button>
       </div>
-      <span class="spacer"></span>
-      <div class="topbar-group topbar-group-help" aria-label="Help">
+      <div class="topbar-group topbar-group-help" role="group" aria-label="Help">
         <span class="topbar-group-label">Help</span>
         <button id="showHelp">About / Help</button>
       </div>
