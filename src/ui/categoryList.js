@@ -1,0 +1,155 @@
+import { el, escapeHtml } from '../dom.js';
+import { clamp01, rgbaCssWithMinimumAlpha } from '../color.js';
+
+function getCategorySearchText() {
+  const search = el('search');
+  return search ? search.value.trim() : '';
+}
+
+function isCategorySearchActive() {
+  return getCategorySearchText().length > 0;
+}
+
+function getCategoryDisplayName(cat) {
+  return cat.Name || '(unnamed)';
+}
+
+function getCategoryDescriptionText(cat) {
+  return String(cat.Description ?? '').trim();
+}
+
+function getCategorySubtitle(cat) {
+  const order = `#${cat.Order ?? ''}`;
+  const description = getCategoryDescriptionText(cat);
+  return description ? `${order} · ${description}` : `${order} · No description`;
+}
+
+function getCategorySubtitleTitle(cat) {
+  return getCategoryDescriptionText(cat) || 'No description';
+}
+
+function clearDropClasses() {
+  document.querySelectorAll('.cat-item.drop-before, .cat-item.drop-after').forEach(node => {
+    node.classList.remove('drop-before', 'drop-after');
+  });
+}
+
+export function renderCategoryList({
+  data,
+  getCategories,
+  ensureShape,
+  getSelectedIndex,
+  setSelectedIndex,
+  getDraggedIndex,
+  setDraggedIndex,
+  renumberCategories,
+  markDirty,
+  renderAll
+}) {
+  function filteredCategoryEntries() {
+    const cats = getCategories();
+    const q = getCategorySearchText().toLowerCase();
+    return cats.map((cat, idx) => { ensureShape(cat); return {cat, idx}; }).filter(({cat}) => {
+      const hay = [
+        cat.Name, cat.Description, cat.Id,
+        ...(cat.Rules?.AllowedItemNamePatterns || []),
+        ...(cat.Rules?.AllowedUiCategoryIds || []).map(String),
+        ...(cat.Rules?.AllowedItemIds || []).map(String)
+      ].join(' ').toLowerCase();
+      return !q || hay.includes(q);
+    });
+  }
+
+  function moveCategory(from, to, before) {
+    const cats = getCategories();
+    if (from < 0 || from >= cats.length || to < 0 || to >= cats.length) return;
+    const [moved] = cats.splice(from, 1);
+    let insertAt = to;
+    if (from < to) insertAt--;
+    if (!before) insertAt++;
+    insertAt = Math.max(0, Math.min(cats.length, insertAt));
+    cats.splice(insertAt, 0, moved);
+    setSelectedIndex(insertAt);
+    if (el('autoRenumberDrag').checked) renumberCategories();
+    markDirty('Category reordered');
+    renderAll();
+  }
+
+  const cats = getCategories();
+  el('format').textContent = `${data.Format || 'Unknown format'} v${data.Version ?? '?' }`;
+  el('count').textContent = cats.length;
+  const list = el('categoryList');
+  list.innerHTML = '';
+
+  const entries = filteredCategoryEntries();
+  const searchActive = isCategorySearchActive();
+  entries.forEach(({cat, idx}) => {
+    const item = document.createElement('div');
+    const displayName = getCategoryDisplayName(cat);
+    const subtitle = getCategorySubtitle(cat);
+    const subtitleTitle = getCategorySubtitleTitle(cat);
+
+    item.className = 'cat-item' + (idx === getSelectedIndex() ? ' active' : '') + (searchActive ? ' reorder-disabled' : '');
+    item.draggable = !searchActive;
+    item.dataset.index = String(idx);
+    item.style.setProperty('--category-color', rgbaCssWithMinimumAlpha(cat.Color, 0.35));
+    item.style.setProperty('--category-tint', rgbaCssWithMinimumAlpha({...cat.Color, W: Math.min(clamp01(cat.Color.W) * 0.16, 0.12)}, 0.035));
+
+    item.onclick = () => {
+      setSelectedIndex(idx);
+      renderAll();
+    };
+
+    item.ondragstart = ev => {
+      if (searchActive) {
+        ev.preventDefault();
+        return;
+      }
+      setDraggedIndex(idx);
+      item.classList.add('dragging');
+      ev.dataTransfer.effectAllowed = 'move';
+      ev.dataTransfer.setData('text/plain', String(idx));
+    };
+    item.ondragend = () => {
+      setDraggedIndex(null);
+      clearDropClasses();
+      item.classList.remove('dragging');
+    };
+    item.ondragover = ev => {
+      if (searchActive) return;
+      ev.preventDefault();
+      if (getDraggedIndex() === null || getDraggedIndex() === idx) return;
+      clearDropClasses();
+      const rect = item.getBoundingClientRect();
+      const before = ev.clientY < rect.top + rect.height / 2;
+      item.classList.add(before ? 'drop-before' : 'drop-after');
+    };
+    item.ondrop = ev => {
+      if (searchActive) return;
+      ev.preventDefault();
+      const from = getDraggedIndex() ?? Number(ev.dataTransfer.getData('text/plain'));
+      const to = idx;
+      if (Number.isNaN(from) || from === to) return;
+      const rect = item.getBoundingClientRect();
+      const before = ev.clientY < rect.top + rect.height / 2;
+      moveCategory(from, to, before);
+    };
+
+    item.innerHTML = `
+      <div class="drag-handle" title="${searchActive ? 'Clear search to reorder' : 'Drag to reorder'}">☰</div>
+      <div class="cat-text">
+        <div class="cat-name" title="${escapeHtml(displayName)}">${escapeHtml(displayName)}</div>
+        <div class="cat-desc" title="${escapeHtml(subtitleTitle)}">${escapeHtml(subtitle)}</div>
+      </div>
+      <div class="badges">
+        <span class="badge ${cat.Enabled ? 'on' : ''}">${cat.Enabled ? 'on' : 'off'}</span>
+        ${cat.Pinned ? '<span class="badge pin">pin</span>' : ''}
+      </div>
+    `;
+    list.appendChild(item);
+  });
+
+  el('listStatus').textContent = searchActive
+    ? `${entries.length} shown · clear search to reorder`
+    : `${entries.length} shown · drag categories to reorder`;
+}
