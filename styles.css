@@ -421,6 +421,15 @@
     padding: 16px;
     box-shadow: 0 20px 60px rgba(0,0,0,.45);
   }
+  .cache-counts {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg);
+  }
   .file {
     width: auto;
   }
