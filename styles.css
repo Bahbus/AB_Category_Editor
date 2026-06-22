@@ -359,12 +359,29 @@
     min-height: 36px;
     align-items: center;
   }
-  .rgba-grid {
-    grid-template-columns: repeat(4, minmax(4.5rem, 1fr));
+  .rgb-grid {
+    grid-template-columns: repeat(3, minmax(4.5rem, 1fr));
   }
-  .rgba-grid > div,
-  .rgba-grid input {
+  .rgb-grid > div,
+  .rgb-grid input {
     min-width: 4.5rem;
+  }
+  .alpha-slider-wrap {
+    display: grid;
+    gap: 6px;
+  }
+  .alpha-slider-label {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .alpha-slider-label label {
+    margin-bottom: 0;
+  }
+  .alpha-slider-label output {
+    color: var(--muted);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
   }
   .row {
     display: flex;
@@ -657,7 +674,7 @@
       height: 100vh;
     }
     .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
-    .grid.cols-2, .grid.cols-3, .grid.cols-4, .color-layout, .basic-meta-grid, .rgba-grid { grid-template-columns: 1fr; }
+    .grid.cols-2, .grid.cols-3, .grid.cols-4, .color-layout, .basic-meta-grid, .rgb-grid { grid-template-columns: 1fr; }
   }
   .rarity-checkbox-grid {
     display: grid;

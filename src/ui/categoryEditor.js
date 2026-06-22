@@ -66,7 +66,7 @@ function renderColorSection(cat, deps) {
   hexWrap.innerHTML = `<label for="hexColorInput">Hex RGBA</label><input id="hexColorInput" placeholder="#RRGGBBAA" value="${colorToHexRGBA(cat.Color).toUpperCase()}">`;
 
   const nums = document.createElement('div');
-  nums.className = 'grid cols-4 rgba-grid';
+  nums.className = 'grid cols-3 rgb-grid';
 
   function makeRgbaNumber(label, getValue, setValue) {
     const wrap = document.createElement('div');
@@ -91,11 +91,20 @@ function renderColorSection(cat, deps) {
   nums.append(
     makeRgbaNumber('R', () => componentTo255(cat.Color.X), n => { cat.Color.X = n / 255; }),
     makeRgbaNumber('G', () => componentTo255(cat.Color.Y), n => { cat.Color.Y = n / 255; }),
-    makeRgbaNumber('B', () => componentTo255(cat.Color.Z), n => { cat.Color.Z = n / 255; }),
-    makeRgbaNumber('A', () => componentTo255(cat.Color.W), n => { cat.Color.W = n / 255; })
+    makeRgbaNumber('B', () => componentTo255(cat.Color.Z), n => { cat.Color.Z = n / 255; })
   );
 
-  right.append(hexWrap, nums);
+  const alphaWrap = document.createElement('div');
+  alphaWrap.className = 'alpha-slider-wrap';
+  alphaWrap.innerHTML = `
+    <div class="alpha-slider-label">
+      <label for="alphaSlider">A</label>
+      <output id="alphaValue" for="alphaSlider">${escapeHtml(componentTo255(cat.Color.W))}</output>
+    </div>
+    <input id="alphaSlider" type="range" min="0" max="255" step="1" value="${escapeHtml(componentTo255(cat.Color.W))}" aria-label="Alpha">
+  `;
+
+  right.append(hexWrap, nums, alphaWrap);
   layout.append(left, right);
   color.append(layout);
 
@@ -104,6 +113,8 @@ function renderColorSection(cat, deps) {
     const readout = el('colorReadout');
     const picker = el('rgbPicker');
     const hexInput = el('hexColorInput');
+    const alphaSlider = el('alphaSlider');
+    const alphaValue = el('alphaValue');
 
     function validHex(value) {
       return /^#?[0-9a-fA-F]{8}$/.test(value.trim());
@@ -116,6 +127,8 @@ function renderColorSection(cat, deps) {
       readout.textContent = `${hex} · RGBA(${componentTo255(cat.Color.X)}, ${componentTo255(cat.Color.Y)}, ${componentTo255(cat.Color.Z)}, ${a255})`;
       picker.value = colorToHex(cat.Color);
       hexInput.value = hex;
+      alphaSlider.value = String(a255);
+      alphaValue.textContent = String(a255);
     }
 
     picker.oninput = e => {
@@ -163,6 +176,15 @@ function renderColorSection(cat, deps) {
         applyHexInput();
       }
     });
+
+    alphaSlider.oninput = e => {
+      const n = Number(e.target.value);
+      cat.Color.W = n / 255;
+      alphaValue.textContent = String(n);
+      updateColorVisuals();
+      markDirty();
+    };
+    alphaSlider.onchange = () => renderAll();
 
     updateColorVisuals();
     setHexValidity(hexInput.value);
