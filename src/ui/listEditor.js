@@ -2,42 +2,189 @@ import { escapeHtml, setStatus, showBusy, updateBusy, hideBusy } from '../dom.js
 import { sheetLabel, normalizeLookupIds } from '../xivapi.js';
 
 export function listEditor(title, arr, parser, formatter, options = {}) {
-  const { hint='', lookupSheet=null, lookupName, fetchLookupBatch, searchXivapi, lookupCache, saveLookupCache, markDirty } = options;
+  const {
+    hint = '',
+    lookupSheet = null,
+    lookupName,
+    fetchLookupBatch,
+    searchXivapi,
+    lookupCache,
+    saveLookupCache,
+    markDirty
+  } = options;
+
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = `<h3>${escapeHtml(title)}</h3>${hint ? `<p class="hint">${escapeHtml(hint)}</p>` : ''}`;
+
   const pills = document.createElement('div');
   pills.className = 'pill-list';
+
   function renderPills() {
     pills.innerHTML = '';
+
     arr.forEach((v, i) => {
       const pill = document.createElement('span');
       pill.className = 'pill';
       let extra = '';
+
       if (lookupSheet) {
         const name = lookupName(lookupSheet, v);
         extra = name ? ` <span class="pill-name">— ${escapeHtml(name)}</span>` : ' <span class="pill-name">— not looked up</span>';
       }
+
       pill.innerHTML = `<span>${escapeHtml(formatter(v))}</span>${extra}<button title="Remove">×</button>`;
-      pill.querySelector('button').onclick = () => { arr.splice(i, 1); markDirty(`${title} updated`); renderPills(); };
+      pill.querySelector('button').onclick = () => {
+        arr.splice(i, 1);
+        markDirty(`${title} updated`);
+        renderPills();
+      };
       pills.appendChild(pill);
     });
-    if (!arr.length) { const empty = document.createElement('span'); empty.className = 'hint'; empty.textContent = 'Empty'; pills.appendChild(empty); }
+
+    if (!arr.length) {
+      const empty = document.createElement('span');
+      empty.className = 'hint';
+      empty.textContent = 'Empty';
+      pills.appendChild(empty);
+    }
   }
-  const row = document.createElement('div'); row.className = 'row'; row.style.marginTop = '10px';
-  const input = document.createElement('input'); input.style.width = 'min(420px, 100%)'; input.placeholder = 'Add one value, or comma-separated values';
-  const add = document.createElement('button'); add.textContent = 'Add';
-  add.onclick = () => { const raw = input.value.trim(); if (!raw) return; const parts = raw.includes(',') ? raw.split(',').map(x => x.trim()).filter(Boolean) : [raw]; try { for (const part of parts) arr.push(parser(part)); input.value = ''; markDirty(`${title} updated`); renderPills(); } catch (err) { setStatus(err.message, 'err'); } };
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); add.click(); } });
+
+  const row = document.createElement('div');
+  row.className = 'row';
+  row.style.marginTop = '10px';
+
+  const input = document.createElement('input');
+  input.style.width = 'min(420px, 100%)';
+  input.placeholder = 'Add one value, or comma-separated values';
+
+  const add = document.createElement('button');
+  add.textContent = 'Add';
+  add.onclick = () => {
+    const raw = input.value.trim();
+    if (!raw) return;
+
+    const parts = raw.includes(',')
+      ? raw.split(',').map(x => x.trim()).filter(Boolean)
+      : [raw];
+
+    try {
+      for (const part of parts) arr.push(parser(part));
+      input.value = '';
+      markDirty(`${title} updated`);
+      renderPills();
+    } catch (err) {
+      setStatus(err.message, 'err');
+    }
+  };
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      add.click();
+    }
+  });
+
   row.append(input, add);
+
   if (lookupSheet) {
-    const lookupButton = document.createElement('button'); lookupButton.textContent = `Lookup ${sheetLabel(lookupSheet)} names`;
-    lookupButton.onclick = async () => { try { lookupButton.disabled = true; const ids = normalizeLookupIds(arr); const missing = ids.filter(id => !lookupName(lookupSheet, id)); showBusy(`Looking up ${sheetLabel(lookupSheet)} names`, `0/${missing.length} uncached checked`, 0); if (missing.length) { const failures = await fetchLookupBatch(lookupSheet, missing, { onProgress(done, total) { const percent = total ? (done / total) * 100 : 100; setStatus(`Looked up ${done}/${total} uncached ${sheetLabel(lookupSheet)} ID(s)...`); updateBusy(`${done}/${total} uncached checked`, percent); } }); if (failures.length) { const shown = failures.slice(0, 5).map(failure => `#${failure.id}`).join(', '); const more = failures.length > 5 ? `, +${failures.length - 5} more` : ''; setStatus(`${sheetLabel(lookupSheet)} lookup finished with ${failures.length} failure(s): ${shown}${more}`, 'warn'); } else setStatus(`${sheetLabel(lookupSheet)} lookup complete`, 'ok'); } else setStatus(`All ${ids.length} ${sheetLabel(lookupSheet)} name(s) already cached.`, 'ok'); renderPills(); } catch (err) { setStatus(err.message, 'err'); } finally { hideBusy(); lookupButton.disabled = false; } };
+    const lookupButton = document.createElement('button');
+    lookupButton.textContent = `Lookup ${sheetLabel(lookupSheet)} names`;
+    lookupButton.onclick = async () => {
+      try {
+        lookupButton.disabled = true;
+        const ids = normalizeLookupIds(arr);
+        const missing = ids.filter(id => !lookupName(lookupSheet, id));
+        showBusy(`Looking up ${sheetLabel(lookupSheet)} names`, `0/${missing.length} uncached checked`, 0);
+
+        if (missing.length) {
+          const failures = await fetchLookupBatch(lookupSheet, missing, {
+            onProgress(done, total) {
+              const percent = total ? (done / total) * 100 : 100;
+              setStatus(`Looked up ${done}/${total} uncached ${sheetLabel(lookupSheet)} ID(s)...`);
+              updateBusy(`${done}/${total} uncached checked`, percent);
+            }
+          });
+
+          if (failures.length) {
+            const shown = failures.slice(0, 5).map(failure => `#${failure.id}`).join(', ');
+            const more = failures.length > 5 ? `, +${failures.length - 5} more` : '';
+            setStatus(`${sheetLabel(lookupSheet)} lookup finished with ${failures.length} failure(s): ${shown}${more}`, 'warn');
+          } else {
+            setStatus(`${sheetLabel(lookupSheet)} lookup complete`, 'ok');
+          }
+        } else {
+          setStatus(`All ${ids.length} ${sheetLabel(lookupSheet)} name(s) already cached.`, 'ok');
+        }
+
+        renderPills();
+      } catch (err) {
+        setStatus(err.message, 'err');
+      } finally {
+        hideBusy();
+        lookupButton.disabled = false;
+      }
+    };
     row.append(lookupButton);
-    const searchWrap = document.createElement('div'); searchWrap.style.marginTop = '10px'; searchWrap.innerHTML = `<label>Search ${escapeHtml(sheetLabel(lookupSheet))} by English name</label><div class="row"><input class="lookupSearchInput" style="width:min(420px, 100%)" placeholder="Example: potion, materia, weapon"><button class="lookupSearchButton">Search</button></div><div class="lookup-results"></div>`;
-    const searchInput = searchWrap.querySelector('.lookupSearchInput'); const searchButton = searchWrap.querySelector('.lookupSearchButton'); const resultsBox = searchWrap.querySelector('.lookup-results');
-    searchButton.onclick = async () => { const query = searchInput.value.trim(); if (!query) return; try { searchButton.disabled = true; resultsBox.innerHTML = '<span class="hint">Searching...</span>'; const results = await searchXivapi(lookupSheet, query); resultsBox.innerHTML = ''; if (!results.length) { resultsBox.innerHTML = '<span class="hint">No results.</span>'; return; } for (const result of results) { const id = result.row_id; const name = result.fields?.Name || '(unnamed)'; const cache = lookupCache[lookupSheet] || (lookupCache[lookupSheet] = {}); cache[String(id)] = name; saveLookupCache(); const r = document.createElement('div'); r.className = 'lookup-row'; r.innerHTML = `<span>#${escapeHtml(id)}</span><span>${escapeHtml(name)}</span><button class="small">Add</button>`; r.querySelector('button').onclick = () => { if (!arr.includes(id)) { arr.push(id); markDirty(`${title} updated`); renderPills(); } }; resultsBox.appendChild(r); } setStatus(`Search complete`, 'ok'); } catch (err) { resultsBox.innerHTML = ''; setStatus(err.message, 'err'); } finally { searchButton.disabled = false; } };
+
+    const searchWrap = document.createElement('div');
+    searchWrap.style.marginTop = '10px';
+    searchWrap.innerHTML = `<label>Search ${escapeHtml(sheetLabel(lookupSheet))} by English name</label><div class="row"><input class="lookupSearchInput" style="width:min(420px, 100%)" placeholder="Example: potion, materia, weapon"><button class="lookupSearchButton">Search</button></div><div class="lookup-results"></div>`;
+
+    const searchInput = searchWrap.querySelector('.lookupSearchInput');
+    const searchButton = searchWrap.querySelector('.lookupSearchButton');
+    const resultsBox = searchWrap.querySelector('.lookup-results');
+
+    searchButton.onclick = async () => {
+      const query = searchInput.value.trim();
+      if (!query) return;
+
+      try {
+        searchButton.disabled = true;
+        resultsBox.innerHTML = '<span class="hint">Searching...</span>';
+
+        const results = await searchXivapi(lookupSheet, query);
+        resultsBox.innerHTML = '';
+
+        if (!results.length) {
+          resultsBox.innerHTML = '<span class="hint">No results.</span>';
+          return;
+        }
+
+        for (const result of results) {
+          const id = result.row_id;
+          const name = result.fields?.Name || '(unnamed)';
+          const cache = lookupCache[lookupSheet] || (lookupCache[lookupSheet] = {});
+          cache[String(id)] = name;
+          saveLookupCache();
+
+          const r = document.createElement('div');
+          r.className = 'lookup-row';
+          r.innerHTML = `<span>#${escapeHtml(id)}</span><span>${escapeHtml(name)}</span><button class="small">Add</button>`;
+          r.querySelector('button').onclick = () => {
+            if (!arr.includes(id)) {
+              arr.push(id);
+              markDirty(`${title} updated`);
+              renderPills();
+            }
+          };
+          resultsBox.appendChild(r);
+        }
+
+        setStatus(`Search complete`, 'ok');
+      } catch (err) {
+        resultsBox.innerHTML = '';
+        setStatus(err.message, 'err');
+      } finally {
+        searchButton.disabled = false;
+      }
+    };
+
     card.append(pills, row, searchWrap);
-  } else card.append(pills, row);
-  renderPills(); return card;
+  } else {
+    card.append(pills, row);
+  }
+
+  renderPills();
+  return card;
 }

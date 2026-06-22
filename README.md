@@ -29,3 +29,8 @@ Published page: <https://bahbus.github.io/AB_Category_Editor/>
 - The app stores lookup names in browser `localStorage` so repeated item/category lookups are faster.
 - XIVAPI is contacted only for item/category name lookups, search queries, and item sheet scans used by Regex → Item IDs.
 - The app does not upload the full category config to this repository.
+
+## Development checks
+
+- Run regression tests with `node --test`.
+- Check relative module imports with `node scripts/check-imports.mjs`.
