@@ -222,13 +222,15 @@ export function renderEditor(deps) {
     numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirty(); })
   );
   basics.append(checks, grid);
-  root.appendChild(basics);
 
-  root.appendChild(renderColorSection(cat, deps));
+  const overviewGrid = document.createElement('div');
+  overviewGrid.className = 'editor-card-grid overview-grid';
+  overviewGrid.append(basics, renderColorSection(cat, deps));
+  root.appendChild(overviewGrid);
 
   const rules = cat.Rules;
   const ruleGrid = document.createElement('div');
-  ruleGrid.className = 'grid cols-2';
+  ruleGrid.className = 'editor-card-grid rules-grid';
   ruleGrid.append(
     listEditor('Allowed UI Category IDs', rules.AllowedUiCategoryIds, x => {
       if (!/^-?\d+$/.test(x)) throw new Error('UI category IDs must be integers.');
@@ -262,7 +264,7 @@ export function renderEditor(deps) {
   ranges.className = 'card';
   ranges.innerHTML = '<summary>Range Filters</summary><div class="details-body"></div>';
   const rangeGrid = document.createElement('div');
-  rangeGrid.className = 'grid cols-3';
+  rangeGrid.className = 'editor-card-grid compact-card-grid';
   for (const key of ['Level','ItemLevel','VendorPrice']) {
     const obj = rules[key];
     const box = document.createElement('div');
@@ -282,7 +284,7 @@ export function renderEditor(deps) {
   bools.className = 'card';
   bools.innerHTML = '<summary>State Filters</summary><div class="details-body"></div>';
   const boolGrid = document.createElement('div');
-  boolGrid.className = 'grid cols-3';
+  boolGrid.className = 'editor-card-grid compact-card-grid';
 
   function stateSelect(filterName, obj) {
     if (typeof obj.State !== 'number') obj.State = 0;

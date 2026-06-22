@@ -678,3 +678,45 @@
     .duplicate-row { grid-template-columns: 1fr; }
     body.compact-mode .topbar-group { flex: 1 1 100%; }
   }
+
+  .editor-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
+    gap: 14px;
+    align-items: start;
+  }
+  .overview-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  }
+  .rules-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  }
+  .compact-card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  }
+  body.compact-mode .editor-card-grid {
+    gap: 9px;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  }
+  body.compact-mode .overview-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  }
+  body.compact-mode .rules-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  }
+  body.compact-mode .compact-card-grid {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr));
+  }
+
+  @media (max-width: 760px) {
+    .editor-card-grid,
+    .overview-grid,
+    .rules-grid,
+    .compact-card-grid,
+    body.compact-mode .editor-card-grid,
+    body.compact-mode .overview-grid,
+    body.compact-mode .rules-grid,
+    body.compact-mode .compact-card-grid {
+      grid-template-columns: 1fr;
+    }
+  }
