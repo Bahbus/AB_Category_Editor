@@ -44,7 +44,8 @@ export function renderCategoryList({
   setDraggedIndex,
   renumberCategories,
   markDirty,
-  renderAll
+  renderAll,
+  commitActiveField = () => {}
 }) {
   function filteredCategoryEntries() {
     const cats = getCategories();
@@ -96,11 +97,13 @@ export function renderCategoryList({
     item.style.setProperty('--category-tint', rgbaCssWithMinimumAlpha({...cat.Color, W: Math.min(clamp01(cat.Color.W) * 0.16, 0.12)}, 0.035));
 
     item.onclick = () => {
+      commitActiveField();
       setSelectedIndex(idx);
       renderAll();
     };
 
     item.ondragstart = ev => {
+      commitActiveField();
       if (searchActive) {
         ev.preventDefault();
         return;

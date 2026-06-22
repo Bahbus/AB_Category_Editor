@@ -28,7 +28,15 @@ function renumberCategories() { getCategories().forEach((cat, i) => { cat.Order 
 function markDirty() { dirty = true; setSaveState('Changes not exported', 'warn'); renderList(); }
 function markSaved(label='Exported') { dirty = false; setSaveState(label); }
 function applyValidatedConfig(validation) { data = validation.config; return validation.summary; }
-function openRegexToItemIdsTool() { openRegexTool({ getCategories, getSelectedIndex: () => selectedIndex, ensureShape, lookupCache, saveLookupCache, markDirty, renderAll }); }
+function openRegexToItemIdsTool() { commitActiveField(); openRegexTool({ getCategories, getSelectedIndex: () => selectedIndex, ensureShape, lookupCache, saveLookupCache, markDirty, renderAll }); }
+
+function commitActiveField() {
+  const active = document.activeElement;
+  if (!active || active === document.body || !document.contains(active)) return;
+  const tag = active.tagName ? active.tagName.toLowerCase() : '';
+  const editable = tag === 'input' || tag === 'select' || tag === 'textarea' || active.isContentEditable;
+  if (editable && typeof active.blur === 'function') active.blur();
+}
 
 function setInlineError(id, message) {
   const node = document.getElementById(id);
@@ -58,7 +66,7 @@ function renderList() {
     setSelectedIndex: value => { selectedIndex = value; },
     getDraggedIndex: () => draggedIndex,
     setDraggedIndex: value => { draggedIndex = value; },
-    renumberCategories, markDirty, renderAll
+    renumberCategories, markDirty, renderAll, commitActiveField
   });
 }
 
@@ -67,7 +75,7 @@ function renderEditor() {
     getCategories,
     getSelectedIndex: () => selectedIndex,
     setSelectedIndex: value => { selectedIndex = value; },
-    ensureShape, markDirty, renderAll, renderList, renumberCategories, openRegexToItemIdsTool,
+    ensureShape, markDirty, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, commitActiveField,
     listEditorDeps: { lookupName, fetchLookupBatch, searchXivapi, lookupCache, saveLookupCache, markDirty }
   });
 }
@@ -117,15 +125,16 @@ async function importText(text, sourceLabel='Import') {
 
 el('search').oninput = renderList;
 el('search').addEventListener('keydown', e => { if (e.key === 'Escape') { e.currentTarget.value = ''; renderList(); } });
-el('addCategory').onclick = () => { getCategories().push(defaultCategory()); selectedIndex = getCategories().length - 1; markDirty(); renderAll(); };
-el('sortByOrder').onclick = () => { getCategories().sort(compareCategoriesForImport); selectedIndex = 0; markDirty(); renderAll(); };
-el('renumber').onclick = () => { renumberCategories(); markDirty(); renderAll(); };
-el('lookupReferencedIds').onclick = () => lookupReferencedIds().catch(err => setStatus('ID lookup failed: ' + err.message, 'err'));
-el('showLookupCache').onclick = () => showLookupCacheModal({ lookupCacheCount, clearLookupCache });
-el('showHelp').onclick = showHelpModal;
-el('uploadFile').onclick = () => { const input = el('fileInput'); input.value = ''; input.click(); };
+el('addCategory').onclick = () => { commitActiveField(); getCategories().push(defaultCategory()); selectedIndex = getCategories().length - 1; markDirty(); renderAll(); };
+el('sortByOrder').onclick = () => { commitActiveField(); getCategories().sort(compareCategoriesForImport); selectedIndex = 0; markDirty(); renderAll(); };
+el('renumber').onclick = () => { commitActiveField(); renumberCategories(); markDirty(); renderAll(); };
+el('lookupReferencedIds').onclick = () => { commitActiveField(); lookupReferencedIds().catch(err => setStatus('ID lookup failed: ' + err.message, 'err')); };
+el('showLookupCache').onclick = () => { commitActiveField(); showLookupCacheModal({ lookupCacheCount, clearLookupCache }); };
+el('showHelp').onclick = () => { commitActiveField(); showHelpModal(); };
+el('uploadFile').onclick = () => { commitActiveField(); const input = el('fileInput'); input.value = ''; input.click(); };
 
 el('showExportCopy').onclick = async () => {
+  commitActiveField();
   if (getCategories().length === 0) { updateExportControls(); setStatus('Add or import at least one category before exporting.', 'warn'); return; }
   showBusy('Generating export', 'Compressing JSON to gzip+Base64...', null);
   try {
@@ -136,6 +145,7 @@ el('showExportCopy').onclick = async () => {
     const copied = await copyTextToClipboard(b64); markSaved('Exported');
     document.getElementById('exportCopyStatus').textContent = copied ? 'Copied to clipboard.' : 'Automatic copy was blocked by the browser. Use “Copy again” or select the text manually.';
     document.getElementById('copyExportAgain').onclick = async () => {
+      commitActiveField();
       const ok = await copyTextToClipboard(document.getElementById('exportText').value);
       document.getElementById('exportCopyStatus').textContent = ok ? 'Copied to clipboard.' : 'Copy failed. Select the text manually.';
       setInlineError('exportError', ok ? '' : 'Copy failed. Select the export text manually.');
@@ -144,6 +154,7 @@ el('showExportCopy').onclick = async () => {
 };
 
 el('downloadBase64').onclick = async () => {
+  commitActiveField();
   if (getCategories().length === 0) { updateExportControls(); setStatus('Add or import at least one category before downloading.', 'warn'); return; }
   showBusy('Generating download', 'Compressing JSON to gzip+Base64...', null);
   try { downloadText(EXPORT_FILENAME, await makeBase64Export(data), 'text/plain', { onDownloaded(filename) { markSaved('Downloaded'); setStatus(`Downloaded ${filename}`, 'ok'); } }); }
@@ -151,25 +162,27 @@ el('downloadBase64').onclick = async () => {
   finally { hideBusy(); }
 };
 
-el('fileInput').onchange = async e => { const file = e.target.files[0]; if (!file) return; try { await importText(await file.text(), file.name); } catch (err) { setStatus(errorMessage('Could not load file', err), 'err'); } };
+el('fileInput').onchange = async e => { commitActiveField(); const file = e.target.files[0]; if (!file) return; try { await importText(await file.text(), file.name); } catch (err) { setStatus(errorMessage('Could not load file', err), 'err'); } };
 
 el('showImport').onclick = () => {
+  commitActiveField();
   const wrap = document.createElement('div');
   wrap.innerHTML = `<p class="hint">Paste either formatted JSON or the gzip+Base64 blob. Then click Import.</p><div id="importError" class="modal-error hidden" role="alert"></div><textarea id="importText" class="raw" placeholder="Paste JSON or gzip+Base64 here"></textarea><div class="row" style="margin-top:8px;"><button id="importNow" class="primary">Import</button></div>`;
   openModal('Import / Paste', wrap);
-  document.getElementById('importNow').onclick = async () => { try { setInlineError('importError', ''); await importText(document.getElementById('importText').value.trim(), ''); closeModal(); } catch (err) { const message = errorMessage('Import failed', err); setInlineError('importError', message); setStatus(message, 'err'); } };
+  document.getElementById('importNow').onclick = async () => { commitActiveField(); try { setInlineError('importError', ''); await importText(document.getElementById('importText').value.trim(), ''); closeModal(); } catch (err) { const message = errorMessage('Import failed', err); setInlineError('importError', message); setStatus(message, 'err'); } };
 };
 
 el('showRaw').onclick = () => {
+  commitActiveField();
   const wrap = document.createElement('div');
   wrap.innerHTML = `<p class="hint">This is the full JSON config. Edit carefully; invalid JSON cannot be applied.</p><textarea id="rawFull" class="raw">${escapeHtml(JSON.stringify(data, null, 2))}</textarea><div class="row" style="margin-top:8px;"><button id="applyRawFull" class="primary">Apply full JSON</button><button id="copyRawFull">Copy</button></div><p class="hint" id="rawCopyStatus"></p>`;
   openModal('Raw JSON', wrap);
-  document.getElementById('applyRawFull').onclick = () => { try { applyValidatedConfig(validateConfig(JSON.parse(document.getElementById('rawFull').value))); selectedIndex = getCategories().length ? 0 : -1; closeModal(); markDirty(); renderAll(); maybeAutoLookupImportedIds(); } catch (err) { setStatus(errorMessage('Invalid full JSON', err), 'err'); } };
-  document.getElementById('copyRawFull').onclick = async () => { const ok = await copyTextToClipboard(document.getElementById('rawFull').value); document.getElementById('rawCopyStatus').textContent = ok ? 'Copied to clipboard.' : 'Copy failed. Select the text manually.'; setStatus(ok ? 'Copied full JSON' : 'Copy failed. Select the text manually.', ok ? 'ok' : 'warn'); };
+  document.getElementById('applyRawFull').onclick = () => { commitActiveField(); try { applyValidatedConfig(validateConfig(JSON.parse(document.getElementById('rawFull').value))); selectedIndex = getCategories().length ? 0 : -1; closeModal(); markDirty(); renderAll(); maybeAutoLookupImportedIds(); } catch (err) { setStatus(errorMessage('Invalid full JSON', err), 'err'); } };
+  document.getElementById('copyRawFull').onclick = async () => { commitActiveField(); const ok = await copyTextToClipboard(document.getElementById('rawFull').value); document.getElementById('rawCopyStatus').textContent = ok ? 'Copied to clipboard.' : 'Copy failed. Select the text manually.'; setStatus(ok ? 'Copied full JSON' : 'Copy failed. Select the text manually.', ok ? 'ok' : 'warn'); };
 };
 
 el('closeModal').onclick = closeModal;
 el('modalBackdrop').onclick = e => { if (e.target === el('modalBackdrop')) closeModal(); };
 document.addEventListener('keydown', e => { trapModalFocus(e); if (e.key === 'Escape' && !el('modalBackdrop').classList.contains('hidden')) closeModal(); });
-window.addEventListener('beforeunload', e => { if (!dirty) return; e.preventDefault(); e.returnValue = ''; });
+window.addEventListener('beforeunload', e => { commitActiveField(); if (!dirty) return; e.preventDefault(); e.returnValue = ''; });
 renderAll();
