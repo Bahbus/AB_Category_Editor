@@ -252,6 +252,11 @@ function rgbaCss(color) {
   return `rgba(${componentTo255(color.X)}, ${componentTo255(color.Y)}, ${componentTo255(color.Z)}, ${clamp01(color.W)})`;
 }
 
+function rgbaCssWithMinimumAlpha(color, minimumAlpha) {
+  const alpha = Math.max(clamp01(color.W), minimumAlpha);
+  return `rgba(${componentTo255(color.X)}, ${componentTo255(color.Y)}, ${componentTo255(color.Z)}, ${alpha})`;
+}
+
 
 function numericValue(value) {
   const n = Number(value);
@@ -313,6 +318,24 @@ function isCategorySearchActive() {
   return getCategorySearchText().length > 0;
 }
 
+function getCategoryDisplayName(cat) {
+  return cat.Name || '(unnamed)';
+}
+
+function getCategoryDescriptionText(cat) {
+  return String(cat.Description ?? '').trim();
+}
+
+function getCategorySubtitle(cat) {
+  const order = `#${cat.Order ?? ''}`;
+  const description = getCategoryDescriptionText(cat);
+  return description ? `${order} · ${description}` : `${order} · No description`;
+}
+
+function getCategorySubtitleTitle(cat) {
+  return getCategoryDescriptionText(cat) || 'No description';
+}
+
 function filteredCategoryEntries() {
   const cats = getCategories();
   const q = getCategorySearchText().toLowerCase();
@@ -338,9 +361,15 @@ function renderList() {
   const searchActive = isCategorySearchActive();
   entries.forEach(({cat, idx}) => {
     const item = document.createElement('div');
+    const displayName = getCategoryDisplayName(cat);
+    const subtitle = getCategorySubtitle(cat);
+    const subtitleTitle = getCategorySubtitleTitle(cat);
+
     item.className = 'cat-item' + (idx === selectedIndex ? ' active' : '') + (searchActive ? ' reorder-disabled' : '');
     item.draggable = !searchActive;
     item.dataset.index = String(idx);
+    item.style.setProperty('--category-color', rgbaCssWithMinimumAlpha(cat.Color, 0.35));
+    item.style.setProperty('--category-tint', rgbaCssWithMinimumAlpha({...cat.Color, W: Math.min(clamp01(cat.Color.W) * 0.16, 0.12)}, 0.035));
 
     item.onclick = () => {
       selectedIndex = idx;
@@ -385,8 +414,8 @@ function renderList() {
     item.innerHTML = `
       <div class="drag-handle" title="${searchActive ? 'Clear search to reorder' : 'Drag to reorder'}">☰</div>
       <div class="cat-text">
-        <div class="cat-name" title="${escapeHtml(cat.Name || '(unnamed)')}" style="color:${rgbaCss(cat.Color)}">${escapeHtml(cat.Name || '(unnamed)')}</div>
-        <div class="cat-desc" title="${escapeHtml(cat.Description || cat.Id || '')}">#${escapeHtml(cat.Order ?? '')} · ${escapeHtml(cat.Description || cat.Id || '')}</div>
+        <div class="cat-name" title="${escapeHtml(displayName)}">${escapeHtml(displayName)}</div>
+        <div class="cat-desc" title="${escapeHtml(subtitleTitle)}">${escapeHtml(subtitle)}</div>
       </div>
       <div class="badges">
         <span class="badge ${cat.Enabled ? 'on' : ''}">${cat.Enabled ? 'on' : 'off'}</span>
