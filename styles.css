@@ -331,12 +331,13 @@
     align-items: flex-start;
   }
   .top-editor-grid > .basics-card {
-    flex: 2 1 420px;
-    min-width: min(100%, 420px);
+    flex: 2 1 540px;
+    min-width: min(100%, 540px);
   }
   .top-editor-grid > .color-card {
     flex: 1 1 540px;
     min-width: min(100%, 540px);
+    max-width: min(100%, 702px);
   }
   .basic-fields-grid {
     margin-top: 12px;
