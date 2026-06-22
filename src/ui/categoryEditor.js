@@ -66,7 +66,7 @@ function renderColorSection(cat, deps) {
   hexWrap.innerHTML = `<label for="hexColorInput">Hex RGBA</label><input id="hexColorInput" placeholder="#RRGGBBAA" value="${colorToHexRGBA(cat.Color).toUpperCase()}">`;
 
   const nums = document.createElement('div');
-  nums.className = 'grid cols-4';
+  nums.className = 'grid cols-4 rgba-grid';
 
   function makeRgbaNumber(label, getValue, setValue) {
     const wrap = document.createElement('div');
@@ -206,13 +206,6 @@ export function renderEditor(deps) {
   const basics = document.createElement('div');
   basics.className = 'card';
   basics.innerHTML = '<h3>Basics</h3>';
-  const checks = document.createElement('div');
-  checks.className = 'row';
-  checks.append(
-    checkbox('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirty(); }),
-    checkbox('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirty(); })
-  );
-
   const grid = document.createElement('div');
   grid.className = 'grid basic-fields-grid';
   grid.append(
@@ -220,14 +213,16 @@ export function renderEditor(deps) {
     textInput('Description', cat.Description, v => { cat.Description = v; markDirty(); })
   );
 
-  const orderGrid = document.createElement('div');
-  orderGrid.className = 'grid cols-2 basic-order-grid';
-  orderGrid.append(
+  const metaGrid = document.createElement('div');
+  metaGrid.className = 'grid basic-meta-grid';
+  metaGrid.append(
     numberInput('Order', cat.Order, v => { cat.Order = v; markDirty(); }),
-    numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirty(); })
+    numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirty(); }),
+    checkbox('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirty(); }),
+    checkbox('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirty(); })
   );
 
-  basics.append(checks, grid, orderGrid);
+  basics.append(grid, metaGrid);
 
   const topEditorGrid = document.createElement('div');
   topEditorGrid.className = 'top-editor-grid';
