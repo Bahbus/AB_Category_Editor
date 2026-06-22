@@ -304,9 +304,18 @@ function renumberCategories() {
   });
 }
 
+function getCategorySearchText() {
+  const search = el('search');
+  return search ? search.value.trim() : '';
+}
+
+function isCategorySearchActive() {
+  return getCategorySearchText().length > 0;
+}
+
 function filteredCategoryEntries() {
   const cats = getCategories();
-  const q = el('search').value.trim().toLowerCase();
+  const q = getCategorySearchText().toLowerCase();
   return cats.map((cat, idx) => { ensureShape(cat); return {cat, idx}; }).filter(({cat}) => {
     const hay = [
       cat.Name, cat.Description, cat.Id,
@@ -326,10 +335,11 @@ function renderList() {
   list.innerHTML = '';
 
   const entries = filteredCategoryEntries();
+  const searchActive = isCategorySearchActive();
   entries.forEach(({cat, idx}) => {
     const item = document.createElement('div');
-    item.className = 'cat-item' + (idx === selectedIndex ? ' active' : '');
-    item.draggable = true;
+    item.className = 'cat-item' + (idx === selectedIndex ? ' active' : '') + (searchActive ? ' reorder-disabled' : '');
+    item.draggable = !searchActive;
     item.dataset.index = String(idx);
 
     item.onclick = () => {
@@ -338,6 +348,10 @@ function renderList() {
     };
 
     item.ondragstart = ev => {
+      if (searchActive) {
+        ev.preventDefault();
+        return;
+      }
       draggedIndex = idx;
       item.classList.add('dragging');
       ev.dataTransfer.effectAllowed = 'move';
@@ -349,6 +363,7 @@ function renderList() {
       item.classList.remove('dragging');
     };
     item.ondragover = ev => {
+      if (searchActive) return;
       ev.preventDefault();
       if (draggedIndex === null || draggedIndex === idx) return;
       clearDropClasses();
@@ -357,6 +372,7 @@ function renderList() {
       item.classList.add(before ? 'drop-before' : 'drop-after');
     };
     item.ondrop = ev => {
+      if (searchActive) return;
       ev.preventDefault();
       const from = draggedIndex ?? Number(ev.dataTransfer.getData('text/plain'));
       const to = idx;
@@ -367,7 +383,7 @@ function renderList() {
     };
 
     item.innerHTML = `
-      <div class="drag-handle" title="Drag to reorder">☰</div>
+      <div class="drag-handle" title="${searchActive ? 'Clear search to reorder' : 'Drag to reorder'}">☰</div>
       <div class="cat-text">
         <div class="cat-name" title="${escapeHtml(cat.Name || '(unnamed)')}" style="color:${rgbaCss(cat.Color)}">${escapeHtml(cat.Name || '(unnamed)')}</div>
         <div class="cat-desc" title="${escapeHtml(cat.Description || cat.Id || '')}">#${escapeHtml(cat.Order ?? '')} · ${escapeHtml(cat.Description || cat.Id || '')}</div>
@@ -380,7 +396,9 @@ function renderList() {
     list.appendChild(item);
   });
 
-  el('listStatus').textContent = `${entries.length} shown · drag categories to reorder`;
+  el('listStatus').textContent = searchActive
+    ? `${entries.length} shown · clear search to reorder`
+    : `${entries.length} shown · drag categories to reorder`;
 }
 
 function clearDropClasses() {
@@ -1071,11 +1089,19 @@ function renderColorSection(cat) {
     };
     picker.onchange = () => renderEditor();
 
-    hexInput.oninput = e => {
-      const value = e.target.value.trim();
-      if (!validHex(value)) {
-        setStatus('Hex color must be #RRGGBBAA', 'warn');
-        return;
+    function setHexValidity(value) {
+      const trimmed = value.trim();
+      const valid = validHex(trimmed);
+      hexInput.setCustomValidity(valid ? '' : 'Use #RRGGBBAA or RRGGBBAA.');
+      hexInput.classList.toggle('invalid', Boolean(trimmed) && !valid);
+      return valid;
+    }
+
+    function applyHexInput() {
+      const value = hexInput.value.trim();
+      if (!setHexValidity(value)) {
+        hexInput.reportValidity();
+        return false;
       }
       const rgba = hexToRgba01(value.startsWith('#') ? value : '#' + value);
       cat.Color.X = rgba.X;
@@ -1084,9 +1110,23 @@ function renderColorSection(cat) {
       cat.Color.W = rgba.W;
       updateColorVisuals();
       markDirty('Hex RGBA color changed');
+      return true;
+    }
+
+    hexInput.oninput = e => {
+      setHexValidity(e.target.value);
     };
+    hexInput.onblur = applyHexInput;
+    hexInput.onchange = applyHexInput;
+    hexInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        applyHexInput();
+      }
+    });
 
     updateColorVisuals();
+    setHexValidity(hexInput.value);
   }, 0);
 
   return color;
@@ -1576,6 +1616,7 @@ el('showRaw').onclick = () => {
       <button id="applyRawFull" class="primary">Apply full JSON</button>
       <button id="copyRawFull">Copy</button>
     </div>
+    <p class="hint" id="rawCopyStatus"></p>
   `;
   openModal('Raw JSON', wrap);
   document.getElementById('applyRawFull').onclick = () => {
@@ -1591,8 +1632,11 @@ el('showRaw').onclick = () => {
     }
   };
   document.getElementById('copyRawFull').onclick = async () => {
-    await navigator.clipboard.writeText(document.getElementById('rawFull').value);
-    setStatus('Copied full JSON', 'ok');
+    const ok = await copyTextToClipboard(document.getElementById('rawFull').value);
+    document.getElementById('rawCopyStatus').textContent = ok
+      ? 'Copied to clipboard.'
+      : 'Copy failed. Select the text manually.';
+    setStatus(ok ? 'Copied full JSON' : 'Copy failed. Select the text manually.', ok ? 'ok' : 'warn');
   };
 };
 
