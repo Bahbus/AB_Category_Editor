@@ -340,9 +340,12 @@
     min-width: min(100%, 540px);
   }
   @container top-editor (min-width: 1094px) {
-    .top-editor-grid > .color-card {
+    .top-editor-grid > .color-card:not(.is-wrapped) {
       max-width: min(100%, 702px);
     }
+  }
+  .top-editor-grid > .color-card.is-wrapped {
+    max-width: none;
   }
   .basic-fields-grid {
     margin-top: 12px;
