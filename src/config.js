@@ -1,3 +1,5 @@
+import { ALLOWED_RARITY_IDS } from './constants.js';
+
 export function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
@@ -61,3 +63,76 @@ export function ensureShape(cat) {
   }
 }
 
+
+export function numericValue(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+export function compareOptionalNumber(a, b) {
+  const aNumber = numericValue(a);
+  const bNumber = numericValue(b);
+  if (aNumber !== null && bNumber !== null && aNumber !== bNumber) return aNumber - bNumber;
+  if ((aNumber !== null) !== (bNumber !== null)) return aNumber !== null ? -1 : 1;
+  return 0;
+}
+
+export function compareCategoriesForImport(a, b) {
+  return compareOptionalNumber(a.Order, b.Order)
+    || compareOptionalNumber(a.Priority, b.Priority)
+    || String(a.Name || '').localeCompare(String(b.Name || ''), undefined, { numeric: true, sensitivity: 'base' })
+    || String(a.Id || '').localeCompare(String(b.Id || ''), undefined, { numeric: true, sensitivity: 'base' });
+}
+
+export function sortImportedCategories(config) {
+  if (!config || !Array.isArray(config.Categories)) return config;
+  config.Categories.sort(compareCategoriesForImport);
+  return config;
+}
+
+export function normalizeAllowedRarities(cat) {
+  const rules = cat.Rules || (cat.Rules = {});
+  const original = Array.isArray(rules.AllowedRarities) ? rules.AllowedRarities : [];
+  const normalized = [];
+  const seen = new Set();
+
+  for (const raw of original) {
+    const value = Number(raw);
+    if (!ALLOWED_RARITY_IDS.has(value) || seen.has(value)) continue;
+    normalized.push(value);
+    seen.add(value);
+  }
+
+  normalized.sort((a, b) => a - b);
+  rules.AllowedRarities = normalized;
+  return normalized;
+}
+
+export function normalizeAllowedRaritiesWithReport(cat) {
+  const rules = cat.Rules || (cat.Rules = {});
+  const original = Array.isArray(rules.AllowedRarities) ? rules.AllowedRarities.slice() : [];
+  const normalized = normalizeAllowedRarities(cat);
+  const changed = original.length !== normalized.length
+    || original.some((value, index) => Number(value) !== normalized[index]);
+  return { normalized, changed };
+}
+
+export function buildImportSummary(categoryCount, normalizedRarityCategoryCount) {
+  let message = `Imported ${categoryCount.toLocaleString()} ${categoryCount === 1 ? 'category' : 'categories'} and sorted ${categoryCount === 1 ? 'it' : 'them'} by Order.`;
+  if (normalizedRarityCategoryCount > 0) {
+    message += ` Normalized rarity values in ${normalizedRarityCategoryCount.toLocaleString()} ${normalizedRarityCategoryCount === 1 ? 'category' : 'categories'}.`;
+  }
+  return message;
+}
+
+export function validateConfig(obj) {
+  if (!obj || typeof obj !== 'object') throw new Error('Root must be a JSON object.');
+  if (!Array.isArray(obj.Categories)) throw new Error('Root must contain a Categories array.');
+  let normalizedRarityCategoryCount = 0;
+  obj.Categories.forEach(cat => {
+    ensureShape(cat);
+    if (normalizeAllowedRaritiesWithReport(cat).changed) normalizedRarityCategoryCount++;
+  });
+  sortImportedCategories(obj);
+  return { config: obj, summary: buildImportSummary(obj.Categories.length, normalizedRarityCategoryCount) };
+}
