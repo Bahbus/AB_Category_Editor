@@ -50,13 +50,12 @@ function renderColorSection(cat, deps) {
   layout.className = 'color-layout';
 
   const left = document.createElement('div');
+  left.className = 'color-preview-field';
   left.innerHTML = `
-    <label for="rgbPicker">Preview / color picker</label>
     <div class="color-preview" title="Click to open the color picker">
       <div class="color-fill" id="colorFill"></div>
       <input class="color-native-input" id="rgbPicker" type="color" value="${colorToHex(cat.Color)}" aria-label="Pick RGB color">
     </div>
-    <p class="hint" id="colorReadout" style="margin-bottom:0;"></p>
   `;
 
   const right = document.createElement('div');
@@ -110,7 +109,6 @@ function renderColorSection(cat, deps) {
 
   setTimeout(() => {
     const fill = el('colorFill');
-    const readout = el('colorReadout');
     const picker = el('rgbPicker');
     const hexInput = el('hexColorInput');
     const alphaSlider = el('alphaSlider');
@@ -124,7 +122,6 @@ function renderColorSection(cat, deps) {
       const hex = colorToHexRGBA(cat.Color).toUpperCase();
       const a255 = componentTo255(cat.Color.W);
       fill.style.background = rgbaCss(cat.Color);
-      readout.textContent = `${hex} · RGBA(${componentTo255(cat.Color.X)}, ${componentTo255(cat.Color.Y)}, ${componentTo255(cat.Color.Z)}, ${a255})`;
       picker.value = colorToHex(cat.Color);
       hexInput.value = hex;
       alphaSlider.value = String(a255);
