@@ -14,11 +14,10 @@ Published page: <https://bahbus.github.io/AB_Category_Editor/>
 - Batched XIVAPI lookups for referenced Item and ItemUICategory names.
 - Lookup cache backed by browser `localStorage`, with an in-app cache viewer and clear button.
 - Regex → Item IDs conversion using cancelable XIVAPI item sheet scans.
-- Local browser processing for imported category configs; no build step, package manager, framework, or runtime dependency is required.
 
 ## How to use
 
-1. In AetherBags, export or copy your category configuration as gzip+Base64 text.
+1. In AetherBags, export or copy your category configuration.
 2. Open the editor and use **Import/Paste** for copied text, or **Upload** for a saved text/Base64/JSON file.
 3. Edit categories, rules, colors, sorting, rarities, regex filters, and item/category IDs as needed.
 4. Use **Export/Copy** to copy updated gzip+Base64 text, or **Download** to save the updated text locally.
@@ -30,13 +29,3 @@ Published page: <https://bahbus.github.io/AB_Category_Editor/>
 - The app stores lookup names in browser `localStorage` so repeated item/category lookups are faster.
 - XIVAPI is contacted only for item/category name lookups, search queries, and item sheet scans used by Regex → Item IDs.
 - The app does not upload the full category config to this repository.
-
-## Development
-
-This is a static GitHub Pages-compatible app. Edit `index.html`, `styles.css`, and `app.js` directly; do not add npm packages, bundlers, frameworks, or runtime dependencies.
-
-Run a JavaScript syntax check with:
-
-```sh
-node --check app.js
-```
