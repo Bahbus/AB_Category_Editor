@@ -12,7 +12,7 @@
   <aside class="sidebar">
     <div class="brand">
       <h1>AetherBags Category Editor</h1>
-      <div class="sub"><span id="format" class="hidden"></span><span id="count"></span> categories · <span id="saveState" class="save-state">Saved</span></div>
+      <div class="sub"><span id="format" class="hidden"></span><span id="count"></span> categories · <span id="saveState" class="save-state">No changes</span></div>
     </div>
     <div class="search">
       <input id="search" placeholder="Search names, descriptions, regex, IDs">
@@ -40,7 +40,7 @@
       <button id="showHelp" class="small">About / Help</button>
       <label class="check"><input id="autoLookupImport" type="checkbox" checked> Auto-lookup imported IDs</label>
       <span class="spacer"></span>
-      <span class="hidden" id="status" aria-live="polite"></span>
+      <span class="sr-only status" id="status" role="status" aria-live="polite"></span>
     </div>
 
     <section class="editor" id="editor">

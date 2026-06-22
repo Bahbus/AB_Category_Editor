@@ -30,7 +30,7 @@ export function extractSheetRowsById(payload) {
   const rowContainers = [payload?.rows, payload?.data, payload?.results];
   for (const container of rowContainers) {
     if (!container || Array.isArray(container) || typeof container !== 'object') continue;
-    for (const [id, row] of Object.entries(container)) addRow(row, id);
+    for (const [id, row] of Object.entries(container)) if (/^\d+$/.test(id)) addRow(row, id);
   }
   if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
     for (const [id, row] of Object.entries(payload)) if (/^\d+$/.test(id)) addRow(row, id);

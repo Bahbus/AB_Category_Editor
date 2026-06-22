@@ -9,7 +9,7 @@ export function escapeHtml(value) {
     .replaceAll("'", '&#039;');
 }
 
-export function setSaveState(text='Saved', cls='') {
+export function setSaveState(text='No changes', cls='') {
   const node = el('saveState');
   if (!node) return;
   node.textContent = text;
@@ -35,7 +35,7 @@ export function showToast(msg, cls='') {
 export function setStatus(msg, cls='') {
   const s = el('status');
   if (s) {
-    s.className = 'hidden';
+    s.className = 'sr-only status' + (cls ? ' ' + cls : '');
     s.textContent = msg;
   }
   if (cls === 'err') console.error(msg);
@@ -52,16 +52,19 @@ let busyCount = 0;
 export function showBusy(title, detail='', percent=null) {
   busyCount++;
   const box = el('busyOverlay');
-  el('busyTitle').textContent = title || 'Working';
-  updateBusy(detail, percent);
+  if (!box) return;
+  const titleNode = el('busyTitle');
+  if (titleNode) titleNode.textContent = title || 'Working';
   box.classList.remove('hidden');
+  updateBusy(detail, percent);
 }
 
 export function updateBusy(detail='', percent=null) {
   const box = el('busyOverlay');
   const fill = el('busyProgressFill');
-  if (!box || box.classList.contains('hidden')) return;
-  el('busyDetail').textContent = detail || '';
+  const detailNode = el('busyDetail');
+  if (!box || !fill || box.classList.contains('hidden')) return;
+  if (detailNode) detailNode.textContent = detail || '';
   if (percent === null || Number.isNaN(Number(percent))) {
     fill.classList.add('indeterminate');
     fill.style.width = '35%';
