@@ -323,7 +323,6 @@
   }
   .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .top-editor-grid {
     container: top-editor / inline-size;
     display: flex;
@@ -340,12 +339,9 @@
     min-width: min(100%, 540px);
   }
   @container top-editor (min-width: 1094px) {
-    .top-editor-grid > .color-card:not(.is-wrapped) {
+    .top-editor-grid > .color-card {
       max-width: min(100%, 702px);
     }
-  }
-  .top-editor-grid > .color-card.is-wrapped {
-    max-width: none;
   }
   .basic-fields-grid {
     margin-top: 12px;
@@ -680,7 +676,7 @@
       height: 100vh;
     }
     .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
-    .grid.cols-2, .grid.cols-3, .grid.cols-4, .color-layout, .basic-meta-grid, .rgb-grid { grid-template-columns: 1fr; }
+    .grid.cols-2, .grid.cols-3, .color-layout, .basic-meta-grid, .rgb-grid { grid-template-columns: 1fr; }
   }
   .rarity-checkbox-grid {
     display: grid;
