@@ -325,6 +325,7 @@
   .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .top-editor-grid {
+    container: top-editor / inline-size;
     display: flex;
     flex-wrap: wrap;
     gap: 14px;
@@ -337,7 +338,11 @@
   .top-editor-grid > .color-card {
     flex: 1 1 540px;
     min-width: min(100%, 540px);
-    max-width: min(100%, 702px);
+  }
+  @container top-editor (min-width: 1094px) {
+    .top-editor-grid > .color-card {
+      max-width: min(100%, 702px);
+    }
   }
   .basic-fields-grid {
     margin-top: 12px;
