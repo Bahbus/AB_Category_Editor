@@ -214,17 +214,25 @@ export function renderEditor(deps) {
   );
 
   const grid = document.createElement('div');
-  grid.className = 'grid cols-2';
+  grid.className = 'grid basic-fields-grid';
   grid.append(
     textInput('Name', cat.Name, v => { cat.Name = v; markDirty(); }),
-    textInput('Description', cat.Description, v => { cat.Description = v; markDirty(); }),
+    textInput('Description', cat.Description, v => { cat.Description = v; markDirty(); })
+  );
+
+  const orderGrid = document.createElement('div');
+  orderGrid.className = 'grid cols-2 basic-order-grid';
+  orderGrid.append(
     numberInput('Order', cat.Order, v => { cat.Order = v; markDirty(); }),
     numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirty(); })
   );
-  basics.append(checks, grid);
-  root.appendChild(basics);
 
-  root.appendChild(renderColorSection(cat, deps));
+  basics.append(checks, grid, orderGrid);
+
+  const topEditorGrid = document.createElement('div');
+  topEditorGrid.className = 'top-editor-grid';
+  topEditorGrid.append(basics, renderColorSection(cat, deps));
+  root.appendChild(topEditorGrid);
 
   const rules = cat.Rules;
   const ruleGrid = document.createElement('div');
