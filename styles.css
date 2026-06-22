@@ -599,3 +599,82 @@
     display: grid;
     gap: 8px;
   }
+
+  .topbar-group-tools,
+  .topbar-group-help {
+    gap: 6px;
+    padding: 4px 6px;
+    border-style: dashed;
+    background: color-mix(in srgb, var(--panel3), transparent 28%);
+  }
+  .topbar-group-tools .topbar-group-label,
+  .topbar-group-help .topbar-group-label {
+    font-size: 11px;
+    font-weight: 650;
+  }
+  .topbar-group-tools button,
+  .topbar-group-help button {
+    min-height: 30px;
+    padding: 5px 8px;
+    font-size: 13px;
+  }
+
+  .duplicate-modal {
+    display: grid;
+    gap: 12px;
+  }
+  .duplicate-section {
+    display: grid;
+    gap: 8px;
+  }
+  .duplicate-section h3 {
+    margin: 0;
+  }
+  .duplicate-row {
+    display: grid;
+    grid-template-columns: minmax(160px, 1fr) auto minmax(220px, 2fr);
+    gap: 10px;
+    align-items: start;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px;
+    background: var(--panel3);
+  }
+  .duplicate-row ul {
+    margin: 0;
+    padding-left: 18px;
+  }
+  .duplicate-value {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+
+  body.compact-mode .topbar { padding: 8px; gap: 7px; }
+  body.compact-mode .topbar-group { gap: 6px; padding: 4px 6px; }
+  body.compact-mode .topbar-group button { min-height: 30px; padding: 5px 8px; }
+  body.compact-mode .editor { padding: 10px; gap: 9px; }
+  body.compact-mode .card { padding: 10px; border-radius: 11px; }
+  body.compact-mode details.card { padding: 0; }
+  body.compact-mode details.card > summary { padding: 10px; }
+  body.compact-mode details.card > .details-body { padding: 0 10px 10px; }
+  body.compact-mode .nested-card { padding: 8px; border-radius: 9px; }
+  body.compact-mode .grid { gap: 8px; }
+  body.compact-mode .row { gap: 6px; }
+  body.compact-mode .card h2,
+  body.compact-mode .card h3,
+  body.compact-mode .nested-card h3 { margin-bottom: 7px; }
+  body.compact-mode label { margin-bottom: 3px; }
+  body.compact-mode input,
+  body.compact-mode textarea,
+  body.compact-mode select { padding: 5px 7px; }
+  body.compact-mode textarea { min-height: 76px; }
+  body.compact-mode .pill-list { padding: 6px; gap: 4px; }
+  body.compact-mode .pill { padding: 3px 7px; }
+
+  @media (max-width: 760px) {
+    .duplicate-row { grid-template-columns: 1fr; }
+    body.compact-mode .topbar-group { flex: 1 1 100%; }
+  }

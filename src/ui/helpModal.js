@@ -13,10 +13,15 @@ export function showHelpModal() {
       <li><strong>Download</strong> saves the updated gzip+Base64 text as a local <code>.txt</code> file.</li>
       <li>Paste or import the exported Base64 text back into AetherBags using the plugin's category import workflow.</li>
     </ul>
+    <h3>Options</h3>
+    <ul>
+      <li><strong>Compact mode</strong> reduces editor spacing so more categories and rules fit on large screens. The preference is saved in this browser.</li>
+    </ul>
     <h3>Lookup tools</h3>
     <ul>
       <li><strong>Lookup IDs</strong> resolves referenced item IDs and UI category IDs to English names through XIVAPI.</li>
       <li><strong>Lookup Cache</strong> shows and clears locally cached lookup names stored in this browser.</li>
+      <li><strong>Find Duplicates</strong> reports repeated filters across categories without contacting XIVAPI or changing data.</li>
       <li><strong>Regex → Item IDs</strong> scans XIVAPI item names for a selected name pattern and can be canceled while it runs.</li>
     </ul>
     <h3>Privacy</h3>

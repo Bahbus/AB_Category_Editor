@@ -14,6 +14,7 @@ Published page: <https://bahbus.github.io/AB_Category_Editor/>
 - Batched XIVAPI lookups for referenced Item and ItemUICategory names.
 - Lookup cache backed by browser `localStorage`, with an in-app cache viewer and clear button.
 - Regex → Item IDs conversion using cancelable XIVAPI item sheet scans.
+- Compact mode for denser editing, plus duplicate filter finding across categories.
 
 ## How to use
 

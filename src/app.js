@@ -8,6 +8,7 @@ import { renderEditor as renderCategoryEditor } from './ui/categoryEditor.js';
 import { showHelpModal } from './ui/helpModal.js';
 import { showLookupCacheModal } from './ui/lookupCacheModal.js';
 import { openRegexToItemIdsTool as openRegexTool } from './tools/regexToItemIds.js';
+import { duplicateResultCount, findDuplicateFilters, getDuplicateFilterTypeLabels } from './tools/findDuplicateFilters.js';
 import { EXPORT_FILENAME, copyTextToClipboard, downloadText, makeBase64Export, parseImportedText } from './importExport.js';
 import { sheetLabel, collectReferencedIds, countReferencedIds, countUncachedReferencedIds, fetchLookupBatch as xivapiFetchLookupBatch, searchXivapi } from './xivapi.js';
 
@@ -16,6 +17,7 @@ let selectedIndex = -1;
 let dirty = false;
 let draggedIndex = null;
 let lookupCache = loadLookupCache();
+const COMPACT_MODE_KEY = 'abCategoryEditor.compactMode';
 
 function saveLookupCache() { persistLookupCache(lookupCache); }
 function lookupCacheCount(sheet) { return Object.keys(lookupCache[sheet] || {}).length; }
@@ -29,6 +31,47 @@ function markDirty() { dirty = true; setSaveState('Changes not exported', 'warn'
 function markSaved(label='Exported') { dirty = false; setSaveState(label); }
 function applyValidatedConfig(validation) { data = validation.config; return validation.summary; }
 function openRegexToItemIdsTool() { commitActiveField(); openRegexTool({ getCategories, getSelectedIndex: () => selectedIndex, ensureShape, lookupCache, saveLookupCache, markDirty, renderAll }); }
+
+function loadCompactModePreference() {
+  try { return localStorage.getItem(COMPACT_MODE_KEY) === '1'; }
+  catch { return false; }
+}
+
+function setCompactMode(enabled) {
+  document.body.classList.toggle('compact-mode', enabled);
+  const toggle = el('compactMode');
+  if (toggle) toggle.checked = enabled;
+  try { localStorage.setItem(COMPACT_MODE_KEY, enabled ? '1' : '0'); }
+  catch { /* Ignore unavailable localStorage. */ }
+}
+
+function showDuplicateFiltersModal() {
+  commitActiveField();
+  const results = findDuplicateFilters(getCategories());
+  const labels = getDuplicateFilterTypeLabels();
+  const total = duplicateResultCount(results);
+  const wrap = document.createElement('div');
+  wrap.className = 'duplicate-modal';
+  if (!total) {
+    wrap.innerHTML = '<p class="hint">No duplicates found. The current category filters do not share enabled or meaningful duplicate values.</p>';
+    openModal('Find Duplicate Filters', wrap);
+    return;
+  }
+  const sections = Object.entries(labels).map(([key, label]) => {
+    const entries = results[key] || [];
+    if (!entries.length) return '';
+    const rows = entries.map(entry => `
+      <div class="duplicate-row">
+        <div class="duplicate-value" title="${escapeHtml(entry.display)}">${escapeHtml(entry.display)}</div>
+        <div class="badge">${entry.count} categories</div>
+        <ul>${entry.categories.map(category => `<li>${escapeHtml(category.label)}</li>`).join('')}</ul>
+      </div>
+    `).join('');
+    return `<section class="duplicate-section"><h3>${escapeHtml(label)}</h3>${rows}</section>`;
+  }).join('');
+  wrap.innerHTML = `<p class="hint">Duplicate checks use the current in-memory config only. This does not call XIVAPI or change category data.</p>${sections}`;
+  openModal('Find Duplicate Filters', wrap);
+}
 
 function commitActiveField() {
   const active = document.activeElement;
@@ -146,8 +189,10 @@ el('sortByOrder').onclick = () => { commitActiveField(); getCategories().sort(co
 el('renumber').onclick = () => { commitActiveField(); renumberCategories(); markDirty(); renderAll(); };
 el('lookupReferencedIds').onclick = () => { commitActiveField(); lookupReferencedIds().catch(err => setStatus('ID lookup failed: ' + err.message, 'err')); };
 el('showLookupCache').onclick = () => { commitActiveField(); showLookupCacheModal({ lookupCacheCount, clearLookupCache }); };
+el('findDuplicates').onclick = showDuplicateFiltersModal;
 el('showHelp').onclick = () => { commitActiveField(); showHelpModal(); };
 el('uploadFile').onclick = () => { commitActiveField(); const input = el('fileInput'); input.value = ''; input.click(); };
+el('compactMode').onchange = e => setCompactMode(e.target.checked);
 
 el('showExportCopy').onclick = async () => {
   commitActiveField();
@@ -235,5 +280,6 @@ el('showRaw').onclick = () => showRawModal();
 el('closeModal').onclick = closeModal;
 el('modalBackdrop').onclick = e => { if (e.target === el('modalBackdrop')) closeModal(); };
 document.addEventListener('keydown', e => { trapModalFocus(e); if (e.key === 'Escape' && !el('modalBackdrop').classList.contains('hidden')) closeModal(); });
+setCompactMode(loadCompactModePreference());
 window.addEventListener('beforeunload', e => { commitActiveField(); if (!dirty) return; e.preventDefault(); e.returnValue = ''; });
 renderAll();
