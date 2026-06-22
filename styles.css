@@ -188,11 +188,6 @@
     cursor: grab;
     text-align: center;
   }
-  .cat-order {
-    color: var(--muted);
-    font-size: 12px;
-    text-align: right;
-  }
   .cat-text {
     min-width: 0;
     overflow: hidden;
@@ -429,9 +424,6 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     background: var(--bg);
-  }
-  .file {
-    width: auto;
   }
   .busy-overlay {
     position: fixed;

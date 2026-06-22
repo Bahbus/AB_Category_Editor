@@ -13,3 +13,5 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           find . -name '*.js' -not -path './.git/*' -print0 | xargs -0 -n1 node --check
+      - name: Check relative module imports
+        run: node scripts/check-imports.mjs
