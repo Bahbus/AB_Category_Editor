@@ -318,6 +318,23 @@ function normalizeAllowedRarities(cat) {
   return normalized;
 }
 
+function normalizeAllowedRaritiesWithReport(cat) {
+  const rules = cat.Rules || (cat.Rules = {});
+  const original = Array.isArray(rules.AllowedRarities) ? rules.AllowedRarities.slice() : [];
+  const normalized = normalizeAllowedRarities(cat);
+  const changed = original.length !== normalized.length
+    || original.some((value, index) => Number(value) !== normalized[index]);
+  return { normalized, changed };
+}
+
+function buildImportSummary(categoryCount, normalizedRarityCategoryCount) {
+  let message = `Imported ${categoryCount.toLocaleString()} ${categoryCount === 1 ? 'category' : 'categories'} and sorted ${categoryCount === 1 ? 'it' : 'them'} by Order.`;
+  if (normalizedRarityCategoryCount > 0) {
+    message += ` Normalized rarity values in ${normalizedRarityCategoryCount.toLocaleString()} ${normalizedRarityCategoryCount === 1 ? 'category' : 'categories'}.`;
+  }
+  return message;
+}
+
 function renumberCategories() {
   getCategories().forEach((cat, i) => {
     cat.Order = i + 1;
@@ -1378,7 +1395,7 @@ function renderEditor() {
 
   if (!cats.length) {
     selectedIndex = -1;
-    root.innerHTML = `<div class="card"><h2>No category selected</h2><p class="hint">Import an existing AetherBags config, paste gzip+Base64, or add a new category from scratch. Referenced Item/UI Category IDs can be auto-matched to English names on import.</p></div>`;
+    root.innerHTML = `<div class="card"><h2>No category selected</h2><p class="hint">Start with <strong>Import/Paste</strong> or <strong>Upload</strong> to load an existing AetherBags export, or add a category manually. Use <strong>About / Help</strong> if you are unsure what to paste or how to export back to AetherBags.</p></div>`;
     return;
   }
   if (selectedIndex < 0 || selectedIndex >= cats.length) selectedIndex = 0;
@@ -1671,10 +1688,44 @@ function openModal(title, contentNode) {
   box.innerHTML = '';
   box.appendChild(contentNode);
   el('modalBackdrop').classList.remove('hidden');
+  setTimeout(() => {
+    const focusTarget = box.querySelector('textarea, input:not([type="hidden"]), button, select, a[href]') || el('closeModal');
+    if (focusTarget) focusTarget.focus();
+  }, 0);
 }
 
 function closeModal() {
   el('modalBackdrop').classList.add('hidden');
+}
+
+function showHelpModal() {
+  const wrap = document.createElement('div');
+  wrap.className = 'help-modal';
+  wrap.innerHTML = `
+    <p>This editor helps you inspect and edit AetherBags category exports in your browser, then create updated text to import back into AetherBags.</p>
+    <h3>Basic workflow</h3>
+    <ul>
+      <li><strong>Import/Paste</strong> accepts formatted JSON or the gzip+Base64 category text exported/copied from AetherBags.</li>
+      <li><strong>Upload</strong> accepts a text, Base64, or JSON file containing that same AetherBags category data.</li>
+      <li><strong>Export/Copy</strong> creates updated gzip+Base64 text and tries to copy it to your clipboard.</li>
+      <li><strong>Download</strong> saves the updated gzip+Base64 text as a local <code>.txt</code> file.</li>
+      <li>Paste or import the exported Base64 text back into AetherBags using the plugin's category import workflow.</li>
+    </ul>
+    <h3>Lookup tools</h3>
+    <ul>
+      <li><strong>Lookup IDs</strong> resolves referenced item IDs and UI category IDs to English names through XIVAPI.</li>
+      <li><strong>Lookup Cache</strong> shows and clears locally cached lookup names stored in this browser.</li>
+      <li><strong>Regex → Item IDs</strong> scans XIVAPI item names for a selected name pattern and can be canceled while it runs.</li>
+    </ul>
+    <h3>Privacy</h3>
+    <ul>
+      <li>The full imported config is processed locally in your browser.</li>
+      <li>The app stores lookup names in <code>localStorage</code> so repeated ID lookups are faster.</li>
+      <li>XIVAPI is contacted only for item/category name lookups, search queries, and item sheet scans used by Regex → Item IDs.</li>
+      <li>The app does not upload the full category config to this repository.</li>
+    </ul>
+  `;
+  openModal('About / Help', wrap);
 }
 
 function showLookupCacheModal() {
@@ -1700,8 +1751,18 @@ function showLookupCacheModal() {
 function validateConfig(obj) {
   if (!obj || typeof obj !== 'object') throw new Error('Root must be a JSON object.');
   if (!Array.isArray(obj.Categories)) throw new Error('Root must contain a Categories array.');
-  obj.Categories.forEach(ensureShape);
-  return sortImportedCategories(obj);
+  let normalizedRarityCategoryCount = 0;
+  obj.Categories.forEach(cat => {
+    ensureShape(cat);
+    if (normalizeAllowedRaritiesWithReport(cat).changed) normalizedRarityCategoryCount++;
+  });
+  sortImportedCategories(obj);
+  return { config: obj, summary: buildImportSummary(obj.Categories.length, normalizedRarityCategoryCount) };
+}
+
+function applyValidatedConfig(validation) {
+  data = validation.config;
+  return validation.summary;
 }
 
 el('search').oninput = renderList;
@@ -1739,6 +1800,7 @@ el('lookupReferencedIds').onclick = () => {
 };
 
 el('showLookupCache').onclick = showLookupCacheModal;
+el('showHelp').onclick = showHelpModal;
 
 el('uploadFile').onclick = () => {
   const input = el('fileInput');
@@ -1820,11 +1882,11 @@ el('fileInput').onchange = async e => {
       const decoded = await gunzipBytes(bytes);
       parsed = JSON.parse(decoded);
     }
-    data = validateConfig(parsed);
+    const importSummary = applyValidatedConfig(validateConfig(parsed));
     selectedIndex = getCategories().length ? 0 : -1;
     dirty = false;
     setSaveState('Saved');
-    setStatus(`Loaded ${file.name}`, 'ok');
+    setStatus(`${file.name}: ${importSummary}`, 'ok');
     renderAll();
     maybeAutoLookupImportedIds();
   } catch (err) {
@@ -1853,12 +1915,12 @@ el('showImport').onclick = () => {
         const decoded = await gunzipBytes(base64ToBytes(text));
         parsed = JSON.parse(decoded);
       }
-      data = validateConfig(parsed);
+      const importSummary = applyValidatedConfig(validateConfig(parsed));
       selectedIndex = getCategories().length ? 0 : -1;
       dirty = false;
       setSaveState('Saved');
       closeModal();
-      setStatus('Imported data', 'ok');
+      setStatus(importSummary, 'ok');
       renderAll();
       maybeAutoLookupImportedIds();
     } catch (err) {
@@ -1882,7 +1944,7 @@ el('showRaw').onclick = () => {
   openModal('Raw JSON', wrap);
   document.getElementById('applyRawFull').onclick = () => {
     try {
-      data = validateConfig(JSON.parse(document.getElementById('rawFull').value));
+      applyValidatedConfig(validateConfig(JSON.parse(document.getElementById('rawFull').value)));
       selectedIndex = getCategories().length ? 0 : -1;
       closeModal();
       markDirty('Full raw JSON applied');
@@ -1905,6 +1967,10 @@ el('closeModal').onclick = closeModal;
 el('modalBackdrop').onclick = e => {
   if (e.target === el('modalBackdrop')) closeModal();
 };
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !el('modalBackdrop').classList.contains('hidden')) closeModal();
+});
 
 window.addEventListener('beforeunload', e => {
   if (!dirty) return;
