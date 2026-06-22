@@ -30,6 +30,17 @@ function markSaved(label='Exported') { dirty = false; setSaveState(label); }
 function applyValidatedConfig(validation) { data = validation.config; return validation.summary; }
 function openRegexToItemIdsTool() { openRegexTool({ getCategories, getSelectedIndex: () => selectedIndex, ensureShape, lookupCache, saveLookupCache, markDirty, renderAll }); }
 
+function setInlineError(id, message) {
+  const node = document.getElementById(id);
+  if (!node) return;
+  node.textContent = message || '';
+  node.classList.toggle('hidden', !message);
+}
+
+function errorMessage(prefix, err) {
+  return `${prefix}: ${err.message}`;
+}
+
 function updateExportControls() {
   const disabled = getCategories().length === 0;
   for (const id of ['showExportCopy', 'downloadBase64']) {
@@ -120,12 +131,16 @@ el('showExportCopy').onclick = async () => {
   try {
     const b64 = await makeBase64Export(data); hideBusy();
     const wrap = document.createElement('div');
-    wrap.innerHTML = `<p class="hint">Current gzip+Base64 export. This was automatically copied to your clipboard if the browser allowed it.</p><textarea id="exportText" class="raw" readonly>${escapeHtml(b64)}</textarea><div class="row" style="margin-top:8px;"><button id="copyExportAgain" class="primary">Copy again</button></div><p class="hint" id="exportCopyStatus"></p>`;
+    wrap.innerHTML = `<p class="hint">Current gzip+Base64 export. This was automatically copied to your clipboard if the browser allowed it.</p><div id="exportError" class="modal-error hidden" role="alert"></div><textarea id="exportText" class="raw" readonly>${escapeHtml(b64)}</textarea><div class="row" style="margin-top:8px;"><button id="copyExportAgain" class="primary">Copy again</button></div><p class="hint" id="exportCopyStatus"></p>`;
     openModal('Export / Copy', wrap);
     const copied = await copyTextToClipboard(b64); markSaved('Exported');
     document.getElementById('exportCopyStatus').textContent = copied ? 'Copied to clipboard.' : 'Automatic copy was blocked by the browser. Use “Copy again” or select the text manually.';
-    document.getElementById('copyExportAgain').onclick = async () => { const ok = await copyTextToClipboard(document.getElementById('exportText').value); document.getElementById('exportCopyStatus').textContent = ok ? 'Copied to clipboard.' : 'Copy failed. Select the text manually.'; };
-  } catch (err) { hideBusy(true); setStatus('Export failed: ' + err.message, 'err'); }
+    document.getElementById('copyExportAgain').onclick = async () => {
+      const ok = await copyTextToClipboard(document.getElementById('exportText').value);
+      document.getElementById('exportCopyStatus').textContent = ok ? 'Copied to clipboard.' : 'Copy failed. Select the text manually.';
+      setInlineError('exportError', ok ? '' : 'Copy failed. Select the export text manually.');
+    };
+  } catch (err) { hideBusy(true); setStatus(errorMessage('Export failed', err), 'err'); }
 };
 
 el('downloadBase64').onclick = async () => {
@@ -136,20 +151,20 @@ el('downloadBase64').onclick = async () => {
   finally { hideBusy(); }
 };
 
-el('fileInput').onchange = async e => { const file = e.target.files[0]; if (!file) return; try { await importText(await file.text(), file.name); } catch (err) { setStatus('Could not load file: ' + err.message, 'err'); } };
+el('fileInput').onchange = async e => { const file = e.target.files[0]; if (!file) return; try { await importText(await file.text(), file.name); } catch (err) { setStatus(errorMessage('Could not load file', err), 'err'); } };
 
 el('showImport').onclick = () => {
   const wrap = document.createElement('div');
-  wrap.innerHTML = `<p class="hint">Paste either formatted JSON or the gzip+Base64 blob. Then click Import.</p><textarea id="importText" class="raw" placeholder="Paste JSON or gzip+Base64 here"></textarea><div class="row" style="margin-top:8px;"><button id="importNow" class="primary">Import</button></div>`;
+  wrap.innerHTML = `<p class="hint">Paste either formatted JSON or the gzip+Base64 blob. Then click Import.</p><div id="importError" class="modal-error hidden" role="alert"></div><textarea id="importText" class="raw" placeholder="Paste JSON or gzip+Base64 here"></textarea><div class="row" style="margin-top:8px;"><button id="importNow" class="primary">Import</button></div>`;
   openModal('Import / Paste', wrap);
-  document.getElementById('importNow').onclick = async () => { try { await importText(document.getElementById('importText').value.trim(), ''); closeModal(); } catch (err) { setStatus('Import failed: ' + err.message, 'err'); } };
+  document.getElementById('importNow').onclick = async () => { try { setInlineError('importError', ''); await importText(document.getElementById('importText').value.trim(), ''); closeModal(); } catch (err) { const message = errorMessage('Import failed', err); setInlineError('importError', message); setStatus(message, 'err'); } };
 };
 
 el('showRaw').onclick = () => {
   const wrap = document.createElement('div');
   wrap.innerHTML = `<p class="hint">This is the full JSON config. Edit carefully; invalid JSON cannot be applied.</p><textarea id="rawFull" class="raw">${escapeHtml(JSON.stringify(data, null, 2))}</textarea><div class="row" style="margin-top:8px;"><button id="applyRawFull" class="primary">Apply full JSON</button><button id="copyRawFull">Copy</button></div><p class="hint" id="rawCopyStatus"></p>`;
   openModal('Raw JSON', wrap);
-  document.getElementById('applyRawFull').onclick = () => { try { applyValidatedConfig(validateConfig(JSON.parse(document.getElementById('rawFull').value))); selectedIndex = getCategories().length ? 0 : -1; closeModal(); markDirty(); renderAll(); maybeAutoLookupImportedIds(); } catch (err) { setStatus('Invalid full JSON: ' + err.message, 'err'); } };
+  document.getElementById('applyRawFull').onclick = () => { try { applyValidatedConfig(validateConfig(JSON.parse(document.getElementById('rawFull').value))); selectedIndex = getCategories().length ? 0 : -1; closeModal(); markDirty(); renderAll(); maybeAutoLookupImportedIds(); } catch (err) { setStatus(errorMessage('Invalid full JSON', err), 'err'); } };
   document.getElementById('copyRawFull').onclick = async () => { const ok = await copyTextToClipboard(document.getElementById('rawFull').value); document.getElementById('rawCopyStatus').textContent = ok ? 'Copied to clipboard.' : 'Copy failed. Select the text manually.'; setStatus(ok ? 'Copied full JSON' : 'Copy failed. Select the text manually.', ok ? 'ok' : 'warn'); };
 };
 

@@ -28,18 +28,30 @@
   </aside>
 
   <main class="main">
-    <div class="topbar">
+    <div class="topbar" aria-label="Editor controls">
       <input id="fileInput" class="hidden" type="file" accept=".txt,.json,.base64,.b64,text/plain,application/json">
-      <button id="showImport">Import/Paste</button>
-      <button id="showExportCopy" class="primary">Export/Copy</button>
-      <button id="uploadFile">Upload</button>
-      <button id="downloadBase64">Download</button>
-      <button id="showRaw">Raw JSON</button>
-      <button id="lookupReferencedIds">Lookup IDs</button>
-      <button id="showLookupCache" class="small">Lookup Cache</button>
-      <button id="showHelp" class="small">About / Help</button>
-      <label class="check"><input id="autoLookupImport" type="checkbox" checked> Auto-lookup imported IDs</label>
+      <div class="topbar-group" aria-label="File and data controls">
+        <span class="topbar-group-label">File / Data</span>
+        <button id="showImport">Import/Paste</button>
+        <button id="uploadFile">Upload</button>
+        <button id="showExportCopy" class="primary">Export/Copy</button>
+        <button id="downloadBase64">Download</button>
+        <button id="showRaw">Raw JSON</button>
+      </div>
+      <div class="topbar-group" aria-label="Lookup tools">
+        <span class="topbar-group-label">Tools</span>
+        <button id="lookupReferencedIds">Lookup IDs</button>
+        <button id="showLookupCache" class="small">Lookup Cache</button>
+      </div>
       <span class="spacer"></span>
+      <div class="topbar-group topbar-group-options" aria-label="Import options">
+        <span class="topbar-group-label">Options</span>
+        <label class="check"><input id="autoLookupImport" type="checkbox" checked> Auto-lookup imported IDs</label>
+      </div>
+      <div class="topbar-group" aria-label="Help">
+        <span class="topbar-group-label">Help</span>
+        <button id="showHelp" class="small">About / Help</button>
+      </div>
       <span class="sr-only status" id="status" role="status" aria-live="polite"></span>
     </div>
 
@@ -53,7 +65,7 @@
 </div>
 
 <div class="modal-backdrop hidden" id="modalBackdrop">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1">
     <div class="row" style="justify-content: space-between; margin-bottom: 10px;">
       <h2 id="modalTitle" style="margin:0;">Modal</h2>
       <button id="closeModal">Close</button>

@@ -30,6 +30,11 @@ Published page: <https://bahbus.github.io/AB_Category_Editor/>
 - XIVAPI is contacted only for item/category name lookups, search queries, and item sheet scans used by Regex → Item IDs.
 - The app does not upload the full category config to this repository.
 
+## Developer notes
+
+- Keep the app dependency-free and GitHub Pages-compatible.
+- Any user/config-provided values inserted into `innerHTML` must be escaped with `escapeHtml()` first. Prefer `textContent` when markup is not needed.
+
 ## Development checks
 
 - Run regression tests with `node --test`.
