@@ -37,6 +37,7 @@
       <button id="showRaw">Raw JSON</button>
       <button id="lookupReferencedIds">Lookup IDs</button>
       <button id="showLookupCache" class="small">Lookup Cache</button>
+      <button id="showHelp" class="small">About / Help</button>
       <label class="check"><input id="autoLookupImport" type="checkbox" checked> Auto-lookup imported IDs</label>
       <span class="spacer"></span>
       <span class="hidden" id="status" aria-live="polite"></span>
@@ -45,14 +46,14 @@
     <section class="editor" id="editor">
       <div class="card">
         <h2>No category selected</h2>
-        <p class="hint">Import an existing AetherBags config, paste gzip+Base64, or add a new category from scratch. Referenced Item/UI Category IDs can be auto-matched to English names on import.</p>
+        <p class="hint">Start with <strong>Import/Paste</strong> or <strong>Upload</strong> to load an existing AetherBags export, or add a category manually. Use <strong>About / Help</strong> if you are unsure what to paste or how to export back to AetherBags.</p>
       </div>
     </section>
   </main>
 </div>
 
 <div class="modal-backdrop hidden" id="modalBackdrop">
-  <div class="modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
     <div class="row" style="justify-content: space-between; margin-bottom: 10px;">
       <h2 id="modalTitle" style="margin:0;">Modal</h2>
       <button id="closeModal">Close</button>
