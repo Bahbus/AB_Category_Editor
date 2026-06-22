@@ -1,6 +1,9 @@
 import { el } from './dom.js';
 
-export function openModal(title, contentNode) {
+let activeCloseHandler = null;
+
+export function openModal(title, contentNode, options = {}) {
+  activeCloseHandler = typeof options.onClose === 'function' ? options.onClose : null;
   el('modalTitle').textContent = title;
   const box = el('modalContent');
   box.innerHTML = '';
@@ -13,5 +16,8 @@ export function openModal(title, contentNode) {
 }
 
 export function closeModal() {
+  const closeHandler = activeCloseHandler;
+  activeCloseHandler = null;
+  if (closeHandler) closeHandler();
   el('modalBackdrop').classList.add('hidden');
 }

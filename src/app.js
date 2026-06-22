@@ -2,7 +2,7 @@ import { INITIAL_DATA, XIVAPI_BASE, LOOKUP_BATCH_SIZE, RARITIES, ALLOWED_RARITY_
 import { el, escapeHtml, setSaveState, setStatus, showBusy, updateBusy, hideBusy } from './dom.js';
 import { colorToHex, colorToHexRGBA, hexToRgb01, hexToRgba01, rgbaCss, componentTo255 } from './color.js';
 import { loadLookupCache, persistLookupCache, removeLookupCache, emptyLookupCache } from './state.js';
-import { clone, defaultCategory as makeDefaultCategory, defaultRules, ensureShape, makeId } from './config.js';
+import { clone, defaultCategory as makeDefaultCategory, ensureShape, makeId } from './config.js';
 import { openModal, closeModal } from './modals.js';
 import { renderCategoryList } from './ui/categoryList.js';
 import { checkbox, numberInput, textInput } from './ui/formControls.js';
@@ -146,16 +146,6 @@ function sheetLabel(sheet) {
   if (sheet === 'Item') return 'Item';
   if (sheet === 'ItemUICategory') return 'UI category';
   return sheet;
-}
-
-async function fetchLookup(sheet, id) {
-  const idText = String(id);
-  const cache = lookupCache[sheet] || (lookupCache[sheet] = {});
-  if (cache[idText]) return cache[idText];
-
-  const failures = await fetchLookupBatch(sheet, [Number(id)], { batchSize: 1 });
-  if (failures.length) throw new Error(`${sheet} ${id} lookup failed`);
-  return cache[idText] || '(name unavailable)';
 }
 
 function normalizeLookupIds(ids) {
@@ -700,7 +690,14 @@ function openRegexToItemIdsTool() {
     <div class="regex-results" id="regexResults"></div>
   `;
 
-  openModal('Regex → Item IDs', wrap);
+  openModal('Regex → Item IDs', wrap, {
+    onClose: () => {
+      if (!activeScan) return;
+      activeScan.canceled = true;
+      activeScan.controller.abort();
+      updateBusy('Canceling Item sheet scan...', null);
+    }
+  });
 
   const select = document.getElementById('regexPatternSelect');
   const input = document.getElementById('regexPatternInput');
