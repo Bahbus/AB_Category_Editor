@@ -13,6 +13,21 @@ let dirty = false;
 let draggedIndex = null;
 let lookupCache = loadLookupCache();
 
+function saveLookupCache() {
+  persistLookupCache(lookupCache);
+}
+
+function lookupCacheCount(sheet) {
+  return Object.keys(lookupCache[sheet] || {}).length;
+}
+
+function clearLookupCache() {
+  lookupCache = emptyLookupCache();
+  removeLookupCache();
+  renderAll();
+  setStatus('Lookup cache cleared. Category data was not changed.', 'ok');
+}
+
 function getCategories() {
   if (!data.Categories) data.Categories = [];
   return data.Categories;
