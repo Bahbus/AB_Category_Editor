@@ -43,7 +43,7 @@ function renderAllowedRaritiesEditor(cat, deps) {
 function renderColorSection(cat, deps) {
   const { renderAll, markDirty } = deps;
   const color = document.createElement('div');
-  color.className = 'card';
+  color.className = 'card color-card';
   color.innerHTML = '<h3>Color</h3>';
 
   const layout = document.createElement('div');
@@ -204,7 +204,7 @@ export function renderEditor(deps) {
   root.appendChild(header);
 
   const basics = document.createElement('div');
-  basics.className = 'card';
+  basics.className = 'card basics-card';
   basics.innerHTML = '<h3>Basics</h3>';
   const grid = document.createElement('div');
   grid.className = 'grid basic-fields-grid';
