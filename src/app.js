@@ -13,6 +13,32 @@ let dirty = false;
 let draggedIndex = null;
 let lookupCache = loadLookupCache();
 
+function getCategories() {
+  if (!data.Categories) data.Categories = [];
+  return data.Categories;
+}
+
+function defaultCategory() {
+  const maxOrder = getCategories().reduce((m, c) => Math.max(m, Number(c.Order || 0)), 0);
+  return makeDefaultCategory(maxOrder);
+}
+
+function updateExportControls() {
+  const disabled = getCategories().length === 0;
+  for (const id of ['showExportCopy', 'downloadBase64']) {
+    const button = el(id);
+    if (!button) continue;
+    button.disabled = disabled;
+    button.title = disabled ? 'Add or import at least one category before exporting.' : '';
+  }
+}
+
+function markDirty(msg='Changed') {
+  dirty = true;
+  setSaveState('Unsaved changes', 'warn');
+  renderList();
+}
+
 function numericValue(value) {
   const n = Number(value);
   return Number.isFinite(n) ? n : null;
