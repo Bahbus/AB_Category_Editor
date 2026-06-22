@@ -11,6 +11,7 @@ let draggedIndex = null;
 let lookupCache = loadLookupCache();
 
 const XIVAPI_BASE = 'https://v2.xivapi.com/api';
+const LOOKUP_BATCH_SIZE = 100;
 
 const RARITIES = [
   { id: 1, label: 'Common', color: 'White' },
@@ -38,6 +39,21 @@ function saveLookupCache() {
   } catch {
     // If storage is full or blocked, lookup caching is skipped.
   }
+}
+
+function lookupCacheCount(sheet) {
+  return Object.keys(lookupCache[sheet] || {}).length;
+}
+
+function clearLookupCache() {
+  lookupCache = { Item: {}, ItemUICategory: {} };
+  try {
+    localStorage.removeItem('aetherbagsEditorLookupCache');
+  } catch {
+    // If storage is blocked, the in-memory cache is still cleared.
+  }
+  renderAll();
+  setStatus('Lookup cache cleared. Category data was not changed.', 'ok');
 }
 
 function setSaveState(text='Saved', cls='') {
@@ -491,14 +507,123 @@ async function fetchLookup(sheet, id) {
   const cache = lookupCache[sheet] || (lookupCache[sheet] = {});
   if (cache[idText]) return cache[idText];
 
-  const url = `${XIVAPI_BASE}/sheet/${encodeURIComponent(sheet)}/${encodeURIComponent(idText)}?fields=Name&language=en`;
+  const failures = await fetchLookupBatch(sheet, [Number(id)], { batchSize: 1 });
+  if (failures.length) throw new Error(`${sheet} ${id} lookup failed`);
+  return cache[idText] || '(name unavailable)';
+}
+
+function normalizeLookupIds(ids) {
+  const seen = new Set();
+  const out = [];
+  for (const id of ids || []) {
+    const n = Number(id);
+    if (!Number.isInteger(n) || n < 0 || seen.has(n)) continue;
+    seen.add(n);
+    out.push(n);
+  }
+  return out;
+}
+
+function extractSheetRowsById(payload) {
+  const map = new Map();
+  const addRow = (row, fallbackId=null) => {
+    if (!row || typeof row !== 'object') return;
+    const id = rowId(row) ?? fallbackId;
+    if (id === undefined || id === null || id === '') return;
+    map.set(String(id), row);
+  };
+
+  for (const row of extractSheetRows(payload)) addRow(row);
+
+  const rowContainers = [payload?.rows, payload?.data, payload?.results];
+  for (const container of rowContainers) {
+    if (!container || Array.isArray(container) || typeof container !== 'object') continue;
+    for (const [id, row] of Object.entries(container)) addRow(row, id);
+  }
+
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    for (const [id, row] of Object.entries(payload)) {
+      if (/^\d+$/.test(id)) addRow(row, id);
+    }
+  }
+
+  return map;
+}
+
+async function fetchLookupRows(sheet, ids) {
+  const params = new URLSearchParams({
+    rows: ids.join(','),
+    fields: 'Name',
+    language: 'en'
+  });
+  const res = await fetch(`${XIVAPI_BASE}/sheet/${encodeURIComponent(sheet)}?${params.toString()}`);
+  if (!res.ok) throw new Error(`${sheet} batch lookup failed: HTTP ${res.status}`);
+  return await res.json();
+}
+
+async function fetchLookupRow(sheet, id) {
+  const url = `${XIVAPI_BASE}/sheet/${encodeURIComponent(sheet)}/${encodeURIComponent(id)}?fields=Name&language=en`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`${sheet} ${id} lookup failed: HTTP ${res.status}`);
-  const json = await res.json();
-  const name = json?.fields?.Name || json?.fields?.Name_en || json?.Name || '(name unavailable)';
-  cache[idText] = name;
+  return await res.json();
+}
+
+async function fetchLookupBatch(sheet, ids, options = {}) {
+  const batchSize = Math.max(1, Number(options.batchSize) || LOOKUP_BATCH_SIZE);
+  const cache = lookupCache[sheet] || (lookupCache[sheet] = {});
+  const missing = normalizeLookupIds(ids).filter(id => !cache[String(id)]);
+  const failures = [];
+  if (!missing.length) return failures;
+
+  const cachePayloadRows = rowsById => {
+    for (const id of missing) {
+      if (cache[String(id)]) continue;
+      const row = rowsById.get(String(id));
+      if (!row) continue;
+      cache[String(id)] = rowName(row) || '(name unavailable)';
+    }
+  };
+
+  const fetchChunk = async chunk => {
+    const before = new Set(Object.keys(cache));
+    try {
+      if (chunk.length === 1) {
+        const row = await fetchLookupRow(sheet, chunk[0]);
+        cache[String(chunk[0])] = rowName(row) || '(name unavailable)';
+      } else {
+        const payload = await fetchLookupRows(sheet, chunk);
+        cachePayloadRows(extractSheetRowsById(payload));
+      }
+    } catch (err) {
+      if (chunk.length === 1) {
+        failures.push({ sheet, id: chunk[0], error: err });
+        return;
+      }
+      const midpoint = Math.ceil(chunk.length / 2);
+      await fetchChunk(chunk.slice(0, midpoint));
+      await fetchChunk(chunk.slice(midpoint));
+      return;
+    }
+
+    const unresolved = chunk.filter(id => !cache[String(id)] && !before.has(String(id)));
+    if (unresolved.length && chunk.length > 1) {
+      for (const id of unresolved) await fetchChunk([id]);
+    } else {
+      for (const id of unresolved) failures.push({ sheet, id, error: new Error('No row returned') });
+    }
+  };
+
+  for (let i = 0; i < missing.length; i += batchSize) {
+    await fetchChunk(missing.slice(i, i + batchSize));
+    saveLookupCache();
+    if (typeof options.onProgress === 'function') {
+      options.onProgress(Math.min(i + batchSize, missing.length), missing.length, sheet);
+    }
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+
   saveLookupCache();
-  return name;
+  return failures;
 }
 
 function collectReferencedIds() {
@@ -555,7 +680,6 @@ async function lookupReferencedIds(options = {}) {
   const lookupButton = el('lookupReferencedIds');
   if (lookupButton) lookupButton.disabled = true;
 
-  let done = 0;
   const failures = [];
 
   try {
@@ -567,17 +691,17 @@ async function lookupReferencedIds(options = {}) {
     ];
 
     for (const [sheet, sheetIds] of work) {
-      for (const id of sheetIds) {
-        if (lookupName(sheet, id)) continue;
-        try {
-          await fetchLookup(sheet, id);
-        } catch (err) {
-          failures.push(`${sheet} ${id}`);
+      const missing = sheetIds.filter(id => !lookupName(sheet, id));
+      if (!missing.length) continue;
+      const priorCached = uncached - countUncachedReferencedIds(ids);
+      const batchFailures = await fetchLookupBatch(sheet, missing, {
+        onProgress(doneForSheet, totalForSheet) {
+          const done = Math.min(uncached, priorCached + doneForSheet);
+          const percent = uncached ? (done / uncached) * 100 : 100;
+          updateBusy(`${done}/${uncached} checked · ${sheetLabel(sheet)} batch ${Math.ceil(doneForSheet / LOOKUP_BATCH_SIZE)}/${Math.ceil(totalForSheet / LOOKUP_BATCH_SIZE)}`, percent);
         }
-        done++;
-        const percent = uncached ? (done / uncached) * 100 : 100;
-        updateBusy(`${done}/${uncached} complete · ${sheet} #${id}`, percent);
-      }
+      });
+      failures.push(...batchFailures.map(failure => `${failure.sheet} ${failure.id}`));
     }
 
     saveLookupCache();
@@ -730,18 +854,27 @@ function listEditor(title, arr, parser, formatter, hint='', lookupSheet=null) {
     lookupButton.onclick = async () => {
       try {
         lookupButton.disabled = true;
-        showBusy(`Looking up ${sheetLabel(lookupSheet)} names`, `0/${arr.length} complete`, 0);
-        let count = 0;
-        for (const id of arr) {
-          if (!lookupName(lookupSheet, id)) {
-            await fetchLookup(lookupSheet, id);
+        const ids = normalizeLookupIds(arr);
+        const missing = ids.filter(id => !lookupName(lookupSheet, id));
+        showBusy(`Looking up ${sheetLabel(lookupSheet)} names`, `0/${missing.length} uncached checked`, 0);
+        if (missing.length) {
+          const failures = await fetchLookupBatch(lookupSheet, missing, {
+            onProgress(done, total) {
+              const percent = total ? (done / total) * 100 : 100;
+              setStatus(`Looked up ${done}/${total} uncached ${sheetLabel(lookupSheet)} ID(s)...`);
+              updateBusy(`${done}/${total} uncached checked`, percent);
+            }
+          });
+          if (failures.length) {
+            const shown = failures.slice(0, 5).map(failure => `#${failure.id}`).join(', ');
+            const more = failures.length > 5 ? `, +${failures.length - 5} more` : '';
+            setStatus(`${sheetLabel(lookupSheet)} lookup finished with ${failures.length} failure(s): ${shown}${more}`, 'warn');
+          } else {
+            setStatus(`${sheetLabel(lookupSheet)} lookup complete`, 'ok');
           }
-          count++;
-          const percent = arr.length ? (count / arr.length) * 100 : 100;
-          setStatus(`Looked up ${count}/${arr.length} ${sheetLabel(lookupSheet)} ID(s)...`);
-          updateBusy(`${count}/${arr.length} checked · #${id}`, percent);
+        } else {
+          setStatus(`All ${ids.length} ${sheetLabel(lookupSheet)} name(s) already cached.`, 'ok');
         }
-        setStatus(`${sheetLabel(lookupSheet)} lookup complete`, 'ok');
         renderPills();
       } catch (err) {
         setStatus(err.message, 'err');
@@ -854,7 +987,7 @@ function rowId(row) {
 }
 
 function rowName(row) {
-  return row?.fields?.Name || row?.Name || row?.name || '';
+  return row?.fields?.Name || row?.fields?.Name_en || row?.Name || row?.Name_en || row?.name || '';
 }
 
 function uniqueById(items) {
@@ -1467,6 +1600,26 @@ function closeModal() {
   el('modalBackdrop').classList.add('hidden');
 }
 
+function showLookupCacheModal() {
+  const wrap = document.createElement('div');
+  wrap.className = 'lookup-cache-modal';
+  wrap.innerHTML = `
+    <p class="hint">Only Item IDs, ItemUICategory IDs, and item search/scan queries are sent to XIVAPI. Your full imported category config is never uploaded.</p>
+    <div class="cache-counts">
+      <div><strong>Cached Item names:</strong> <span>${lookupCacheCount('Item').toLocaleString()}</span></div>
+      <div><strong>Cached UI category names:</strong> <span>${lookupCacheCount('ItemUICategory').toLocaleString()}</span></div>
+    </div>
+    <div class="row" style="margin-top: 14px;">
+      <button id="clearLookupCache" class="danger">Clear lookup cache</button>
+    </div>
+  `;
+  wrap.querySelector('#clearLookupCache').onclick = () => {
+    clearLookupCache();
+    closeModal();
+  };
+  openModal('Lookup Cache', wrap);
+}
+
 function validateConfig(obj) {
   if (!obj || typeof obj !== 'object') throw new Error('Root must be a JSON object.');
   if (!Array.isArray(obj.Categories)) throw new Error('Root must contain a Categories array.');
@@ -1507,6 +1660,8 @@ el('lookupReferencedIds').onclick = () => {
     setStatus('ID lookup failed: ' + err.message, 'err');
   });
 };
+
+el('showLookupCache').onclick = showLookupCacheModal;
 
 el('uploadFile').onclick = () => {
   const input = el('fileInput');
