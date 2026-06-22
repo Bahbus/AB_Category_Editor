@@ -73,14 +73,18 @@ function renderColorSection(cat, deps) {
     const id = `rgba-${label.toLowerCase()}-${Math.random().toString(36).slice(2)}`;
     wrap.innerHTML = `<label for="${id}">${label}</label><input id="${id}" type="number" min="0" max="255" step="1" value="${escapeHtml(getValue())}">`;
     const input = wrap.querySelector('input');
-    input.oninput = e => {
+    input.onblur = e => {
       const raw = Number(e.target.value);
-      const n = Number.isNaN(raw) ? 0 : Math.max(0, Math.min(255, Math.round(raw)));
+      const n = Number.isNaN(raw) ? getValue() : Math.max(0, Math.min(255, Math.round(raw)));
+      e.target.value = String(n);
       setValue(n);
       markDirty();
       updateColorVisuals();
+      renderAll();
     };
-    input.onchange = () => renderAll();
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') e.currentTarget.blur();
+    });
     return wrap;
   }
 

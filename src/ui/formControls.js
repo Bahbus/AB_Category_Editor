@@ -13,7 +13,19 @@ export function numberInput(label, value, onChange, step='1', min=null, max=null
   const minAttr = min === null ? '' : ` min="${min}"`;
   const maxAttr = max === null ? '' : ` max="${max}"`;
   wrap.innerHTML = `<label for="${id}">${escapeHtml(label)}</label><input id="${id}" type="number" step="${step}"${minAttr}${maxAttr} value="${escapeHtml(value)}">`;
-  wrap.querySelector('input').oninput = e => onChange(Number(e.target.value));
+  const input = wrap.querySelector('input');
+  input.onblur = e => {
+    const fallback = Number(value) || 0;
+    let next = Number(e.target.value);
+    if (Number.isNaN(next)) next = fallback;
+    if (min !== null) next = Math.max(Number(min), next);
+    if (max !== null) next = Math.min(Number(max), next);
+    e.target.value = String(next);
+    onChange(next);
+  };
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') e.currentTarget.blur();
+  });
   return wrap;
 }
 

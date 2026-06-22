@@ -50,9 +50,9 @@ export function setStatus(msg, cls='') {
 let busyCount = 0;
 
 export function showBusy(title, detail='', percent=null) {
-  busyCount++;
   const box = el('busyOverlay');
   if (!box) return;
+  busyCount++;
   const titleNode = el('busyTitle');
   if (titleNode) titleNode.textContent = title || 'Working';
   box.classList.remove('hidden');
