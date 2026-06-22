@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const skippedDirs = new Set(['.git', 'node_modules']);
 const staticImportPattern = /(?:import\s+(?:[^'";]+?\s+from\s*)?|export\s+[^'";]+?\s+from\s*)["'](\.{1,2}\/[^"']+)["']/g;
+const moduleScriptPattern = /<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["']([^"']+)["'][^>]*>/g;
 const failures = [];
 
 function walk(dir) {
@@ -28,6 +29,19 @@ for (const file of walk(root)) {
     const target = normalize(resolve(dirname(file), specifier));
     if (!target.startsWith(root) || !existsSync(target) || !statSync(target).isFile()) {
       failures.push(`${relative(root, file)} imports missing module ${specifier}`);
+    }
+  }
+}
+
+const indexHtml = join(root, 'index.html');
+if (existsSync(indexHtml)) {
+  const source = readFileSync(indexHtml, 'utf8');
+  for (const match of source.matchAll(moduleScriptPattern)) {
+    const specifier = match[1];
+    if (/^[a-z][a-z0-9+.-]*:/i.test(specifier) || specifier.startsWith('//')) continue;
+    const target = normalize(resolve(dirname(indexHtml), specifier));
+    if (!target.startsWith(root) || !existsSync(target) || !statSync(target).isFile()) {
+      failures.push(`index.html references missing module entrypoint ${specifier}`);
     }
   }
 }
