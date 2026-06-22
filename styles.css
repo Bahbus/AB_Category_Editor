@@ -329,7 +329,7 @@
     display: flex;
     flex-wrap: wrap;
     gap: 14px;
-    align-items: flex-start;
+    align-items: stretch;
   }
   .top-editor-grid > .basics-card {
     flex: 2 1 540px;
