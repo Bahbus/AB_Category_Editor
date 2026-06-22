@@ -195,8 +195,6 @@ export function renderEditor(deps) {
   let selectedIndex = getSelectedIndex();
   const cats = getCategories();
   const root = el('editor');
-  root._topEditorLayoutCleanup?.();
-  root._topEditorLayoutCleanup = null;
   root.innerHTML = '';
 
   if (!cats.length) {
@@ -250,21 +248,6 @@ export function renderEditor(deps) {
   const colorCard = renderColorSection(cat, deps);
   topEditorGrid.append(basics, colorCard);
   root.appendChild(topEditorGrid);
-
-  function syncColorWrapState() {
-    colorCard.classList.toggle('is-wrapped', colorCard.offsetTop > basics.offsetTop);
-  }
-  requestAnimationFrame(syncColorWrapState);
-  if ('ResizeObserver' in window) {
-    const observer = new ResizeObserver(syncColorWrapState);
-    observer.observe(topEditorGrid);
-    observer.observe(basics);
-    observer.observe(colorCard);
-    root._topEditorLayoutCleanup = () => observer.disconnect();
-  } else {
-    window.addEventListener('resize', syncColorWrapState);
-    root._topEditorLayoutCleanup = () => window.removeEventListener('resize', syncColorWrapState);
-  }
 
   const rules = cat.Rules;
   const ruleGrid = document.createElement('div');
