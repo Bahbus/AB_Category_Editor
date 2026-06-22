@@ -1,6 +1,6 @@
 import { INITIAL_DATA, XIVAPI_BASE, LOOKUP_BATCH_SIZE, RARITIES, ALLOWED_RARITY_IDS } from './constants.js';
 import { el, escapeHtml, setSaveState, setStatus, showBusy, updateBusy, hideBusy } from './dom.js';
-import { colorToHex, colorToHexRGBA, hexToRgb01, hexToRgba01, rgbaCss } from './color.js';
+import { colorToHex, colorToHexRGBA, hexToRgb01, hexToRgba01, rgbaCss, componentTo255 } from './color.js';
 import { loadLookupCache, persistLookupCache, removeLookupCache, emptyLookupCache } from './state.js';
 import { clone, defaultCategory as makeDefaultCategory, defaultRules, ensureShape, makeId } from './config.js';
 import { openModal, closeModal } from './modals.js';
