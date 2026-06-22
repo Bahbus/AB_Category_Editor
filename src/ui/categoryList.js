@@ -71,7 +71,7 @@ export function renderCategoryList({
     cats.splice(insertAt, 0, moved);
     setSelectedIndex(insertAt);
     if (el('autoRenumberDrag').checked) renumberCategories();
-    markDirty('Category reordered');
+    markDirty();
     renderAll();
   }
 

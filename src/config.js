@@ -51,7 +51,7 @@ export function defaultCategory(maxOrder = 0) {
 export function ensureShape(cat) {
   if (!cat.Color) cat.Color = { X: 1, Y: 1, Z: 1, W: 1 };
   for (const key of ['X','Y','Z','W']) {
-    if (typeof cat.Color[key] !== 'number') cat.Color[key] = key === 'W' ? 1 : 1;
+    if (typeof cat.Color[key] !== 'number') cat.Color[key] = 1;
   }
   if (!cat.Rules) cat.Rules = defaultRules();
   const r = cat.Rules;
@@ -90,8 +90,8 @@ export function sortImportedCategories(config) {
   return config;
 }
 
-export function normalizeAllowedRarities(cat) {
-  const rules = cat.Rules || (cat.Rules = {});
+export function getNormalizedAllowedRarities(cat) {
+  const rules = cat.Rules || {};
   const original = Array.isArray(rules.AllowedRarities) ? rules.AllowedRarities : [];
   const normalized = [];
   const seen = new Set();
@@ -104,6 +104,12 @@ export function normalizeAllowedRarities(cat) {
   }
 
   normalized.sort((a, b) => a - b);
+  return normalized;
+}
+
+export function normalizeAllowedRarities(cat) {
+  const rules = cat.Rules || (cat.Rules = {});
+  const normalized = getNormalizedAllowedRarities(cat);
   rules.AllowedRarities = normalized;
   return normalized;
 }

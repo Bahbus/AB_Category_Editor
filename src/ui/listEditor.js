@@ -36,7 +36,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       pill.innerHTML = `<span>${escapeHtml(formatter(v))}</span>${extra}<button title="Remove">×</button>`;
       pill.querySelector('button').onclick = () => {
         arr.splice(i, 1);
-        markDirty(`${title} updated`);
+        markDirty();
         renderPills();
       };
       pills.appendChild(pill);
@@ -54,7 +54,14 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
   row.className = 'row';
   row.style.marginTop = '10px';
 
+  const inputId = `list-editor-input-${Math.random().toString(36).slice(2)}`;
+  const inputLabel = document.createElement('label');
+  inputLabel.className = 'sr-only';
+  inputLabel.htmlFor = inputId;
+  inputLabel.textContent = `Add value to ${title}`;
+
   const input = document.createElement('input');
+  input.id = inputId;
   input.style.width = 'min(420px, 100%)';
   input.placeholder = 'Add one value, or comma-separated values';
 
@@ -71,7 +78,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     try {
       for (const part of parts) arr.push(parser(part));
       input.value = '';
-      markDirty(`${title} updated`);
+      markDirty();
       renderPills();
     } catch (err) {
       setStatus(err.message, 'err');
@@ -85,7 +92,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     }
   });
 
-  row.append(input, add);
+  row.append(inputLabel, input, add);
 
   if (lookupSheet) {
     const lookupButton = document.createElement('button');
@@ -129,7 +136,8 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
 
     const searchWrap = document.createElement('div');
     searchWrap.style.marginTop = '10px';
-    searchWrap.innerHTML = `<label>Search ${escapeHtml(sheetLabel(lookupSheet))} by English name</label><div class="row"><input class="lookupSearchInput" style="width:min(420px, 100%)" placeholder="Example: potion, materia, weapon"><button class="lookupSearchButton">Search</button></div><div class="lookup-results"></div>`;
+    const searchId = `lookup-search-${Math.random().toString(36).slice(2)}`;
+    searchWrap.innerHTML = `<label for="${searchId}">Search ${escapeHtml(sheetLabel(lookupSheet))} by English name</label><div class="row"><input id="${searchId}" class="lookupSearchInput" style="width:min(420px, 100%)" placeholder="Example: potion, materia, weapon"><button class="lookupSearchButton">Search</button></div><div class="lookup-results"></div>`;
 
     const searchInput = searchWrap.querySelector('.lookupSearchInput');
     const searchButton = searchWrap.querySelector('.lookupSearchButton');
@@ -164,7 +172,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
           r.querySelector('button').onclick = () => {
             if (!arr.includes(id)) {
               arr.push(id);
-              markDirty(`${title} updated`);
+              markDirty();
               renderPills();
             }
           };

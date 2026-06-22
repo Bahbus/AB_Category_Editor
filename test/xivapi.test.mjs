@@ -26,7 +26,7 @@ test('extractSheetRows supports plausible XIVAPI row containers', () => {
   assert.deepEqual(extractSheetRows({}), []);
 });
 
-test('extractSheetRowsById maps array and object shaped rows by row ids', () => {
+test('extractSheetRowsById maps array rows and numeric object fallback keys', () => {
   const payload = {
     rows: [{ row_id: 10, fields: { Name: 'Potion' } }],
     data: {
@@ -41,7 +41,7 @@ test('extractSheetRowsById maps array and object shaped rows by row ids', () => 
   assert.equal(rowName(rowsById.get('10')), 'Potion');
   assert.equal(rowName(rowsById.get('20')), 'Ether');
   assert.equal(rowName(rowsById.get('30')), 'Elixir');
-  assert.equal(rowName(rowsById.get('notAnId')), 'Ignored fallback');
+  assert.equal(rowsById.has('notAnId'), false);
 });
 
 test('extractNextCursor prefers pagination cursors before falling back to the last row id', () => {

@@ -5,6 +5,8 @@ import {
   defaultCategory,
   defaultRules,
   ensureShape,
+  compareCategoriesForImport,
+  getNormalizedAllowedRarities,
   normalizeAllowedRarities,
   normalizeAllowedRaritiesWithReport,
   sortImportedCategories,
@@ -45,6 +47,15 @@ test('ensureShape fills missing color and rule fields', () => {
   assert.deepEqual(category.Rules.Level, { Enabled: false, Min: 0, Max: 200 });
 });
 
+test('getNormalizedAllowedRarities returns display rarities without mutating the category', () => {
+  const category = { Rules: { AllowedRarities: [7, '4', 99, 4, 1, 0, 2, 3, 3, 'bad'] } };
+
+  const normalized = getNormalizedAllowedRarities(category);
+
+  assert.deepEqual(normalized, allowedRarities);
+  assert.deepEqual(category.Rules.AllowedRarities, [7, '4', 99, 4, 1, 0, 2, 3, 3, 'bad']);
+});
+
 test('normalizeAllowedRarities keeps only supported unique numeric rarities', () => {
   const category = { Rules: { AllowedRarities: [7, '4', 99, 4, 1, 0, 2, 3, 3, 'bad'] } };
 
@@ -66,6 +77,19 @@ test('normalizeAllowedRaritiesWithReport reports changes only when output differ
     normalized: [1, 2, 3, 4, 7],
     changed: false
   });
+});
+
+test('compareCategoriesForImport provides shared category order sorting', () => {
+  const categories = [
+    { Id: 'b', Name: 'Beta', Order: 2, Priority: 1 },
+    { Id: 'd', Name: 'Alpha', Order: 1, Priority: 2 },
+    { Id: 'c', Name: 'Alpha', Order: 1, Priority: 1 },
+    { Id: 'a', Name: 'Alpha', Order: 1, Priority: 1 }
+  ];
+
+  categories.sort(compareCategoriesForImport);
+
+  assert.deepEqual(categories.map(category => category.Id), ['a', 'c', 'd', 'b']);
 });
 
 test('sortImportedCategories sorts by Order, then Priority, name, and id', () => {

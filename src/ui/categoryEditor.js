@@ -1,7 +1,8 @@
 import { RARITIES, ALLOWED_RARITY_IDS } from '../constants.js';
 import { el, escapeHtml, setStatus } from '../dom.js';
 import { colorToHex, colorToHexRGBA, hexToRgb01, hexToRgba01, rgbaCss, componentTo255 } from '../color.js';
-import { clone, makeId, normalizeAllowedRarities } from '../config.js';
+import { clone, makeId, getNormalizedAllowedRarities } from '../config.js';
+import { openModal, closeModal } from '../modals.js';
 import { checkbox, numberInput, textInput } from './formControls.js';
 import { listEditor } from './listEditor.js';
 
@@ -16,7 +17,7 @@ function renderAllowedRaritiesEditor(cat, deps) {
 
   const grid = document.createElement('div');
   grid.className = 'rarity-checkbox-grid';
-  const selected = new Set(normalizeAllowedRarities(cat));
+  const selected = new Set(getNormalizedAllowedRarities(cat));
 
   for (const rarity of RARITIES) {
     const label = document.createElement('label');
@@ -30,7 +31,7 @@ function renderAllowedRaritiesEditor(cat, deps) {
         .map(input => Number(input.value))
         .filter(value => ALLOWED_RARITY_IDS.has(value))
         .sort((a, b) => a - b);
-      markDirty('Allowed rarities changed');
+      markDirty();
     };
     grid.appendChild(label);
   }
@@ -50,7 +51,7 @@ function renderColorSection(cat, deps) {
 
   const left = document.createElement('div');
   left.innerHTML = `
-    <label>Preview / color picker</label>
+    <label for="rgbPicker">Preview / color picker</label>
     <div class="color-preview" title="Click to open the color picker">
       <div class="color-fill" id="colorFill"></div>
       <input class="color-native-input" id="rgbPicker" type="color" value="${colorToHex(cat.Color)}" aria-label="Pick RGB color">
@@ -62,20 +63,21 @@ function renderColorSection(cat, deps) {
   right.className = 'grid';
 
   const hexWrap = document.createElement('div');
-  hexWrap.innerHTML = `<label>Hex RGBA</label><input id="hexColorInput" placeholder="#RRGGBBAA" value="${colorToHexRGBA(cat.Color).toUpperCase()}">`;
+  hexWrap.innerHTML = `<label for="hexColorInput">Hex RGBA</label><input id="hexColorInput" placeholder="#RRGGBBAA" value="${colorToHexRGBA(cat.Color).toUpperCase()}">`;
 
   const nums = document.createElement('div');
   nums.className = 'grid cols-4';
 
   function makeRgbaNumber(label, getValue, setValue) {
     const wrap = document.createElement('div');
-    wrap.innerHTML = `<label>${label}</label><input type="number" min="0" max="255" step="1" value="${escapeHtml(getValue())}">`;
+    const id = `rgba-${label.toLowerCase()}-${Math.random().toString(36).slice(2)}`;
+    wrap.innerHTML = `<label for="${id}">${label}</label><input id="${id}" type="number" min="0" max="255" step="1" value="${escapeHtml(getValue())}">`;
     const input = wrap.querySelector('input');
     input.oninput = e => {
       const raw = Number(e.target.value);
       const n = Number.isNaN(raw) ? 0 : Math.max(0, Math.min(255, Math.round(raw)));
       setValue(n);
-      markDirty(`${label} changed`);
+      markDirty();
       updateColorVisuals();
     };
     input.onchange = () => renderAll();
@@ -118,7 +120,7 @@ function renderColorSection(cat, deps) {
       cat.Color.Y = rgb.Y;
       cat.Color.Z = rgb.Z;
       updateColorVisuals();
-      markDirty('RGB color changed');
+      markDirty();
     };
     picker.onchange = () => renderAll();
 
@@ -142,7 +144,7 @@ function renderColorSection(cat, deps) {
       cat.Color.Z = rgba.Z;
       cat.Color.W = rgba.W;
       updateColorVisuals();
-      markDirty('Hex RGBA color changed');
+      markDirty();
       return true;
     }
 
@@ -203,17 +205,17 @@ export function renderEditor(deps) {
   const checks = document.createElement('div');
   checks.className = 'row';
   checks.append(
-    checkbox('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirty('Enabled changed'); }),
-    checkbox('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirty('Pinned changed'); })
+    checkbox('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirty(); }),
+    checkbox('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirty(); })
   );
 
   const grid = document.createElement('div');
   grid.className = 'grid cols-2';
   grid.append(
-    textInput('Name', cat.Name, v => { cat.Name = v; markDirty('Name changed'); }),
-    textInput('Description', cat.Description, v => { cat.Description = v; markDirty('Description changed'); }),
-    numberInput('Order', cat.Order, v => { cat.Order = v; markDirty('Order changed'); }),
-    numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirty('Priority changed'); })
+    textInput('Name', cat.Name, v => { cat.Name = v; markDirty(); }),
+    textInput('Description', cat.Description, v => { cat.Description = v; markDirty(); }),
+    numberInput('Order', cat.Order, v => { cat.Order = v; markDirty(); }),
+    numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirty(); })
   );
   basics.append(checks, grid);
   root.appendChild(basics);
@@ -263,9 +265,9 @@ export function renderEditor(deps) {
     box.className = 'nested-card';
     box.innerHTML = `<h3>${escapeHtml(key)}</h3>`;
     box.append(
-      checkbox('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(`${key} range changed`); }),
-      numberInput('Min', obj.Min, v => { obj.Min = v; markDirty(`${key} range changed`); }),
-      numberInput('Max', obj.Max, v => { obj.Max = v; markDirty(`${key} range changed`); })
+      checkbox('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(); }),
+      numberInput('Min', obj.Min, v => { obj.Min = v; markDirty(); }),
+      numberInput('Max', obj.Max, v => { obj.Max = v; markDirty(); })
     );
     rangeGrid.appendChild(box);
   }
@@ -286,8 +288,8 @@ export function renderEditor(deps) {
     box.className = 'nested-card';
     box.innerHTML = `
       <h3>${escapeHtml(filterName)}</h3>
-      <label>State</label>
-      <select>
+      <label for="stateSelect-${escapeHtml(filterName)}">State</label>
+      <select id="stateSelect-${escapeHtml(filterName)}">
         <option value="0">0 - Ignored</option>
         <option value="1">1 - Required</option>
         <option value="2">2 - Excluded</option>
@@ -298,7 +300,7 @@ export function renderEditor(deps) {
     select.value = String(obj.State ?? 0);
     select.onchange = e => {
       obj.State = Number(e.target.value);
-      markDirty(`${filterName} state changed`);
+      markDirty();
       renderList();
     };
 
@@ -334,7 +336,7 @@ export function renderEditor(deps) {
     [cats[selectedIndex - 1], cats[selectedIndex]] = [cats[selectedIndex], cats[selectedIndex - 1]];
     selectedIndex--; setSelectedIndex(selectedIndex);
     if (el('autoRenumberDrag').checked) renumberCategories();
-    markDirty('Category moved');
+    markDirty();
     renderAll();
   };
   el('moveDown').onclick = () => {
@@ -342,7 +344,7 @@ export function renderEditor(deps) {
     [cats[selectedIndex + 1], cats[selectedIndex]] = [cats[selectedIndex], cats[selectedIndex + 1]];
     selectedIndex++; setSelectedIndex(selectedIndex);
     if (el('autoRenumberDrag').checked) renumberCategories();
-    markDirty('Category moved');
+    markDirty();
     renderAll();
   };
   el('duplicateCat').onclick = () => {
@@ -353,22 +355,35 @@ export function renderEditor(deps) {
     copy.Priority = Number(copy.Priority || 0) + 1;
     cats.splice(selectedIndex + 1, 0, copy);
     selectedIndex++; setSelectedIndex(selectedIndex);
-    markDirty('Category duplicated');
+    markDirty();
     renderAll();
   };
   el('deleteCat').onclick = () => {
-    if (!confirm(`Delete "${cat.Name}"? This only affects the browser copy until you download/export.`)) return;
-    cats.splice(selectedIndex, 1);
-    selectedIndex = Math.min(selectedIndex, cats.length - 1); setSelectedIndex(selectedIndex);
-    markDirty('Category deleted');
-    renderAll();
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `
+      <p>Delete <strong>${escapeHtml(cat.Name || '(unnamed)')}</strong>?</p>
+      <p class="hint">This only affects the browser copy until you download or export.</p>
+      <div class="row" style="margin-top:12px;">
+        <button id="confirmDeleteCat" class="danger">Delete category</button>
+        <button id="cancelDeleteCat">Cancel</button>
+      </div>
+    `;
+    openModal('Delete category', wrap);
+    document.getElementById('confirmDeleteCat').onclick = () => {
+      cats.splice(selectedIndex, 1);
+      selectedIndex = Math.min(selectedIndex, cats.length - 1); setSelectedIndex(selectedIndex);
+      closeModal();
+      markDirty();
+      renderAll();
+    };
+    document.getElementById('cancelDeleteCat').onclick = closeModal;
   };
   el('applyRawCategory').onclick = () => {
     try {
       const parsed = JSON.parse(el('rawCategory').value);
       cats[selectedIndex] = parsed;
       ensureShape(cats[selectedIndex]);
-      markDirty('Raw category JSON applied');
+      markDirty();
       renderAll();
     } catch (err) {
       setStatus('Invalid category JSON: ' + err.message, 'err');

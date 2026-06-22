@@ -25,32 +25,32 @@ export function openRegexToItemIdsTool(deps) {
     <p class="hint">Select an existing regex or type a custom one. The scan matches JavaScript regex against English Item names from XIVAPI.</p>
     <div class="grid cols-2">
       <div>
-        <label>Existing pattern</label>
+        <label for="regexPatternSelect">Existing pattern</label>
         <select id="regexPatternSelect">
           <option value="custom">Custom regex</option>
           ${options}
         </select>
       </div>
       <div>
-        <label>Regex flags</label>
+        <label for="regexFlags">Regex flags</label>
         <input id="regexFlags" value="i" placeholder="Example: i">
       </div>
     </div>
     <div style="margin-top:10px;">
-      <label>Regex</label>
+      <label for="regexPatternInput">Regex</label>
       <input id="regexPatternInput" value="${escapeHtml(patterns[0] || '')}" placeholder="Example: ^Augmented .*">
     </div>
     <div class="grid cols-3" style="margin-top:10px;">
       <div>
-        <label>Max matches to collect</label>
+        <label for="regexMaxMatches">Max matches to collect</label>
         <input id="regexMaxMatches" type="number" min="1" step="1" value="5000">
       </div>
       <div>
-        <label>Page size</label>
+        <label for="regexPageSize">Page size</label>
         <input id="regexPageSize" type="number" min="100" max="5000" step="100" value="3000">
       </div>
       <div>
-        <label>When adding IDs</label>
+        <label for="regexRemovePattern">When adding IDs</label>
         <select id="regexRemovePattern">
           <option value="keep">Keep regex filter</option>
           <option value="remove">Remove selected regex filter</option>
@@ -258,7 +258,7 @@ export function openRegexToItemIdsTool(deps) {
       if (!Number.isNaN(idx)) cat.Rules.AllowedItemNamePatterns.splice(idx, 1);
     }
 
-    markDirty(`Added ${added} item IDs`);
+    markDirty();
     setStatus(`Added ${added} item ID(s).`, 'ok');
     closeModal();
     renderAll();
