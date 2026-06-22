@@ -130,6 +130,11 @@
     letter-spacing: .02em;
     white-space: nowrap;
   }
+  .topbar-group button {
+    min-height: 34px;
+    padding: 7px 10px;
+    font-size: inherit;
+  }
   .topbar-group-options .check {
     max-width: 220px;
   }

@@ -172,7 +172,7 @@ function renderColorSection(cat, deps) {
 }
 
 export function renderEditor(deps) {
-  const { getCategories, getSelectedIndex, setSelectedIndex, ensureShape, markDirty, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, listEditorDeps } = deps;
+  const { getCategories, getSelectedIndex, setSelectedIndex, ensureShape, markDirty, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, listEditorDeps, commitActiveField = () => {} } = deps;
   let selectedIndex = getSelectedIndex();
   const cats = getCategories();
   const root = el('editor');
@@ -336,6 +336,7 @@ export function renderEditor(deps) {
   el('moveDown').disabled = selectedIndex >= cats.length - 1;
 
   el('moveUp').onclick = () => {
+    commitActiveField();
     if (selectedIndex <= 0) return;
     [cats[selectedIndex - 1], cats[selectedIndex]] = [cats[selectedIndex], cats[selectedIndex - 1]];
     selectedIndex--; setSelectedIndex(selectedIndex);
@@ -344,6 +345,7 @@ export function renderEditor(deps) {
     renderAll();
   };
   el('moveDown').onclick = () => {
+    commitActiveField();
     if (selectedIndex >= cats.length - 1) return;
     [cats[selectedIndex + 1], cats[selectedIndex]] = [cats[selectedIndex], cats[selectedIndex + 1]];
     selectedIndex++; setSelectedIndex(selectedIndex);
@@ -352,6 +354,7 @@ export function renderEditor(deps) {
     renderAll();
   };
   el('duplicateCat').onclick = () => {
+    commitActiveField();
     const copy = clone(cat);
     copy.Id = makeId();
     copy.Name = (copy.Name || 'Category') + ' Copy';
@@ -363,6 +366,7 @@ export function renderEditor(deps) {
     renderAll();
   };
   el('deleteCat').onclick = () => {
+    commitActiveField();
     const wrap = document.createElement('div');
     wrap.innerHTML = `
       <p>Delete <strong>${escapeHtml(cat.Name || '(unnamed)')}</strong>?</p>
@@ -374,6 +378,7 @@ export function renderEditor(deps) {
     `;
     openModal('Delete category', wrap);
     document.getElementById('confirmDeleteCat').onclick = () => {
+      commitActiveField();
       cats.splice(selectedIndex, 1);
       selectedIndex = Math.min(selectedIndex, cats.length - 1); setSelectedIndex(selectedIndex);
       closeModal();
@@ -383,6 +388,7 @@ export function renderEditor(deps) {
     document.getElementById('cancelDeleteCat').onclick = closeModal;
   };
   el('applyRawCategory').onclick = () => {
+    commitActiveField();
     try {
       const parsed = JSON.parse(el('rawCategory').value);
       cats[selectedIndex] = parsed;
