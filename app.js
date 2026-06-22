@@ -12,6 +12,15 @@ let lookupCache = loadLookupCache();
 
 const XIVAPI_BASE = 'https://v2.xivapi.com/api';
 
+const RARITIES = [
+  { id: 1, label: 'Common', color: 'White' },
+  { id: 2, label: 'Uncommon', color: 'Green' },
+  { id: 3, label: 'Rare', color: 'Blue' },
+  { id: 4, label: 'Relic', color: 'Purple' },
+  { id: 7, label: 'Aetherial', color: 'Pink' }
+];
+const ALLOWED_RARITY_IDS = new Set(RARITIES.map(rarity => rarity.id));
+
 const el = id => document.getElementById(id);
 
 function loadLookupCache() {
@@ -241,6 +250,51 @@ function hexToRgba01(hex) {
 
 function rgbaCss(color) {
   return `rgba(${componentTo255(color.X)}, ${componentTo255(color.Y)}, ${componentTo255(color.Z)}, ${clamp01(color.W)})`;
+}
+
+
+function numericValue(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function compareOptionalNumber(a, b) {
+  const aNumber = numericValue(a);
+  const bNumber = numericValue(b);
+  if (aNumber !== null && bNumber !== null && aNumber !== bNumber) return aNumber - bNumber;
+  if ((aNumber !== null) !== (bNumber !== null)) return aNumber !== null ? -1 : 1;
+  return 0;
+}
+
+function compareCategoriesForImport(a, b) {
+  return compareOptionalNumber(a.Order, b.Order)
+    || compareOptionalNumber(a.Priority, b.Priority)
+    || String(a.Name || '').localeCompare(String(b.Name || ''), undefined, { numeric: true, sensitivity: 'base' })
+    || String(a.Id || '').localeCompare(String(b.Id || ''), undefined, { numeric: true, sensitivity: 'base' });
+}
+
+function sortImportedCategories(config) {
+  if (!config || !Array.isArray(config.Categories)) return config;
+  config.Categories.sort(compareCategoriesForImport);
+  return config;
+}
+
+function normalizeAllowedRarities(cat) {
+  const rules = cat.Rules || (cat.Rules = {});
+  const original = Array.isArray(rules.AllowedRarities) ? rules.AllowedRarities : [];
+  const normalized = [];
+  const seen = new Set();
+
+  for (const raw of original) {
+    const value = Number(raw);
+    if (!ALLOWED_RARITY_IDS.has(value) || seen.has(value)) continue;
+    normalized.push(value);
+    seen.add(value);
+  }
+
+  normalized.sort((a, b) => a - b);
+  rules.AllowedRarities = normalized;
+  return normalized;
 }
 
 function renumberCategories() {
@@ -521,6 +575,40 @@ async function searchXivapi(sheet, text) {
   if (!res.ok) throw new Error(`Search failed: HTTP ${res.status}`);
   const json = await res.json();
   return json.results || [];
+}
+
+
+function renderAllowedRaritiesEditor(cat) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <h3>Allowed Rarities</h3>
+    <p class="hint">Select the item rarities this category accepts. Leave all unchecked to ignore rarity.</p>
+  `;
+
+  const grid = document.createElement('div');
+  grid.className = 'rarity-checkbox-grid';
+  const selected = new Set(normalizeAllowedRarities(cat));
+
+  for (const rarity of RARITIES) {
+    const label = document.createElement('label');
+    label.className = 'check rarity-check';
+    label.innerHTML = `
+      <input type="checkbox" value="${rarity.id}" ${selected.has(rarity.id) ? 'checked' : ''}>
+      <span>${escapeHtml(rarity.label)} (${escapeHtml(rarity.color)})</span>
+    `;
+    label.querySelector('input').onchange = () => {
+      cat.Rules.AllowedRarities = Array.from(grid.querySelectorAll('input[type="checkbox"]:checked'))
+        .map(input => Number(input.value))
+        .filter(value => ALLOWED_RARITY_IDS.has(value))
+        .sort((a, b) => a - b);
+      markDirty('Allowed rarities changed');
+    };
+    grid.appendChild(label);
+  }
+
+  card.appendChild(grid);
+  return card;
 }
 
 function listEditor(title, arr, parser, formatter, hint='', lookupSheet=null) {
@@ -1070,10 +1158,7 @@ function renderEditor() {
       return Number(x);
     }, x => x, 'Specific Item row IDs accepted by this category.', 'Item'),
     listEditor('Allowed Item Name Patterns', rules.AllowedItemNamePatterns, x => x, x => x, 'Regex/name patterns matched against item names.'),
-    listEditor('Allowed Rarities', rules.AllowedRarities, x => {
-      if (!/^-?\d+$/.test(x)) throw new Error('Rarities must be integers.');
-      return Number(x);
-    }, x => x, 'Rarity IDs, if used.')
+    renderAllowedRaritiesEditor(cat)
   );
   root.appendChild(ruleGrid);
 
@@ -1317,7 +1402,7 @@ function validateConfig(obj) {
   if (!obj || typeof obj !== 'object') throw new Error('Root must be a JSON object.');
   if (!Array.isArray(obj.Categories)) throw new Error('Root must contain a Categories array.');
   obj.Categories.forEach(ensureShape);
-  return obj;
+  return sortImportedCategories(obj);
 }
 
 el('search').oninput = renderList;
