@@ -231,18 +231,25 @@ export function renderEditor(deps) {
   const rules = cat.Rules;
   const ruleGrid = document.createElement('div');
   ruleGrid.className = 'editor-card-grid rules-grid';
-  ruleGrid.append(
-    listEditor('Allowed UI Category IDs', rules.AllowedUiCategoryIds, x => {
-      if (!/^-?\d+$/.test(x)) throw new Error('UI category IDs must be integers.');
-      return Number(x);
-    }, x => x, { hint: 'Game ItemUICategory row IDs accepted by this category.', lookupSheet: 'ItemUICategory', ...listEditorDeps }),
-    listEditor('Allowed Item IDs', rules.AllowedItemIds, x => {
-      if (!/^-?\d+$/.test(x)) throw new Error('Item IDs must be integers.');
-      return Number(x);
-    }, x => x, { hint: 'Specific Item row IDs accepted by this category.', lookupSheet: 'Item', ...listEditorDeps }),
-    listEditor('Allowed Item Name Patterns', rules.AllowedItemNamePatterns, x => x, x => x, { hint: 'Regex/name patterns matched against item names.', markDirty }),
-    renderAllowedRaritiesEditor(cat, deps)
-  );
+  const uiCategoryRules = listEditor('Allowed UI Category IDs', rules.AllowedUiCategoryIds, x => {
+    if (!/^-?\d+$/.test(x)) throw new Error('UI category IDs must be integers.');
+    return Number(x);
+  }, x => x, { hint: 'Game ItemUICategory row IDs accepted by this category.', lookupSheet: 'ItemUICategory', ...listEditorDeps });
+  uiCategoryRules.classList.add('rule-card-ui');
+
+  const itemIdRules = listEditor('Allowed Item IDs', rules.AllowedItemIds, x => {
+    if (!/^-?\d+$/.test(x)) throw new Error('Item IDs must be integers.');
+    return Number(x);
+  }, x => x, { hint: 'Specific Item row IDs accepted by this category.', lookupSheet: 'Item', ...listEditorDeps });
+  itemIdRules.classList.add('rule-card-item');
+
+  const namePatternRules = listEditor('Allowed Item Name Patterns', rules.AllowedItemNamePatterns, x => x, x => x, { hint: 'Regex/name patterns matched against item names.', markDirty });
+  namePatternRules.classList.add('rule-card-patterns');
+
+  const rarityRules = renderAllowedRaritiesEditor(cat, deps);
+  rarityRules.classList.add('rule-card-rarities');
+
+  ruleGrid.append(uiCategoryRules, itemIdRules, namePatternRules, rarityRules);
   root.appendChild(ruleGrid);
 
   const regexTool = document.createElement('div');

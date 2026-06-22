@@ -732,3 +732,27 @@
       grid-template-columns: 1fr;
     }
   }
+
+  .rules-grid {
+    align-items: start;
+    grid-auto-flow: dense;
+  }
+  .rules-grid > .card {
+    height: auto;
+  }
+  @media (min-width: 1200px) {
+    .rules-grid {
+      grid-template-columns: minmax(360px, 1.25fr) repeat(2, minmax(280px, 1fr));
+    }
+    .rules-grid > .rule-card-ui {
+      grid-row: span 2;
+    }
+    .rules-grid > .rule-card-rarities {
+      grid-column: 2;
+    }
+  }
+  @media (min-width: 1200px) {
+    body.compact-mode .rules-grid {
+      grid-template-columns: minmax(300px, 1.15fr) repeat(2, minmax(240px, 1fr));
+    }
+  }
