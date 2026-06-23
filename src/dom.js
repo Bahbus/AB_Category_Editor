@@ -6,6 +6,12 @@ export function requireEl(id) {
   return node;
 }
 
+export function requireScopedEl(root, selector, context = 'scoped') {
+  const node = root?.querySelector?.(selector);
+  if (!node) throw new Error(`Missing required ${context} element: ${selector}`);
+  return node;
+}
+
 function bindEvent(id, eventName, handler) {
   try {
     const node = requireEl(id);

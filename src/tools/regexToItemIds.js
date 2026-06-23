@@ -1,4 +1,4 @@
-import { escapeHtml, setStatus, showBusy, updateBusy, hideBusy } from '../dom.js';
+import { escapeHtml, requireScopedEl, setStatus, showBusy, updateBusy, hideBusy } from '../dom.js';
 import { openModal, closeModal } from '../modals.js';
 import { fetchItemRowsPage, extractSheetRows, extractNextCursor, rowId, rowName } from '../xivapi.js';
 
@@ -75,17 +75,17 @@ export function openRegexToItemIdsTool(deps) {
     }
   });
 
-  const select = document.getElementById('regexPatternSelect');
-  const input = document.getElementById('regexPatternInput');
-  const runButton = document.getElementById('runRegexScan');
-  const cancelButton = document.getElementById('cancelRegexScan');
-  const flagsInput = document.getElementById('regexFlags');
-  const maxMatchesInput = document.getElementById('regexMaxMatches');
-  const pageSizeInput = document.getElementById('regexPageSize');
-  const removePatternSelect = document.getElementById('regexRemovePattern');
-  const addButton = document.getElementById('addRegexMatches');
-  const resultsBox = document.getElementById('regexResults');
-  const summary = document.getElementById('regexScanSummary');
+  const select = requireScopedEl(wrap, '#regexPatternSelect', 'regex scan');
+  const input = requireScopedEl(wrap, '#regexPatternInput', 'regex scan');
+  const runButton = requireScopedEl(wrap, '#runRegexScan', 'regex scan');
+  const cancelButton = requireScopedEl(wrap, '#cancelRegexScan', 'regex scan');
+  const flagsInput = requireScopedEl(wrap, '#regexFlags', 'regex scan');
+  const maxMatchesInput = requireScopedEl(wrap, '#regexMaxMatches', 'regex scan');
+  const pageSizeInput = requireScopedEl(wrap, '#regexPageSize', 'regex scan');
+  const removePatternSelect = requireScopedEl(wrap, '#regexRemovePattern', 'regex scan');
+  const addButton = requireScopedEl(wrap, '#addRegexMatches', 'regex scan');
+  const resultsBox = requireScopedEl(wrap, '#regexResults', 'regex scan');
+  const summary = requireScopedEl(wrap, '#regexScanSummary', 'regex scan');
   let matches = [];
   let activeScan = null;
 

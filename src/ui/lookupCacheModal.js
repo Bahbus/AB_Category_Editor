@@ -1,3 +1,4 @@
+import { requireScopedEl } from '../dom.js';
 import { openModal, closeModal } from '../modals.js';
 
 export function showLookupCacheModal({ lookupCacheCount, clearLookupCache }) {
@@ -13,6 +14,6 @@ export function showLookupCacheModal({ lookupCacheCount, clearLookupCache }) {
       <button id="clearLookupCache" class="danger">Clear lookup cache</button>
     </div>
   `;
-  wrap.querySelector('#clearLookupCache').onclick = () => { clearLookupCache(); closeModal(); };
+  requireScopedEl(wrap, '#clearLookupCache', 'lookup cache').onclick = () => { clearLookupCache(); closeModal(); };
   openModal('Lookup Cache', wrap);
 }
