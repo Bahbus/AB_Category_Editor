@@ -1,6 +1,6 @@
 import { INITIAL_DATA, LOOKUP_BATCH_SIZE } from './constants.js';
 import { el, escapeHtml, setSaveState, setStatus, showBusy, updateBusy, hideBusy } from './dom.js';
-import { loadLookupCache, persistLookupCache, removeLookupCache, emptyLookupCache } from './state.js';
+import { loadLookupCache, persistLookupCache, removeLookupCache, emptyLookupCache, loadEditorPreferences, persistEditorPreferences } from './state.js';
 import { defaultCategory as makeDefaultCategory, ensureShape, validateConfig, compareCategoriesForImport } from './config.js';
 import { openModal, closeModal, trapModalFocus } from './modals.js';
 import { renderCategoryList } from './ui/categoryList.js';
@@ -16,6 +16,73 @@ let selectedIndex = -1;
 let dirty = false;
 let draggedIndex = null;
 let lookupCache = loadLookupCache();
+let editorPreferences = loadEditorPreferences();
+
+function applyEditorPreferences(preferences = editorPreferences) {
+  editorPreferences = persistEditorPreferences(preferences);
+  const root = document.documentElement;
+  root.dataset.theme = editorPreferences.theme;
+  root.dataset.density = editorPreferences.density;
+  root.dataset.checkboxStyle = editorPreferences.checkboxStyle;
+}
+
+function preferenceSelect(id, label, value, options) {
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <label for="${id}">${label}</label>
+    <select id="${id}">
+      ${options.map(option => `<option value="${option.value}">${option.label}</option>`).join('')}
+    </select>
+    <p class="hint">${options.find(option => option.value === value)?.hint || ''}</p>
+  `;
+  wrap.querySelector('select').value = value;
+  return wrap;
+}
+
+function showAppearanceModal() {
+  commitActiveField();
+  const themeOptions = [
+    { value: 'system', label: 'System', hint: 'Follow your OS/browser color preference.' },
+    { value: 'dark', label: 'Dark', hint: 'Neutral dark panels with a calm blue accent.' },
+    { value: 'light', label: 'Light', hint: 'Simple light panels with readable dark text.' },
+    { value: 'high-contrast', label: 'High Contrast', hint: 'Stronger contrast for improved readability.' },
+    { value: 'aetherial', label: 'Aetherial', hint: 'Cool luminous blues, cyan, and violet.' },
+    { value: 'dalamud', label: 'Dalamud', hint: 'Restrained plugin-panel charcoal, purple, and warm red tones.' }
+  ];
+  const densityOptions = [
+    { value: 'comfortable', label: 'Comfortable', hint: 'Current spacing and relaxed layout.' },
+    { value: 'compact', label: 'Compact', hint: 'Tighter cards, groups, and controls while keeping hit targets usable.' }
+  ];
+  const checkboxOptions = [
+    { value: 'standard', label: 'Standard', hint: 'Clean native checkboxes.' },
+    { value: 'large', label: 'Large', hint: 'Larger native checkboxes and clearer hit targets.' },
+    { value: 'pills', label: 'Pills', hint: 'Chip-style rarity choices with real checkbox inputs.' }
+  ];
+
+  const wrap = document.createElement('div');
+  wrap.className = 'preferences-modal';
+  wrap.innerHTML = `
+    <p class="hint">These appearance preferences are stored locally in this browser only. They affect the editor UI and are never included in exported AetherBags category data.</p>
+    <div class="grid cols-3" id="appearancePreferenceGrid"></div>
+  `;
+  const grid = wrap.querySelector('#appearancePreferenceGrid');
+  grid.append(
+    preferenceSelect('themePreference', 'Theme', editorPreferences.theme, themeOptions),
+    preferenceSelect('densityPreference', 'Density', editorPreferences.density, densityOptions),
+    preferenceSelect('checkboxStylePreference', 'Checkbox style', editorPreferences.checkboxStyle, checkboxOptions)
+  );
+  openModal('Appearance Preferences', wrap);
+  const bind = (id, key) => {
+    const select = document.getElementById(id);
+    select.onchange = e => {
+      applyEditorPreferences({ ...editorPreferences, [key]: e.target.value });
+      setStatus('Appearance preferences saved locally.', 'ok');
+    };
+  };
+  bind('themePreference', 'theme');
+  bind('densityPreference', 'density');
+  bind('checkboxStylePreference', 'checkboxStyle');
+}
 
 function saveLookupCache() { persistLookupCache(lookupCache); }
 function lookupCacheCount(sheet) { return Object.keys(lookupCache[sheet] || {}).length; }
@@ -147,6 +214,7 @@ el('renumber').onclick = () => { commitActiveField(); renumberCategories(); mark
 el('lookupReferencedIds').onclick = () => { commitActiveField(); lookupReferencedIds().catch(err => setStatus('ID lookup failed: ' + err.message, 'err')); };
 el('showLookupCache').onclick = () => { commitActiveField(); showLookupCacheModal({ lookupCacheCount, clearLookupCache }); };
 el('showHelp').onclick = () => { commitActiveField(); showHelpModal(); };
+el('showAppearance').onclick = showAppearanceModal;
 el('uploadFile').onclick = () => { commitActiveField(); const input = el('fileInput'); input.value = ''; input.click(); };
 
 el('showExportCopy').onclick = async () => {
@@ -236,4 +304,5 @@ el('closeModal').onclick = closeModal;
 el('modalBackdrop').onclick = e => { if (e.target === el('modalBackdrop')) closeModal(); };
 document.addEventListener('keydown', e => { trapModalFocus(e); if (e.key === 'Escape' && !el('modalBackdrop').classList.contains('hidden')) closeModal(); });
 window.addEventListener('beforeunload', e => { commitActiveField(); if (!dirty) return; e.preventDefault(); e.returnValue = ''; });
+applyEditorPreferences();
 renderAll();
