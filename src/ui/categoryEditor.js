@@ -231,10 +231,13 @@ export function renderEditor(deps) {
   const basicsTitle = document.createElement('div');
   basicsTitle.className = 'filter-card-title';
   basicsTitle.innerHTML = '<h3>Basics</h3>';
-  basicsTitle.append(
+  const basicsActions = document.createElement('div');
+  basicsActions.className = 'filter-card-actions';
+  basicsActions.append(
     switchInput('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirty(); }),
     switchInput('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirty(); })
   );
+  basicsTitle.appendChild(basicsActions);
   const grid = document.createElement('div');
   grid.className = 'grid basic-fields-grid';
   grid.append(
@@ -302,7 +305,10 @@ export function renderEditor(deps) {
     const title = document.createElement('div');
     title.className = 'filter-card-title';
     title.innerHTML = `<h3>${escapeHtml(displayFilterName(key))}</h3>`;
-    title.appendChild(switchInput('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(); }));
+    const titleActions = document.createElement('div');
+    titleActions.className = 'filter-card-actions';
+    titleActions.appendChild(switchInput('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(); }));
+    title.appendChild(titleActions);
     box.append(
       title,
       rangeSliderControl(displayFilterName(key), obj, () => { markDirty(); }, defaults)
@@ -327,11 +333,14 @@ export function renderEditor(deps) {
     const title = document.createElement('div');
     title.className = 'filter-card-title';
     title.innerHTML = `<h3>${escapeHtml(displayFilterName(filterName))}</h3>`;
-    title.appendChild(segmentedControl('', obj.State ?? 0, STATE_FILTER_OPTIONS, next => {
+    const titleActions = document.createElement('div');
+    titleActions.className = 'filter-card-actions';
+    titleActions.appendChild(segmentedControl('', obj.State ?? 0, STATE_FILTER_OPTIONS, next => {
       obj.State = next;
       markDirty();
       renderList();
     }));
+    title.appendChild(titleActions);
     box.appendChild(title);
 
     return box;

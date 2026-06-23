@@ -944,8 +944,12 @@
   .filter-card-title h3 {
     margin: 0;
   }
-  .filter-card-title .switch-control,
-  .filter-card-title .segmented-field {
+  .filter-card-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 10px;
     margin-left: auto;
   }
   .range-slider-stack {
