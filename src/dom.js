@@ -1,5 +1,8 @@
 export const el = id => document.getElementById(id);
 
+const TOAST_VISIBLE_MS = 5200;
+const TOAST_REMOVE_MS = 5500;
+
 export function escapeHtml(value) {
   return String(value ?? '')
     .replaceAll('&', '&amp;')
@@ -28,8 +31,8 @@ export function showToast(msg, cls='') {
     toast.style.opacity = '0';
     toast.style.transform = 'translateY(8px)';
     toast.style.transition = 'opacity .18s ease, transform .18s ease';
-  }, 3200);
-  setTimeout(() => toast.remove(), 3500);
+  }, TOAST_VISIBLE_MS);
+  setTimeout(() => toast.remove(), TOAST_REMOVE_MS);
 }
 
 export function setStatus(msg, cls='') {

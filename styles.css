@@ -148,6 +148,9 @@
     font-size: 13px;
   }
   .topbar-group-help .icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     width: 32px;
     padding-inline: 0;
     border-radius: 10px;
@@ -338,7 +341,8 @@
     flex: 1 1 540px;
     min-width: min(100%, 540px);
   }
-  @container top-editor (min-width: 1094px) {
+  /* 540px Basic + 540px Color + 14px gap: cap Color only when both cards fit side-by-side. */
+  @container top-editor (min-width: calc(540px + 540px + 14px)) {
     .top-editor-grid > .color-card {
       max-width: min(100%, 702px);
     }
