@@ -11,6 +11,7 @@ Published page: <https://bahbus.github.io/AB_Category_Editor/>
 - Category reorder/editing, including drag/drop ordering, sort-by-order, renumbering, names, descriptions, colors, and enabled/pinned state.
 - Rule editing for item IDs, UI category IDs, regex item-name patterns, ranges, state filters, custom sorting, and custom item order.
 - Rarity checkboxes for supported AetherBags rarity values.
+- Appearance preferences for theme, layout density, and checkbox style.
 - Batched XIVAPI lookups for referenced Item and ItemUICategory names.
 - Lookup cache backed by browser `localStorage`, with an in-app cache viewer and clear button.
 - Regex → Item IDs conversion using cancelable XIVAPI item sheet scans.
@@ -27,6 +28,7 @@ Published page: <https://bahbus.github.io/AB_Category_Editor/>
 
 - The full imported config is processed locally in your browser.
 - The app stores lookup names in browser `localStorage` so repeated item/category lookups are faster.
+- Appearance preferences are stored locally in browser `localStorage`; they affect only the editor UI and are not included in exported AetherBags category data.
 - XIVAPI is contacted only for item/category name lookups, search queries, and item sheet scans used by Regex → Item IDs.
 - The app does not upload the full category config to this repository.
 
