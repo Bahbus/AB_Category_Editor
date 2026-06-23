@@ -77,7 +77,7 @@
   :root[data-theme="dalamud"] {
     color-scheme: dark;
     --bg: #141116; --panel: #201c24; --panel2: #2b2430; --panel3: #18141c;
-    --text: #eee9e2; --muted: #b9aebd; --border: #4b3d50; --accent: #d48678;
+    --text: #eee9e2; --muted: #b9aebd; --border: #5d4a63; --accent: #c77769;
     --danger: #ff6f7f; --ok: #9cd59d; --warn: #e6bd72; --input: #100e12; --shadow: rgba(0,0,0,.38);
   }
   * { box-sizing: border-box; }
