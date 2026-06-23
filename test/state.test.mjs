@@ -17,15 +17,14 @@ function memoryStorage(initial = new Map()) {
 }
 
 test('normalizeEditorPreferences preserves valid preference values', () => {
-  assert.deepEqual(normalizeEditorPreferences({ theme: 'aetherial', density: 'compact', checkboxStyle: 'pills' }), {
+  assert.deepEqual(normalizeEditorPreferences({ theme: 'aetherial', density: 'compact' }), {
     theme: 'aetherial',
-    density: 'compact',
-    checkboxStyle: 'pills'
+    density: 'compact'
   });
 });
 
 test('normalizeEditorPreferences falls back for invalid values', () => {
-  assert.deepEqual(normalizeEditorPreferences({ theme: 'laser', density: 'tiny', checkboxStyle: 'fake-divs' }), DEFAULT_EDITOR_PREFERENCES);
+  assert.deepEqual(normalizeEditorPreferences({ theme: 'laser', density: 'tiny' }), DEFAULT_EDITOR_PREFERENCES);
 });
 
 test('loadEditorPreferences falls back when JSON is invalid', () => {
@@ -41,7 +40,7 @@ test('loadEditorPreferences falls back when storage is unavailable', () => {
 test('persistEditorPreferences stores only normalized editor preferences', () => {
   const backing = new Map();
   const storage = memoryStorage(backing);
-  const saved = persistEditorPreferences({ theme: 'dalamud', density: 'compact', checkboxStyle: 'large', exportedData: true }, storage);
-  assert.deepEqual(saved, { theme: 'dalamud', density: 'compact', checkboxStyle: 'large' });
+  const saved = persistEditorPreferences({ theme: 'dalamud', density: 'compact', exportedData: true }, storage);
+  assert.deepEqual(saved, { theme: 'dalamud', density: 'compact' });
   assert.equal(backing.get(EDITOR_PREFERENCES_KEY), JSON.stringify(saved));
 });

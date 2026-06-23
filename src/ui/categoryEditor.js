@@ -3,8 +3,12 @@ import { el, escapeHtml, requireEl, requireScopedEl, setStatus } from '../dom.js
 import { colorToHex, colorToHexRGBA, hexToRgb01, hexToRgba01, rgbaCss, componentTo255 } from '../color.js';
 import { clone, makeId, getNormalizedAllowedRarities } from '../config.js';
 import { openModal, closeModal } from '../modals.js';
-import { checkbox, numberInput, textInput } from './formControls.js';
+import { STATE_FILTER_OPTIONS, checkbox, numberInput, rangeSliderControl, segmentedControl, switchInput, textInput } from './formControls.js';
 import { listEditor } from './listEditor.js';
+
+function displayFilterName(value) {
+  return String(value).replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+}
 
 function renderAllowedRaritiesEditor(cat, deps) {
   const { markDirty } = deps;
@@ -24,7 +28,7 @@ function renderAllowedRaritiesEditor(cat, deps) {
     label.className = 'check rarity-check';
     label.innerHTML = `
       <input type="checkbox" value="${rarity.id}" ${selected.has(rarity.id) ? 'checked' : ''}>
-      <span>${escapeHtml(rarity.label)} (${escapeHtml(rarity.color)})</span>
+      <span>${escapeHtml(rarity.label)}</span>
     `;
     label.querySelector('input').onchange = () => {
       cat.Rules.AllowedRarities = Array.from(grid.querySelectorAll('input[type="checkbox"]:checked'))
@@ -224,7 +228,16 @@ export function renderEditor(deps) {
 
   const basics = document.createElement('div');
   basics.className = 'card basics-card';
-  basics.innerHTML = '<h3>Basics</h3>';
+  const basicsTitle = document.createElement('div');
+  basicsTitle.className = 'filter-card-title';
+  basicsTitle.innerHTML = '<h3>Basics</h3>';
+  const basicsActions = document.createElement('div');
+  basicsActions.className = 'filter-card-actions';
+  basicsActions.append(
+    switchInput('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirty(); }),
+    switchInput('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirty(); })
+  );
+  basicsTitle.appendChild(basicsActions);
   const grid = document.createElement('div');
   grid.className = 'grid basic-fields-grid';
   grid.append(
@@ -236,12 +249,10 @@ export function renderEditor(deps) {
   metaGrid.className = 'grid basic-meta-grid';
   metaGrid.append(
     numberInput('Order', cat.Order, v => { cat.Order = v; markDirty(); }),
-    numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirty(); }),
-    checkbox('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirty(); }),
-    checkbox('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirty(); })
+    numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirty(); })
   );
 
-  basics.append(grid, metaGrid);
+  basics.append(basicsTitle, grid, metaGrid);
 
   const topEditorGrid = document.createElement('div');
   topEditorGrid.className = 'top-editor-grid';
@@ -285,16 +296,22 @@ export function renderEditor(deps) {
   ranges.className = 'card';
   ranges.innerHTML = '<summary>Range Filters</summary><div class="details-body"></div>';
   const rangeGrid = document.createElement('div');
-  rangeGrid.className = 'grid cols-3';
+  rangeGrid.className = 'grid cols-3 range-filter-grid';
   for (const key of ['Level','ItemLevel','VendorPrice']) {
     const obj = rules[key];
     const box = document.createElement('div');
     box.className = 'nested-card';
-    box.innerHTML = `<h3>${escapeHtml(key)}</h3>`;
+    const defaults = key === 'VendorPrice' ? { min: 0, max: 100000 } : { min: 0, max: key === 'Level' ? 100 : 800 };
+    const title = document.createElement('div');
+    title.className = 'filter-card-title';
+    title.innerHTML = `<h3>${escapeHtml(displayFilterName(key))}</h3>`;
+    const titleActions = document.createElement('div');
+    titleActions.className = 'filter-card-actions';
+    titleActions.appendChild(switchInput('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(); }));
+    title.appendChild(titleActions);
     box.append(
-      checkbox('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(); }),
-      numberInput('Min', obj.Min, v => { obj.Min = v; markDirty(); }),
-      numberInput('Max', obj.Max, v => { obj.Max = v; markDirty(); })
+      title,
+      rangeSliderControl(displayFilterName(key), obj, () => { markDirty(); }, defaults)
     );
     rangeGrid.appendChild(box);
   }
@@ -312,24 +329,19 @@ export function renderEditor(deps) {
     if (typeof obj.Filter !== 'number') obj.Filter = 0;
 
     const box = document.createElement('div');
-    box.className = 'nested-card';
-    box.innerHTML = `
-      <h3>${escapeHtml(filterName)}</h3>
-      <label for="stateSelect-${escapeHtml(filterName)}">State</label>
-      <select id="stateSelect-${escapeHtml(filterName)}">
-        <option value="0">0 - Ignored</option>
-        <option value="1">1 - Required</option>
-        <option value="2">2 - Excluded</option>
-      </select>
-    `;
-
-    const select = box.querySelector('select');
-    select.value = String(obj.State ?? 0);
-    select.onchange = e => {
-      obj.State = Number(e.target.value);
+    box.className = 'nested-card state-filter-card';
+    const title = document.createElement('div');
+    title.className = 'filter-card-title';
+    title.innerHTML = `<h3>${escapeHtml(displayFilterName(filterName))}</h3>`;
+    const titleActions = document.createElement('div');
+    titleActions.className = 'filter-card-actions';
+    titleActions.appendChild(segmentedControl('', obj.State ?? 0, STATE_FILTER_OPTIONS, next => {
+      obj.State = next;
       markDirty();
       renderList();
-    };
+    }));
+    title.appendChild(titleActions);
+    box.appendChild(title);
 
     return box;
   }

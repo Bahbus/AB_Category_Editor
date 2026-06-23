@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="system" data-density="comfortable" data-checkbox-style="standard">
+<html lang="en" data-theme="system" data-density="comfortable">
 <head>
 <meta charset="utf-8">
 <title>AetherBags Category Editor</title>
@@ -13,11 +13,9 @@
     const prefs = JSON.parse(raw);
     const themes = new Set(['system', 'dark', 'light', 'high-contrast', 'aetherial', 'dalamud']);
     const densities = new Set(['comfortable', 'compact']);
-    const checkboxStyles = new Set(['standard', 'large', 'pills']);
     const root = document.documentElement;
     if (themes.has(prefs.theme)) root.dataset.theme = prefs.theme;
     if (densities.has(prefs.density)) root.dataset.density = prefs.density;
-    if (checkboxStyles.has(prefs.checkboxStyle)) root.dataset.checkboxStyle = prefs.checkboxStyle;
   } catch {}
 })();
 </script>
@@ -37,7 +35,7 @@
         <button id="sortByOrder" class="small">Sort by Order</button>
         <button id="renumber" class="small">Renumber</button>
       </div>
-      <label class="check"><input id="autoRenumberDrag" type="checkbox" checked> Auto-renumber after drag</label>
+      <label class="switch-control"><input id="autoRenumberDrag" type="checkbox" role="switch" aria-checked="true" checked><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span><span class="switch-label">Auto-renumber after drag</span></label>
       <div class="status" id="listStatus"></div>
     </div>
     <div class="list" id="categoryList"></div>
@@ -57,7 +55,7 @@
       <span class="spacer" aria-hidden="true"></span>
       <div class="topbar-group topbar-group-options" role="group" aria-label="Preferences">
         <span class="topbar-group-label">Preferences</span>
-        <label class="check"><input id="autoLookupImport" type="checkbox" checked> Auto-lookup imported IDs</label>
+        <label class="switch-control"><input id="autoLookupImport" type="checkbox" role="switch" aria-checked="true" checked><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span><span class="switch-label">Auto-lookup imported IDs</span></label>
         <button id="showAppearance" class="small">Appearance</button>
       </div>
       <div class="topbar-group topbar-group-tools" role="group" aria-label="Lookup tools">

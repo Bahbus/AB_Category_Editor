@@ -14,12 +14,6 @@ const DENSITY_OPTIONS = [
   { value: 'compact', label: 'Compact', hint: 'Tighter cards, groups, and controls while keeping hit targets usable.' }
 ];
 
-const CHECKBOX_OPTIONS = [
-  { value: 'standard', label: 'Standard', hint: 'Clean native checkboxes.' },
-  { value: 'large', label: 'Large', hint: 'Larger native checkboxes and clearer hit targets.' },
-  { value: 'pills', label: 'Pills', hint: 'Chip-style rarity choices with real checkbox inputs.' }
-];
-
 function preferenceSelect(id, label, value, options) {
   const wrap = document.createElement('div');
   wrap.innerHTML = `
@@ -40,13 +34,12 @@ export function showAppearanceModal({ getEditorPreferences, applyEditorPreferenc
   wrap.className = 'preferences-modal';
   wrap.innerHTML = `
     <p class="hint">These appearance preferences are stored locally in this browser only. They affect the editor UI and are never included in exported AetherBags category data.</p>
-    <div class="grid cols-3" id="appearancePreferenceGrid"></div>
+    <div class="grid cols-2" id="appearancePreferenceGrid"></div>
   `;
   const grid = requireScopedEl(wrap, '#appearancePreferenceGrid', 'Appearance preferences');
   grid.append(
     preferenceSelect('themePreference', 'Theme', preferences.theme, THEME_OPTIONS),
-    preferenceSelect('densityPreference', 'Density', preferences.density, DENSITY_OPTIONS),
-    preferenceSelect('checkboxStylePreference', 'Checkbox style', preferences.checkboxStyle, CHECKBOX_OPTIONS)
+    preferenceSelect('densityPreference', 'Density', preferences.density, DENSITY_OPTIONS)
   );
 
   openModal('Appearance Preferences', wrap);
@@ -61,5 +54,4 @@ export function showAppearanceModal({ getEditorPreferences, applyEditorPreferenc
 
   bind('themePreference', 'theme');
   bind('densityPreference', 'density');
-  bind('checkboxStylePreference', 'checkboxStyle');
 }
