@@ -1,4 +1,4 @@
-import { el } from './dom.js';
+import { el, requireEl } from './dom.js';
 
 let activeCloseHandler = null;
 let previouslyFocusedElement = null;
@@ -34,11 +34,13 @@ export function trapModalFocus(event) {
 export function openModal(title, contentNode, options = {}) {
   previouslyFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   activeCloseHandler = typeof options.onClose === 'function' ? options.onClose : null;
-  el('modalTitle').textContent = title;
-  const box = el('modalContent');
+  const titleNode = requireEl('modalTitle');
+  const box = requireEl('modalContent');
+  const backdrop = requireEl('modalBackdrop');
+  titleNode.textContent = title;
   box.innerHTML = '';
   box.appendChild(contentNode);
-  el('modalBackdrop').classList.remove('hidden');
+  backdrop.classList.remove('hidden');
   setTimeout(() => {
     const modal = el('modalBackdrop')?.querySelector('.modal');
     const focusTarget = getFocusableElements(modal)[0] || el('closeModal') || modal;
@@ -52,7 +54,7 @@ export function closeModal() {
   activeCloseHandler = null;
   previouslyFocusedElement = null;
   if (closeHandler) closeHandler();
-  el('modalBackdrop').classList.add('hidden');
+  requireEl('modalBackdrop').classList.add('hidden');
   if (restoreTarget && typeof restoreTarget.focus === 'function' && document.contains(restoreTarget)) {
     setTimeout(() => restoreTarget.focus(), 0);
   }

@@ -1,5 +1,26 @@
 export const el = id => document.getElementById(id);
 
+export function requireEl(id) {
+  const node = el(id);
+  if (!node) throw new Error(`Missing required element: #${id}`);
+  return node;
+}
+
+function bindEvent(id, eventName, handler) {
+  try {
+    const node = requireEl(id);
+    node.addEventListener(eventName, handler);
+    return node;
+  } catch (err) {
+    setStatus(err instanceof Error ? err.message : String(err), 'err');
+    return null;
+  }
+}
+
+export const bindClick = (id, handler) => bindEvent(id, 'click', handler);
+export const bindInput = (id, handler) => bindEvent(id, 'input', handler);
+export const bindChange = (id, handler) => bindEvent(id, 'change', handler);
+
 const TOAST_VISIBLE_MS = 5200;
 const TOAST_REMOVE_MS = 5500;
 
