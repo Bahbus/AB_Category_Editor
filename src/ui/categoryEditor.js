@@ -1,5 +1,5 @@
 import { RARITIES, ALLOWED_RARITY_IDS } from '../constants.js';
-import { el, escapeHtml, setStatus } from '../dom.js';
+import { el, escapeHtml, requireEl, requireScopedEl, setStatus } from '../dom.js';
 import { colorToHex, colorToHexRGBA, hexToRgb01, hexToRgba01, rgbaCss, componentTo255 } from '../color.js';
 import { clone, makeId, getNormalizedAllowedRarities } from '../config.js';
 import { openModal, closeModal } from '../modals.js';
@@ -194,7 +194,7 @@ export function renderEditor(deps) {
   const { getCategories, getSelectedIndex, setSelectedIndex, ensureShape, markDirty, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, listEditorDeps, commitActiveField = () => {} } = deps;
   let selectedIndex = getSelectedIndex();
   const cats = getCategories();
-  const root = el('editor');
+  const root = requireEl('editor');
   root.innerHTML = '';
 
   if (!cats.length) {
@@ -298,7 +298,7 @@ export function renderEditor(deps) {
     );
     rangeGrid.appendChild(box);
   }
-  ranges.querySelector('.details-body').appendChild(rangeGrid);
+  requireScopedEl(ranges, '.details-body', 'range filters').appendChild(rangeGrid);
   root.appendChild(ranges);
 
   const bools = document.createElement('details');
@@ -338,7 +338,7 @@ export function renderEditor(deps) {
     boolGrid.appendChild(stateSelect(key, rules[key]));
   }
 
-  bools.querySelector('.details-body').appendChild(boolGrid);
+  requireScopedEl(bools, '.details-body', 'state filters').appendChild(boolGrid);
   root.appendChild(bools);
 
   const advanced = document.createElement('details');
@@ -400,7 +400,7 @@ export function renderEditor(deps) {
       </div>
     `;
     openModal('Delete category', wrap);
-    document.getElementById('confirmDeleteCat').onclick = () => {
+    requireScopedEl(wrap, '#confirmDeleteCat', 'delete category confirmation').onclick = () => {
       commitActiveField();
       cats.splice(selectedIndex, 1);
       selectedIndex = Math.min(selectedIndex, cats.length - 1); setSelectedIndex(selectedIndex);
@@ -408,7 +408,7 @@ export function renderEditor(deps) {
       markDirty();
       renderAll();
     };
-    document.getElementById('cancelDeleteCat').onclick = closeModal;
+    requireScopedEl(wrap, '#cancelDeleteCat', 'delete category confirmation').onclick = closeModal;
   };
   el('applyRawCategory').onclick = () => {
     commitActiveField();

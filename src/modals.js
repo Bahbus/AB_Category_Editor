@@ -3,10 +3,17 @@ import { el, requireEl } from './dom.js';
 let activeCloseHandler = null;
 let previouslyFocusedElement = null;
 
+function isFocusableElementVisible(node) {
+  if (!node || node.hidden || node.getAttribute('aria-hidden') === 'true') return false;
+  if (node.matches?.('[hidden], [inert], [disabled]')) return false;
+  if (node.closest?.('[hidden], [aria-hidden="true"], [inert]')) return false;
+  return true;
+}
+
 function getFocusableElements(container) {
   if (!container) return [];
   return [...container.querySelectorAll('a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), [tabindex]:not([tabindex="-1"])')]
-    .filter(node => !node.hidden && node.offsetParent !== null);
+    .filter(isFocusableElementVisible);
 }
 
 export function trapModalFocus(event) {
@@ -14,10 +21,11 @@ export function trapModalFocus(event) {
   const backdrop = el('modalBackdrop');
   if (!backdrop || backdrop.classList.contains('hidden')) return;
   const modal = backdrop.querySelector('.modal');
+  if (!modal) return;
   const focusable = getFocusableElements(modal);
   if (!focusable.length) {
     event.preventDefault();
-    modal?.focus();
+    modal.focus();
     return;
   }
   const first = focusable[0];
@@ -41,11 +49,11 @@ export function openModal(title, contentNode, options = {}) {
   box.innerHTML = '';
   box.appendChild(contentNode);
   backdrop.classList.remove('hidden');
-  setTimeout(() => {
+  requestAnimationFrame(() => {
     const modal = el('modalBackdrop')?.querySelector('.modal');
     const focusTarget = getFocusableElements(modal)[0] || el('closeModal') || modal;
     if (focusTarget) focusTarget.focus();
-  }, 0);
+  });
 }
 
 export function closeModal() {
@@ -56,6 +64,6 @@ export function closeModal() {
   if (closeHandler) closeHandler();
   requireEl('modalBackdrop').classList.add('hidden');
   if (restoreTarget && typeof restoreTarget.focus === 'function' && document.contains(restoreTarget)) {
-    setTimeout(() => restoreTarget.focus(), 0);
+    requestAnimationFrame(() => restoreTarget.focus());
   }
 }

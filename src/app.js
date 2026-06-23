@@ -1,5 +1,5 @@
 import { INITIAL_DATA, LOOKUP_BATCH_SIZE } from './constants.js';
-import { el, bindChange, bindClick, bindInput, escapeHtml, requireEl, setSaveState, setStatus, showBusy, updateBusy, hideBusy } from './dom.js';
+import { el, bindChange, bindClick, bindInput, escapeHtml, requireEl, requireScopedEl, setSaveState, setStatus, showBusy, updateBusy, hideBusy } from './dom.js';
 import { loadLookupCache, persistLookupCache, removeLookupCache, emptyLookupCache, loadEditorPreferences, persistEditorPreferences } from './state.js';
 import { defaultCategory as makeDefaultCategory, ensureShape, validateConfig, compareCategoriesForImport } from './config.js';
 import { openModal, closeModal, trapModalFocus } from './modals.js';
@@ -7,6 +7,7 @@ import { renderCategoryList } from './ui/categoryList.js';
 import { renderEditor as renderCategoryEditor } from './ui/categoryEditor.js';
 import { showHelpModal } from './ui/helpModal.js';
 import { showLookupCacheModal } from './ui/lookupCacheModal.js';
+import { showAppearanceModal } from './ui/appearanceModal.js';
 import { openRegexToItemIdsTool as openRegexTool } from './tools/regexToItemIds.js';
 import { EXPORT_FILENAME, copyTextToClipboard, downloadText, makeBase64Export, parseImportedText } from './importExport.js';
 import { sheetLabel, collectReferencedIds, countReferencedIds, countUncachedReferencedIds, fetchLookupBatch as xivapiFetchLookupBatch, searchXivapi } from './xivapi.js';
@@ -24,68 +25,7 @@ function applyEditorPreferences(preferences = editorPreferences) {
   root.dataset.theme = editorPreferences.theme;
   root.dataset.density = editorPreferences.density;
   root.dataset.checkboxStyle = editorPreferences.checkboxStyle;
-}
-
-function preferenceSelect(id, label, value, options) {
-  const wrap = document.createElement('div');
-  wrap.innerHTML = `
-    <label for="${id}">${label}</label>
-    <select id="${id}">
-      ${options.map(option => `<option value="${option.value}">${option.label}</option>`).join('')}
-    </select>
-    <p class="hint">${options.find(option => option.value === value)?.hint || ''}</p>
-  `;
-  wrap.querySelector('select').value = value;
-  return wrap;
-}
-
-function showAppearanceModal() {
-  commitActiveField();
-  const themeOptions = [
-    { value: 'system', label: 'System', hint: 'Follow your OS/browser color preference.' },
-    { value: 'dark', label: 'Dark', hint: 'Neutral dark panels with a calm blue accent.' },
-    { value: 'light', label: 'Light', hint: 'Simple light panels with readable dark text.' },
-    { value: 'high-contrast', label: 'High Contrast', hint: 'Stronger contrast for improved readability.' },
-    { value: 'aetherial', label: 'Aetherial', hint: 'Cool luminous blues, cyan, and violet.' },
-    { value: 'dalamud', label: 'Dalamud', hint: 'Restrained plugin-panel charcoal, purple, and warm red tones.' }
-  ];
-  const densityOptions = [
-    { value: 'comfortable', label: 'Comfortable', hint: 'Current spacing and relaxed layout.' },
-    { value: 'compact', label: 'Compact', hint: 'Tighter cards, groups, and controls while keeping hit targets usable.' }
-  ];
-  const checkboxOptions = [
-    { value: 'standard', label: 'Standard', hint: 'Clean native checkboxes.' },
-    { value: 'large', label: 'Large', hint: 'Larger native checkboxes and clearer hit targets.' },
-    { value: 'pills', label: 'Pills', hint: 'Chip-style rarity choices with real checkbox inputs.' }
-  ];
-
-  const wrap = document.createElement('div');
-  wrap.className = 'preferences-modal';
-  wrap.innerHTML = `
-    <p class="hint">These appearance preferences are stored locally in this browser only. They affect the editor UI and are never included in exported AetherBags category data.</p>
-    <div class="grid cols-3" id="appearancePreferenceGrid"></div>
-  `;
-  const grid = requireScopedEl(wrap, '#appearancePreferenceGrid', 'Appearance preferences');
-  grid.append(
-    preferenceSelect('themePreference', 'Theme', editorPreferences.theme, themeOptions),
-    preferenceSelect('densityPreference', 'Density', editorPreferences.density, densityOptions),
-    preferenceSelect('checkboxStylePreference', 'Checkbox style', editorPreferences.checkboxStyle, checkboxOptions)
-  );
-  openModal('Appearance Preferences', wrap);
-  const bind = (id, key) => {
-    try {
-      const select = requireScopedEl(wrap, `#${id}`, 'Appearance preferences');
-      select.addEventListener('change', e => {
-        applyEditorPreferences({ ...editorPreferences, [key]: e.target.value });
-        setStatus('Appearance preferences saved locally.', 'ok');
-      });
-    } catch (err) {
-      reportModalBindingError('Appearance preferences unavailable', err);
-    }
-  };
-  bind('themePreference', 'theme');
-  bind('densityPreference', 'density');
-  bind('checkboxStylePreference', 'checkboxStyle');
+  return editorPreferences;
 }
 
 function saveLookupCache() { persistLookupCache(lookupCache); }
@@ -121,11 +61,6 @@ function errorMessage(prefix, err) {
   return `${prefix}: ${message}`;
 }
 
-function requireScopedEl(root, selector, context) {
-  const node = root.querySelector(selector);
-  if (!node) throw new Error(`Missing required ${context} element: ${selector}`);
-  return node;
-}
 
 function reportModalBindingError(context, err) {
   setStatus(`${context}: ${err instanceof Error ? err.message : String(err)}`, 'err');
@@ -233,8 +168,23 @@ bindClick('renumber', () => { commitActiveField(); renumberCategories(); markDir
 bindClick('lookupReferencedIds', () => { commitActiveField(); lookupReferencedIds().catch(err => setStatus(errorMessage('ID lookup failed', err), 'err')); });
 bindClick('showLookupCache', () => { commitActiveField(); showLookupCacheModal({ lookupCacheCount, clearLookupCache }); });
 bindClick('showHelp', () => { commitActiveField(); showHelpModal(); });
-bindClick('showAppearance', showAppearanceModal);
-bindClick('uploadFile', () => { commitActiveField(); const input = requireEl('fileInput'); input.value = ''; input.click(); });
+bindClick('showAppearance', () => showAppearanceModal({
+  getEditorPreferences: () => editorPreferences,
+  applyEditorPreferences,
+  setStatus,
+  openModal,
+  commitActiveField
+}));
+bindClick('uploadFile', () => {
+  commitActiveField();
+  try {
+    const input = requireEl('fileInput');
+    input.value = '';
+    input.click();
+  } catch (err) {
+    setStatus(errorMessage('Upload unavailable', err), 'err');
+  }
+});
 
 bindClick('showExportCopy', async () => {
   commitActiveField();
