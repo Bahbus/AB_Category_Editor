@@ -46,9 +46,30 @@
   }
   :root[data-theme="high-contrast"] {
     color-scheme: dark;
-    --bg: #05070b; --panel: #101620; --panel2: #1b2736; --panel3: #0b1119;
-    --text: #ffffff; --muted: #d2d9e8; --border: #8aa0bd; --accent: #54c7ff;
-    --danger: #ff5f73; --ok: #4df08a; --warn: #ffd24a; --input: #02050a; --shadow: rgba(0,0,0,.65);
+    --bg: #000000; --panel: #090d12; --panel2: #111923; --panel3: #05080d;
+    --text: #ffffff; --muted: #dbe7ff; --border: #9fc7ff; --accent: #00d5ff;
+    --danger: #ff4f6d; --ok: #37ff8b; --warn: #ffd400; --input: #000000; --shadow: rgba(0,0,0,.75);
+  }
+  :root[data-theme="high-contrast"] .card,
+  :root[data-theme="high-contrast"] .topbar-group,
+  :root[data-theme="high-contrast"] .cat-item,
+  :root[data-theme="high-contrast"] input,
+  :root[data-theme="high-contrast"] textarea,
+  :root[data-theme="high-contrast"] select,
+  :root[data-theme="high-contrast"] button {
+    border-color: var(--border);
+  }
+  :root[data-theme="high-contrast"] button.primary {
+    color: #000000;
+  }
+  :root[data-theme="high-contrast"] button:focus-visible,
+  :root[data-theme="high-contrast"] input:focus-visible,
+  :root[data-theme="high-contrast"] textarea:focus-visible,
+  :root[data-theme="high-contrast"] select:focus-visible,
+  :root[data-theme="high-contrast"] summary:focus-visible {
+    outline: 2px solid var(--warn);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(255, 212, 0, .22);
   }
   :root[data-theme="aetherial"] {
     color-scheme: dark;
