@@ -15,7 +15,7 @@ export function showHelpModal() {
     </ul>
     <h3>Lookup tools</h3>
     <ul>
-      <li><strong>Lookup IDs</strong> resolves referenced item IDs and UI category IDs to English names through XIVAPI.</li>
+      <li><strong>Resolve IDs</strong> resolves referenced item IDs and UI category IDs to English names through XIVAPI.</li>
       <li><strong>Lookup Cache</strong> shows and clears locally cached lookup names stored in this browser.</li>
       <li><strong>Regex → Item IDs</strong> scans XIVAPI item names for a selected name pattern and can be canceled while it runs.</li>
     </ul>
