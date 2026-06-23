@@ -7,6 +7,30 @@ function makeControlId(prefix) {
   return `${prefix}-${nextControlId}`;
 }
 
+export const STATE_FILTER_OPTIONS = [
+  { value: 0, label: 'Ignored', tone: 'ignored' },
+  { value: 1, label: 'Required', tone: 'required' },
+  { value: 2, label: 'Excluded', tone: 'excluded' }
+];
+
+export function stateFilterLabel(value) {
+  return STATE_FILTER_OPTIONS.find(option => option.value === Number(value))?.label ?? 'Ignored';
+}
+
+export function rangeSliderBounds(min, max, defaults = {}) {
+  const defaultMin = Number.isFinite(defaults.min) ? defaults.min : 0;
+  const defaultMax = Number.isFinite(defaults.max) ? defaults.max : 100;
+  const rawMin = Number(min);
+  const rawMax = Number(max);
+  const values = [defaultMin, defaultMax];
+  if (Number.isFinite(rawMin)) values.push(rawMin);
+  if (Number.isFinite(rawMax)) values.push(rawMax);
+  let lower = Math.min(...values);
+  let upper = Math.max(...values);
+  if (lower === upper) upper = lower + 1;
+  return { min: Math.floor(lower), max: Math.ceil(upper) };
+}
+
 export function numberInput(label, value, onChange, step='1', min=null, max=null) {
   const wrap = document.createElement('div');
   const id = makeControlId('number-input');
@@ -43,4 +67,113 @@ export function checkbox(label, value, onChange) {
   l.innerHTML = `<input type="checkbox" ${value ? 'checked' : ''}> ${escapeHtml(label)}`;
   l.querySelector('input').onchange = e => onChange(e.target.checked);
   return l;
+}
+
+export function switchInput(label, value, onChange) {
+  const l = document.createElement('label');
+  l.className = 'switch-control';
+  l.innerHTML = `
+    <input type="checkbox" role="switch" ${value ? 'checked' : ''} aria-checked="${value ? 'true' : 'false'}">
+    <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
+    <span class="switch-label">${escapeHtml(label)}</span>
+  `;
+  const input = l.querySelector('input');
+  input.onchange = e => {
+    e.target.setAttribute('aria-checked', e.target.checked ? 'true' : 'false');
+    onChange(e.target.checked);
+  };
+  return l;
+}
+
+export function segmentedControl(label, value, options, onChange) {
+  const field = document.createElement('fieldset');
+  field.className = 'segmented-field';
+  const name = makeControlId('segmented');
+  field.innerHTML = `<legend>${escapeHtml(label)}</legend><div class="segmented-control" role="radiogroup"></div>`;
+  const group = field.querySelector('.segmented-control');
+  for (const option of options) {
+    const id = makeControlId('segment');
+    const checked = Number(value) === option.value;
+    const segment = document.createElement('label');
+    segment.className = `segment segment-${option.tone || 'neutral'}`;
+    segment.innerHTML = `
+      <input id="${id}" type="radio" name="${name}" value="${option.value}" ${checked ? 'checked' : ''}>
+      <span>${escapeHtml(option.label)}</span>
+    `;
+    segment.querySelector('input').onchange = e => {
+      if (e.target.checked) onChange(Number(e.target.value));
+    };
+    group.appendChild(segment);
+  }
+  return field;
+}
+
+export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
+  const wrap = document.createElement('div');
+  wrap.className = 'range-slider-control';
+  const minInputId = makeControlId('range-min-number');
+  const maxInputId = makeControlId('range-max-number');
+  const minSliderId = makeControlId('range-min-slider');
+  const maxSliderId = makeControlId('range-max-slider');
+  const bounds = rangeSliderBounds(rangeObj.Min, rangeObj.Max, defaults);
+  wrap.innerHTML = `
+    <div class="range-slider-label"><span>${escapeHtml(label)}</span><span class="range-slider-bounds">Slider ${bounds.min}–${bounds.max}</span></div>
+    <div class="range-slider-stack">
+      <input id="${minSliderId}" type="range" min="${bounds.min}" max="${bounds.max}" step="1" value="${escapeHtml(rangeObj.Min)}" aria-label="${escapeHtml(label)} minimum slider">
+      <input id="${maxSliderId}" type="range" min="${bounds.min}" max="${bounds.max}" step="1" value="${escapeHtml(rangeObj.Max)}" aria-label="${escapeHtml(label)} maximum slider">
+    </div>
+    <div class="range-number-grid">
+      <div><label for="${minInputId}">Minimum</label><input id="${minInputId}" type="number" step="1" value="${escapeHtml(rangeObj.Min)}"></div>
+      <div><label for="${maxInputId}">Maximum</label><input id="${maxInputId}" type="number" step="1" value="${escapeHtml(rangeObj.Max)}"></div>
+    </div>
+    <p class="hint range-validation" hidden>Minimum is greater than maximum. Values are preserved until you edit them.</p>
+  `;
+  const minNumber = wrap.querySelector(`#${minInputId}`);
+  const maxNumber = wrap.querySelector(`#${maxInputId}`);
+  const minSlider = wrap.querySelector(`#${minSliderId}`);
+  const maxSlider = wrap.querySelector(`#${maxSliderId}`);
+  const validation = wrap.querySelector('.range-validation');
+
+  function syncValidity() {
+    const reversed = Number(rangeObj.Min) > Number(rangeObj.Max);
+    minNumber.classList.toggle('invalid', reversed);
+    maxNumber.classList.toggle('invalid', reversed);
+    validation.hidden = !reversed;
+  }
+  function commitNumber(key, input) {
+    const next = Number(input.value);
+    if (Number.isNaN(next)) {
+      input.value = String(rangeObj[key]);
+      return;
+    }
+    rangeObj[key] = next;
+    const nextBounds = rangeSliderBounds(rangeObj.Min, rangeObj.Max, defaults);
+    for (const slider of [minSlider, maxSlider]) {
+      slider.min = String(nextBounds.min);
+      slider.max = String(nextBounds.max);
+    }
+    minSlider.value = String(rangeObj.Min);
+    maxSlider.value = String(rangeObj.Max);
+    wrap.querySelector('.range-slider-bounds').textContent = `Slider ${nextBounds.min}–${nextBounds.max}`;
+    syncValidity();
+    onChange();
+  }
+  minNumber.onblur = () => commitNumber('Min', minNumber);
+  maxNumber.onblur = () => commitNumber('Max', maxNumber);
+  minNumber.addEventListener('keydown', e => { if (e.key === 'Enter') e.currentTarget.blur(); });
+  maxNumber.addEventListener('keydown', e => { if (e.key === 'Enter') e.currentTarget.blur(); });
+  minSlider.oninput = e => {
+    rangeObj.Min = Number(e.target.value);
+    minNumber.value = e.target.value;
+    syncValidity();
+    onChange();
+  };
+  maxSlider.oninput = e => {
+    rangeObj.Max = Number(e.target.value);
+    maxNumber.value = e.target.value;
+    syncValidity();
+    onChange();
+  };
+  syncValidity();
+  return wrap;
 }

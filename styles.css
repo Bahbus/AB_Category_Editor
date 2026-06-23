@@ -822,3 +822,159 @@
     .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
     .grid.cols-2, .grid.cols-3, .color-layout, .basic-meta-grid, .rgb-grid { grid-template-columns: 1fr; }
   }
+
+  .switch-control {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    font-size: 14px;
+    margin: 0;
+    min-height: 36px;
+    cursor: pointer;
+  }
+  .switch-control input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    min-width: 1px;
+  }
+  .switch-track {
+    width: 42px;
+    height: 24px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--panel2);
+    position: relative;
+    flex: 0 0 auto;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .switch-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: transform .15s ease, background .15s ease;
+  }
+  .switch-control input:checked + .switch-track {
+    background: color-mix(in srgb, var(--accent), var(--panel2) 34%);
+    border-color: var(--accent);
+  }
+  .switch-control input:checked + .switch-track .switch-thumb {
+    transform: translateX(18px);
+    background: var(--text);
+  }
+  .switch-control:focus-within .switch-track {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .topbar-group-options .switch-control,
+  .search .switch-control { font-size: 13px; }
+
+  .segmented-field {
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+  .segmented-field legend {
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 6px;
+    padding: 0;
+  }
+  .segmented-control {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--panel2);
+  }
+  .segment {
+    position: relative;
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .segment input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+  }
+  .segment span {
+    display: inline-flex;
+    min-height: 30px;
+    align-items: center;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 5px 10px;
+  }
+  .segment input:focus-visible + span {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .segment input:checked + span {
+    color: var(--text);
+    border-color: var(--accent);
+    background: var(--panel3);
+  }
+  .segment-required input:checked + span {
+    border-color: var(--ok);
+    background: color-mix(in srgb, var(--ok), var(--panel3) 82%);
+  }
+  .segment-excluded input:checked + span {
+    border-color: var(--danger);
+    background: color-mix(in srgb, var(--danger), var(--panel3) 86%);
+  }
+  .state-filter-card .hint { margin-top: -4px; }
+
+  .range-filter-grid .nested-card {
+    display: grid;
+    gap: 10px;
+  }
+  .range-slider-control {
+    display: grid;
+    gap: 8px;
+  }
+  .range-slider-label {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .range-slider-bounds { font-variant-numeric: tabular-nums; }
+  .range-slider-stack {
+    display: grid;
+    grid-template-rows: 1fr;
+    align-items: center;
+    min-height: 34px;
+  }
+  .range-slider-stack input[type="range"] {
+    grid-area: 1 / 1;
+    padding: 0;
+    background: transparent;
+    accent-color: var(--accent);
+  }
+  .range-number-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .range-validation {
+    margin: 0;
+    color: var(--warn);
+  }
+
+  :root[data-density="compact"] .switch-control { min-height: 30px; }
+  :root[data-density="compact"] .switch-track { width: 38px; height: 22px; }
+  :root[data-density="compact"] .switch-thumb { width: 16px; height: 16px; }
+  :root[data-density="compact"] .switch-control input:checked + .switch-track .switch-thumb { transform: translateX(16px); }
+  :root[data-density="compact"] .segment span { min-height: 26px; padding: 4px 8px; }
