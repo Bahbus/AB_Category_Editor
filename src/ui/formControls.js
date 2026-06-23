@@ -118,9 +118,9 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
   const maxSliderId = makeControlId('range-max-slider');
   const bounds = rangeSliderBounds(rangeObj.Min, rangeObj.Max, defaults);
   wrap.innerHTML = `
-    <div class="range-slider-label"><span>${escapeHtml(label)}</span><span class="range-slider-bounds">Slider ${bounds.min}–${bounds.max}</span></div>
     <div class="range-slider-stack">
       <div class="range-slider-rail" aria-hidden="true"></div>
+      <div class="range-slider-fill" aria-hidden="true"></div>
       <input id="${minSliderId}" class="range-min-slider" type="range" min="${bounds.min}" max="${bounds.max}" step="1" value="${escapeHtml(rangeObj.Min)}" aria-label="${escapeHtml(label)} minimum slider">
       <input id="${maxSliderId}" class="range-max-slider" type="range" min="${bounds.min}" max="${bounds.max}" step="1" value="${escapeHtml(rangeObj.Max)}" aria-label="${escapeHtml(label)} maximum slider">
     </div>
@@ -137,8 +137,17 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
   const validation = wrap.querySelector('.range-validation');
 
   function syncValidity() {
-    const reversed = Number(rangeObj.Min) > Number(rangeObj.Max);
-    minSlider.classList.toggle('range-active-slider', reversed || Number(rangeObj.Min) >= Number(rangeObj.Max));
+    const minValue = Number(rangeObj.Min);
+    const maxValue = Number(rangeObj.Max);
+    const lowerBound = Number(minSlider.min);
+    const upperBound = Number(minSlider.max);
+    const span = upperBound - lowerBound || 1;
+    const reversed = minValue > maxValue;
+    const start = Math.max(0, Math.min(100, ((Math.min(minValue, maxValue) - lowerBound) / span) * 100));
+    const end = Math.max(0, Math.min(100, ((Math.max(minValue, maxValue) - lowerBound) / span) * 100));
+    wrap.style.setProperty('--range-start', `${start}%`);
+    wrap.style.setProperty('--range-end', `${end}%`);
+    minSlider.classList.toggle('range-active-slider', reversed || minValue >= maxValue);
     minNumber.classList.toggle('invalid', reversed);
     maxNumber.classList.toggle('invalid', reversed);
     validation.hidden = !reversed;
@@ -157,7 +166,6 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
     }
     minSlider.value = String(rangeObj.Min);
     maxSlider.value = String(rangeObj.Max);
-    wrap.querySelector('.range-slider-bounds').textContent = `Slider ${nextBounds.min}–${nextBounds.max}`;
     syncValidity();
     onChange();
   }

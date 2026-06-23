@@ -936,7 +936,6 @@
     border-color: var(--danger);
     background: color-mix(in srgb, var(--danger), var(--panel3) 86%);
   }
-  .state-filter-card .hint { margin-top: -4px; }
 
   .range-filter-grid .nested-card {
     display: grid;
@@ -946,14 +945,21 @@
     display: grid;
     gap: 8px;
   }
-  .range-slider-label {
+  .filter-card-title {
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    color: var(--muted);
-    font-size: 12px;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 2px;
   }
-  .range-slider-bounds { font-variant-numeric: tabular-nums; }
+  .filter-card-title h3 {
+    margin: 0;
+  }
+  .filter-card-title .switch-control,
+  .filter-card-title .segmented-field {
+    margin-left: auto;
+  }
   .range-slider-stack {
     display: grid;
     grid-template-rows: 1fr;
@@ -961,12 +967,22 @@
     min-height: 34px;
     position: relative;
   }
-  .range-slider-rail {
+  .range-slider-rail,
+  .range-slider-fill {
     grid-area: 1 / 1;
     height: 8px;
-    border: 1px solid var(--border);
     border-radius: 999px;
+  }
+  .range-slider-rail {
+    border: 1px solid var(--border);
     background: var(--panel2);
+  }
+  .range-slider-fill {
+    width: calc(var(--range-end, 100%) - var(--range-start, 0%));
+    margin-left: var(--range-start, 0%);
+    background: color-mix(in srgb, var(--accent), var(--panel2) 25%);
+    border: 1px solid color-mix(in srgb, var(--accent), var(--border) 35%);
+    z-index: 0;
   }
   .range-slider-stack input[type="range"] {
     grid-area: 1 / 1;

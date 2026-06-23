@@ -6,6 +6,10 @@ import { openModal, closeModal } from '../modals.js';
 import { STATE_FILTER_OPTIONS, checkbox, numberInput, rangeSliderControl, segmentedControl, switchInput, textInput } from './formControls.js';
 import { listEditor } from './listEditor.js';
 
+function displayFilterName(value) {
+  return String(value).replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+}
+
 function renderAllowedRaritiesEditor(cat, deps) {
   const { markDirty } = deps;
   const card = document.createElement('div');
@@ -290,11 +294,14 @@ export function renderEditor(deps) {
     const obj = rules[key];
     const box = document.createElement('div');
     box.className = 'nested-card';
-    box.innerHTML = `<h3>${escapeHtml(key)}</h3>`;
     const defaults = key === 'VendorPrice' ? { min: 0, max: 100000 } : { min: 0, max: key === 'Level' ? 100 : 800 };
+    const title = document.createElement('div');
+    title.className = 'filter-card-title';
+    title.innerHTML = `<h3>${escapeHtml(displayFilterName(key))}</h3>`;
+    title.appendChild(switchInput('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(); }));
     box.append(
-      switchInput('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(); }),
-      rangeSliderControl(key, obj, () => { markDirty(); }, defaults)
+      title,
+      rangeSliderControl(displayFilterName(key), obj, () => { markDirty(); }, defaults)
     );
     rangeGrid.appendChild(box);
   }
@@ -313,12 +320,15 @@ export function renderEditor(deps) {
 
     const box = document.createElement('div');
     box.className = 'nested-card state-filter-card';
-    box.innerHTML = `<h3>${escapeHtml(filterName)}</h3>`;
-    box.appendChild(segmentedControl('', obj.State ?? 0, STATE_FILTER_OPTIONS, next => {
+    const title = document.createElement('div');
+    title.className = 'filter-card-title';
+    title.innerHTML = `<h3>${escapeHtml(displayFilterName(filterName))}</h3>`;
+    title.appendChild(segmentedControl('', obj.State ?? 0, STATE_FILTER_OPTIONS, next => {
       obj.State = next;
       markDirty();
       renderList();
     }));
+    box.appendChild(title);
 
     return box;
   }
