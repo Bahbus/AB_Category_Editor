@@ -224,10 +224,6 @@ function bindAppEvents() {
   bindClick('addCategory', () => { commitActiveField(); getCategories().push(defaultCategory()); selectedIndex = getCategories().length - 1; markDirty(); renderAll(); });
   bindClick('sortByOrder', () => { commitActiveField(); getCategories().sort(compareCategoriesForImport); selectedIndex = 0; markDirty(); renderAll(); });
   bindClick('renumber', () => { commitActiveField(); renumberCategories(); markDirty(); renderAll(); });
-  for (const id of ['autoRenumberDrag', 'autoLookupImport']) {
-    const input = el(id);
-    if (input) input.addEventListener('change', e => e.currentTarget.setAttribute('aria-checked', e.currentTarget.checked ? 'true' : 'false'));
-  }
   bindClick('lookupReferencedIds', () => { commitActiveField(); lookupReferencedIds().catch(err => setStatus(errorMessage('ID lookup failed', err), 'err')); });
   bindClick('showLookupCache', () => { commitActiveField(); showLookupCacheModal({ lookupCacheCount, clearLookupCache }); });
   bindClick('showHelp', () => { commitActiveField(); showHelpModal(); });
