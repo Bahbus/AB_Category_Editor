@@ -160,73 +160,6 @@ async function importText(text, sourceLabel='Import') {
   return true;
 }
 
-const searchInput = bindInput('search', renderList);
-if (searchInput) searchInput.addEventListener('keydown', e => { if (e.key === 'Escape') { e.currentTarget.value = ''; renderList(); } });
-bindClick('addCategory', () => { commitActiveField(); getCategories().push(defaultCategory()); selectedIndex = getCategories().length - 1; markDirty(); renderAll(); });
-bindClick('sortByOrder', () => { commitActiveField(); getCategories().sort(compareCategoriesForImport); selectedIndex = 0; markDirty(); renderAll(); });
-bindClick('renumber', () => { commitActiveField(); renumberCategories(); markDirty(); renderAll(); });
-bindClick('lookupReferencedIds', () => { commitActiveField(); lookupReferencedIds().catch(err => setStatus(errorMessage('ID lookup failed', err), 'err')); });
-bindClick('showLookupCache', () => { commitActiveField(); showLookupCacheModal({ lookupCacheCount, clearLookupCache }); });
-bindClick('showHelp', () => { commitActiveField(); showHelpModal(); });
-bindClick('showAppearance', () => showAppearanceModal({
-  getEditorPreferences: () => editorPreferences,
-  applyEditorPreferences,
-  setStatus,
-  openModal,
-  commitActiveField
-}));
-bindClick('uploadFile', () => {
-  commitActiveField();
-  try {
-    const input = requireEl('fileInput');
-    input.value = '';
-    input.click();
-  } catch (err) {
-    setStatus(errorMessage('Upload unavailable', err), 'err');
-  }
-});
-
-bindClick('showExportCopy', async () => {
-  commitActiveField();
-  if (getCategories().length === 0) { updateExportControls(); setStatus('Add or import at least one category before exporting.', 'warn'); return; }
-  showBusy('Generating export', 'Compressing JSON to gzip+Base64...', null);
-  try {
-    const b64 = await makeBase64Export(data); hideBusy();
-    const wrap = document.createElement('div');
-    wrap.innerHTML = `<p class="hint">Current gzip+Base64 export. This was automatically copied to your clipboard if the browser allowed it.</p><div id="exportError" class="modal-error hidden" role="alert"></div><textarea id="exportText" class="raw" readonly>${escapeHtml(b64)}</textarea><div class="row" style="margin-top:8px;"><button id="copyExportAgain" class="primary">Copy again</button></div><p class="hint" id="exportCopyStatus"></p>`;
-    openModal('Export / Copy', wrap);
-    const copied = await copyTextToClipboard(b64); markSaved('Exported');
-    const exportCopyStatus = requireScopedEl(wrap, '#exportCopyStatus', 'export');
-    const exportText = requireScopedEl(wrap, '#exportText', 'export');
-    const copyExportAgain = requireScopedEl(wrap, '#copyExportAgain', 'export');
-    exportCopyStatus.textContent = copied ? 'Copied to clipboard.' : 'Automatic copy was blocked by the browser. Use “Copy again” or select the text manually.';
-    copyExportAgain.addEventListener('click', async () => {
-      commitActiveField();
-      const ok = await copyTextToClipboard(exportText.value);
-      exportCopyStatus.textContent = ok ? 'Copied to clipboard.' : 'Copy failed. Select the text manually.';
-      setInlineError('exportError', ok ? '' : 'Copy failed. Select the export text manually.');
-    });
-  } catch (err) { hideBusy(true); setStatus(errorMessage('Export failed', err), 'err'); }
-});
-
-bindClick('downloadBase64', async () => {
-  commitActiveField();
-  if (getCategories().length === 0) { updateExportControls(); setStatus('Add or import at least one category before downloading.', 'warn'); return; }
-  showBusy('Generating download', 'Compressing JSON to gzip+Base64...', null);
-  try { downloadText(EXPORT_FILENAME, await makeBase64Export(data), 'text/plain', { onDownloaded(filename) { markSaved('Downloaded'); setStatus(`Downloaded ${filename}`, 'ok'); } }); }
-  catch (err) { setStatus(errorMessage('Download failed', err), 'err'); }
-  finally { hideBusy(); }
-});
-
-bindChange('fileInput', async e => {
-  commitActiveField();
-  const file = e.target.files[0];
-  if (!file) return;
-  try {
-    await importText(await file.text(), file.name);
-  } catch (err) { setStatus(errorMessage('Could not load file', err), 'err'); }
-});
-
 function showImportModal(initialText = '') {
   commitActiveField();
   const wrap = document.createElement('div');
@@ -247,8 +180,6 @@ function showImportModal(initialText = '') {
     reportModalBindingError('Import unavailable', err);
   }
 }
-
-bindClick('showImport', () => showImportModal());
 
 function showRawModal(initialText = JSON.stringify(data, null, 2), initialError = '') {
   commitActiveField();
@@ -286,15 +217,131 @@ function showRawModal(initialText = JSON.stringify(data, null, 2), initialError 
   }
 }
 
-bindClick('showRaw', () => showRawModal());
+let started = false;
 
-bindClick('closeModal', closeModal);
-bindClick('modalBackdrop', e => { if (e.target === e.currentTarget) closeModal(); });
-document.addEventListener('keydown', e => {
-  const backdrop = el('modalBackdrop');
-  trapModalFocus(e);
-  if (e.key === 'Escape' && backdrop && !backdrop.classList.contains('hidden')) closeModal();
-});
-window.addEventListener('beforeunload', e => { commitActiveField(); if (!dirty) return; e.preventDefault(); e.returnValue = ''; });
-applyEditorPreferences();
-renderAll();
+function bindAppEvents() {
+  const searchInput = bindInput('search', renderList);
+  if (searchInput) searchInput.addEventListener('keydown', e => { if (e.key === 'Escape') { e.currentTarget.value = ''; renderList(); } });
+  bindClick('addCategory', () => { commitActiveField(); getCategories().push(defaultCategory()); selectedIndex = getCategories().length - 1; markDirty(); renderAll(); });
+  bindClick('sortByOrder', () => { commitActiveField(); getCategories().sort(compareCategoriesForImport); selectedIndex = 0; markDirty(); renderAll(); });
+  bindClick('renumber', () => { commitActiveField(); renumberCategories(); markDirty(); renderAll(); });
+  bindClick('lookupReferencedIds', () => { commitActiveField(); lookupReferencedIds().catch(err => setStatus(errorMessage('ID lookup failed', err), 'err')); });
+  bindClick('showLookupCache', () => { commitActiveField(); showLookupCacheModal({ lookupCacheCount, clearLookupCache }); });
+  bindClick('showHelp', () => { commitActiveField(); showHelpModal(); });
+  bindClick('showAppearance', () => showAppearanceModal({
+    getEditorPreferences: () => editorPreferences,
+    applyEditorPreferences,
+    setStatus,
+    openModal,
+    commitActiveField
+  }));
+  bindClick('uploadFile', () => {
+    commitActiveField();
+    try {
+      const input = requireEl('fileInput');
+      input.value = '';
+      input.click();
+    } catch (err) {
+      setStatus(errorMessage('Upload unavailable', err), 'err');
+    }
+  });
+
+  bindClick('showExportCopy', async () => {
+    commitActiveField();
+    if (getCategories().length === 0) { updateExportControls(); setStatus('Add or import at least one category before exporting.', 'warn'); return; }
+    showBusy('Generating export', 'Compressing JSON to gzip+Base64...', null);
+    try {
+      const b64 = await makeBase64Export(data); hideBusy();
+      const wrap = document.createElement('div');
+      wrap.innerHTML = `<p class="hint">Current gzip+Base64 export. This was automatically copied to your clipboard if the browser allowed it.</p><div id="exportError" class="modal-error hidden" role="alert"></div><textarea id="exportText" class="raw" readonly>${escapeHtml(b64)}</textarea><div class="row" style="margin-top:8px;"><button id="copyExportAgain" class="primary">Copy again</button></div><p class="hint" id="exportCopyStatus"></p>`;
+      openModal('Export / Copy', wrap);
+      const copied = await copyTextToClipboard(b64); markSaved('Exported');
+      const exportCopyStatus = requireScopedEl(wrap, '#exportCopyStatus', 'export');
+      const exportText = requireScopedEl(wrap, '#exportText', 'export');
+      const copyExportAgain = requireScopedEl(wrap, '#copyExportAgain', 'export');
+      exportCopyStatus.textContent = copied ? 'Copied to clipboard.' : 'Automatic copy was blocked by the browser. Use “Copy again” or select the text manually.';
+      copyExportAgain.addEventListener('click', async () => {
+        commitActiveField();
+        const ok = await copyTextToClipboard(exportText.value);
+        exportCopyStatus.textContent = ok ? 'Copied to clipboard.' : 'Copy failed. Select the text manually.';
+        setInlineError('exportError', ok ? '' : 'Copy failed. Select the export text manually.');
+      });
+    } catch (err) { hideBusy(true); setStatus(errorMessage('Export failed', err), 'err'); }
+  });
+
+  bindClick('downloadBase64', async () => {
+    commitActiveField();
+    if (getCategories().length === 0) { updateExportControls(); setStatus('Add or import at least one category before downloading.', 'warn'); return; }
+    showBusy('Generating download', 'Compressing JSON to gzip+Base64...', null);
+    try { downloadText(EXPORT_FILENAME, await makeBase64Export(data), 'text/plain', { onDownloaded(filename) { markSaved('Downloaded'); setStatus(`Downloaded ${filename}`, 'ok'); } }); }
+    catch (err) { setStatus(errorMessage('Download failed', err), 'err'); }
+    finally { hideBusy(); }
+  });
+
+  bindChange('fileInput', async e => {
+    commitActiveField();
+    const file = e.target.files[0];
+    if (!file) return;
+    try {
+      await importText(await file.text(), file.name);
+    } catch (err) { setStatus(errorMessage('Could not load file', err), 'err'); }
+  });
+
+  bindClick('showImport', () => showImportModal());
+  bindClick('showRaw', () => showRawModal());
+
+  bindClick('closeModal', closeModal);
+  bindClick('modalBackdrop', e => { if (e.target === e.currentTarget) closeModal(); });
+  document.addEventListener('keydown', e => {
+    const backdrop = el('modalBackdrop');
+    trapModalFocus(e);
+    if (e.key === 'Escape' && backdrop && !backdrop.classList.contains('hidden')) closeModal();
+  });
+  window.addEventListener('beforeunload', e => { commitActiveField(); if (!dirty) return; e.preventDefault(); e.returnValue = ''; });
+}
+
+function getStylesheetLink() {
+  const link = document.getElementById('appStylesheet');
+  return link instanceof HTMLLinkElement ? link : null;
+}
+
+function isStylesheetReady(link) {
+  if (!link) return true;
+  try {
+    return [...document.styleSheets].some(sheet => sheet.ownerNode === link);
+  } catch {
+    return false;
+  }
+}
+
+function waitForStylesheetReady() {
+  const link = getStylesheetLink();
+  if (isStylesheetReady(link)) return Promise.resolve();
+  return new Promise(resolve => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      link?.removeEventListener('load', finish);
+      link?.removeEventListener('error', finish);
+      resolve();
+    };
+    link.addEventListener('load', finish, { once: true });
+    link.addEventListener('error', finish, { once: true });
+    setTimeout(finish, 250);
+  });
+}
+
+function startApp() {
+  if (started) return;
+  started = true;
+  bindAppEvents();
+  applyEditorPreferences();
+  waitForStylesheetReady().then(renderAll);
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startApp, { once: true });
+} else {
+  startApp();
+}
