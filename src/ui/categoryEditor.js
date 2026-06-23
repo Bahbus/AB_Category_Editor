@@ -313,11 +313,8 @@ export function renderEditor(deps) {
 
     const box = document.createElement('div');
     box.className = 'nested-card state-filter-card';
-    box.innerHTML = `
-      <h3>${escapeHtml(filterName)}</h3>
-      <p class="hint">Choose how this item state is treated. Advanced filter value is preserved in Raw JSON.</p>
-    `;
-    box.appendChild(segmentedControl('State', obj.State ?? 0, STATE_FILTER_OPTIONS, next => {
+    box.innerHTML = `<h3>${escapeHtml(filterName)}</h3>`;
+    box.appendChild(segmentedControl('', obj.State ?? 0, STATE_FILTER_OPTIONS, next => {
       obj.State = next;
       markDirty();
       renderList();

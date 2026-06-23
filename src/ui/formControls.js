@@ -89,7 +89,8 @@ export function segmentedControl(label, value, options, onChange) {
   const field = document.createElement('fieldset');
   field.className = 'segmented-field';
   const name = makeControlId('segmented');
-  field.innerHTML = `<legend>${escapeHtml(label)}</legend><div class="segmented-control" role="radiogroup"></div>`;
+  const legend = label ? `<legend>${escapeHtml(label)}</legend>` : '<legend class="sr-only">Select state filter behavior</legend>';
+  field.innerHTML = `${legend}<div class="segmented-control" role="radiogroup"></div>`;
   const group = field.querySelector('.segmented-control');
   for (const option of options) {
     const id = makeControlId('segment');
@@ -119,8 +120,9 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
   wrap.innerHTML = `
     <div class="range-slider-label"><span>${escapeHtml(label)}</span><span class="range-slider-bounds">Slider ${bounds.min}–${bounds.max}</span></div>
     <div class="range-slider-stack">
-      <input id="${minSliderId}" type="range" min="${bounds.min}" max="${bounds.max}" step="1" value="${escapeHtml(rangeObj.Min)}" aria-label="${escapeHtml(label)} minimum slider">
-      <input id="${maxSliderId}" type="range" min="${bounds.min}" max="${bounds.max}" step="1" value="${escapeHtml(rangeObj.Max)}" aria-label="${escapeHtml(label)} maximum slider">
+      <div class="range-slider-rail" aria-hidden="true"></div>
+      <input id="${minSliderId}" class="range-min-slider" type="range" min="${bounds.min}" max="${bounds.max}" step="1" value="${escapeHtml(rangeObj.Min)}" aria-label="${escapeHtml(label)} minimum slider">
+      <input id="${maxSliderId}" class="range-max-slider" type="range" min="${bounds.min}" max="${bounds.max}" step="1" value="${escapeHtml(rangeObj.Max)}" aria-label="${escapeHtml(label)} maximum slider">
     </div>
     <div class="range-number-grid">
       <div><label for="${minInputId}">Minimum</label><input id="${minInputId}" type="number" step="1" value="${escapeHtml(rangeObj.Min)}"></div>
@@ -136,6 +138,7 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
 
   function syncValidity() {
     const reversed = Number(rangeObj.Min) > Number(rangeObj.Max);
+    minSlider.classList.toggle('range-active-slider', reversed || Number(rangeObj.Min) >= Number(rangeObj.Max));
     minNumber.classList.toggle('invalid', reversed);
     maxNumber.classList.toggle('invalid', reversed);
     validation.hidden = !reversed;
