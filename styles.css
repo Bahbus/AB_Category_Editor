@@ -430,13 +430,9 @@
     margin-top: 12px;
   }
   .basic-meta-grid {
-    grid-template-columns: minmax(110px, 1fr) minmax(110px, 1fr) auto auto;
+    grid-template-columns: repeat(2, minmax(110px, 1fr));
     align-items: end;
     margin-top: 12px;
-  }
-  .basic-meta-grid .check {
-    min-height: 36px;
-    align-items: center;
   }
   .rgb-grid {
     grid-template-columns: repeat(3, minmax(4.5rem, 1fr));
