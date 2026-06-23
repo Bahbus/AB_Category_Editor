@@ -52,13 +52,27 @@
   }
   :root[data-theme="aetherial"] {
     color-scheme: dark;
-    --bg: #090b1f; --panel: #141936; --panel2: #20275a; --panel3: #10142d;
-    --text: #f2f7ff; --muted: #c4c9f4; --border: #5d6fd1; --accent: #83f1ff;
-    --danger: #ff74c8; --ok: #8ff7dd; --warn: #ffe59a; --input: #0b1028; --shadow: rgba(112, 122, 255, .22);
+    --bg: #07091a; --panel: #151a3a; --panel2: #232b63; --panel3: #0f1430;
+    --text: #f2f7ff; --muted: #c4c9f4; --border: #6c7ee8; --accent: #83f1ff;
+    --danger: #ff74c8; --ok: #8ff7dd; --warn: #ffe59a; --input: #080d24; --shadow: rgba(112, 122, 255, .26);
   }
   :root[data-theme="aetherial"] .card,
   :root[data-theme="aetherial"] .topbar-group {
-    box-shadow: 0 8px 28px rgba(120, 180, 255, .12);
+    box-shadow: 0 8px 28px rgba(120, 180, 255, .14), 0 0 0 1px rgba(131, 241, 255, .035);
+  }
+  :root[data-theme="aetherial"] button.primary {
+    background: linear-gradient(135deg, #83f1ff 0%, #8ea2ff 58%, #b394ff 100%);
+    border-color: #9beeff;
+    color: #071022;
+    box-shadow: 0 0 18px rgba(131, 241, 255, .16);
+  }
+  :root[data-theme="aetherial"] button:focus-visible,
+  :root[data-theme="aetherial"] input:focus-visible,
+  :root[data-theme="aetherial"] textarea:focus-visible,
+  :root[data-theme="aetherial"] select:focus-visible {
+    outline: 2px solid rgba(131, 241, 255, .92);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(109, 117, 255, .20), 0 0 22px rgba(131, 241, 255, .14);
   }
   :root[data-theme="dalamud"] {
     color-scheme: dark;
