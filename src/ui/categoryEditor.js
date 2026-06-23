@@ -3,7 +3,7 @@ import { el, escapeHtml, requireEl, requireScopedEl, setStatus } from '../dom.js
 import { colorToHex, colorToHexRGBA, hexToRgb01, hexToRgba01, rgbaCss, componentTo255 } from '../color.js';
 import { clone, makeId, getNormalizedAllowedRarities } from '../config.js';
 import { openModal, closeModal } from '../modals.js';
-import { STATE_FILTER_OPTIONS, checkbox, numberInput, rangeSliderControl, segmentedControl, switchInput, textInput } from './formControls.js';
+import { STATE_FILTER_OPTIONS, numberInput, rangeSliderControl, segmentedControl, switchInput, textInput } from './formControls.js';
 import { listEditor } from './listEditor.js';
 
 function displayFilterName(value) {
@@ -335,7 +335,7 @@ export function renderEditor(deps) {
     title.innerHTML = `<h3>${escapeHtml(displayFilterName(filterName))}</h3>`;
     const titleActions = document.createElement('div');
     titleActions.className = 'filter-card-actions';
-    titleActions.appendChild(segmentedControl('', obj.State ?? 0, STATE_FILTER_OPTIONS, next => {
+    titleActions.appendChild(segmentedControl(displayFilterName(filterName), obj.State ?? 0, STATE_FILTER_OPTIONS, next => {
       obj.State = next;
       markDirty();
       renderList();

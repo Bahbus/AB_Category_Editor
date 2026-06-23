@@ -61,27 +61,16 @@ export function textInput(label, value, onChange) {
   return wrap;
 }
 
-export function checkbox(label, value, onChange) {
-  const l = document.createElement('label');
-  l.className = 'check';
-  l.innerHTML = `<input type="checkbox" ${value ? 'checked' : ''}> ${escapeHtml(label)}`;
-  l.querySelector('input').onchange = e => onChange(e.target.checked);
-  return l;
-}
-
 export function switchInput(label, value, onChange) {
   const l = document.createElement('label');
   l.className = 'switch-control';
   l.innerHTML = `
-    <input type="checkbox" role="switch" ${value ? 'checked' : ''} aria-checked="${value ? 'true' : 'false'}">
+    <input type="checkbox" role="switch" ${value ? 'checked' : ''}>
     <span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span>
     <span class="switch-label">${escapeHtml(label)}</span>
   `;
   const input = l.querySelector('input');
-  input.onchange = e => {
-    e.target.setAttribute('aria-checked', e.target.checked ? 'true' : 'false');
-    onChange(e.target.checked);
-  };
+  input.onchange = e => onChange(e.target.checked);
   return l;
 }
 
@@ -89,7 +78,7 @@ export function segmentedControl(label, value, options, onChange) {
   const field = document.createElement('fieldset');
   field.className = 'segmented-field';
   const name = makeControlId('segmented');
-  const legend = label ? `<legend>${escapeHtml(label)}</legend>` : '<legend class="sr-only">Select state filter behavior</legend>';
+  const legend = label ? `<legend class="sr-only">${escapeHtml(label)}</legend>` : '<legend class="sr-only">Select state filter behavior</legend>';
   field.innerHTML = `${legend}<div class="segmented-control" role="radiogroup"></div>`;
   const group = field.querySelector('.segmented-control');
   for (const option of options) {

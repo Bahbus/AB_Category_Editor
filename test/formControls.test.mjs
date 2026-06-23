@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
+import fs from 'node:fs';
+
 import { RARITIES } from '../src/constants.js';
 import { STATE_FILTER_OPTIONS, rangeSliderBounds, stateFilterLabel } from '../src/ui/formControls.js';
 
@@ -26,4 +28,19 @@ test('rangeSliderBounds includes current values without clamping unusual imports
   assert.deepEqual(rangeSliderBounds(-50, 500, { min: 0, max: 100 }), { min: -50, max: 500 });
   assert.deepEqual(rangeSliderBounds(25, 10, { min: 0, max: 20 }), { min: 0, max: 25 });
   assert.deepEqual(rangeSliderBounds(5, 5, { min: 5, max: 5 }), { min: 5, max: 6 });
+});
+
+
+test('switch markup relies on native checked state instead of mirrored aria-checked', () => {
+  const indexHtml = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const formControlsSource = fs.readFileSync(new URL('../src/ui/formControls.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(indexHtml, /aria-checked/);
+  assert.doesNotMatch(formControlsSource, /aria-checked/);
+});
+
+test('segmented state filter legends are accessible without repeating visible headings', () => {
+  const categoryEditorSource = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
+  const formControlsSource = fs.readFileSync(new URL('../src/ui/formControls.js', import.meta.url), 'utf8');
+  assert.match(categoryEditorSource, /segmentedControl\(displayFilterName\(filterName\)/);
+  assert.match(formControlsSource, /<legend class="sr-only">\$\{escapeHtml\(label\)\}<\/legend>/);
 });
