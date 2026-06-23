@@ -3,14 +3,12 @@ export const EDITOR_PREFERENCES_KEY = 'aetherbagsEditorPreferences';
 
 export const DEFAULT_EDITOR_PREFERENCES = Object.freeze({
   theme: 'system',
-  density: 'comfortable',
-  checkboxStyle: 'standard'
+  density: 'comfortable'
 });
 
 export const EDITOR_PREFERENCE_OPTIONS = Object.freeze({
   theme: Object.freeze(['system', 'dark', 'light', 'high-contrast', 'aetherial', 'dalamud']),
-  density: Object.freeze(['comfortable', 'compact']),
-  checkboxStyle: Object.freeze(['standard', 'large', 'pills'])
+  density: Object.freeze(['comfortable', 'compact'])
 });
 
 function normalizeEditorPreferenceValue(key, value) {
@@ -21,8 +19,7 @@ export function normalizeEditorPreferences(value) {
   const source = value && typeof value === 'object' ? value : {};
   return {
     theme: normalizeEditorPreferenceValue('theme', source.theme),
-    density: normalizeEditorPreferenceValue('density', source.density),
-    checkboxStyle: normalizeEditorPreferenceValue('checkboxStyle', source.checkboxStyle)
+    density: normalizeEditorPreferenceValue('density', source.density)
   };
 }
 

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="system" data-density="comfortable" data-checkbox-style="standard">
+<html lang="en" data-theme="system" data-density="comfortable">
 <head>
 <meta charset="utf-8">
 <title>AetherBags Category Editor</title>
@@ -13,11 +13,9 @@
     const prefs = JSON.parse(raw);
     const themes = new Set(['system', 'dark', 'light', 'high-contrast', 'aetherial', 'dalamud']);
     const densities = new Set(['comfortable', 'compact']);
-    const checkboxStyles = new Set(['standard', 'large', 'pills']);
     const root = document.documentElement;
     if (themes.has(prefs.theme)) root.dataset.theme = prefs.theme;
     if (densities.has(prefs.density)) root.dataset.density = prefs.density;
-    if (checkboxStyles.has(prefs.checkboxStyle)) root.dataset.checkboxStyle = prefs.checkboxStyle;
   } catch {}
 })();
 </script>

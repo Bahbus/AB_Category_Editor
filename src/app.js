@@ -24,7 +24,6 @@ function applyEditorPreferences(preferences = editorPreferences) {
   const root = document.documentElement;
   root.dataset.theme = editorPreferences.theme;
   root.dataset.density = editorPreferences.density;
-  root.dataset.checkboxStyle = editorPreferences.checkboxStyle;
   return editorPreferences;
 }
 

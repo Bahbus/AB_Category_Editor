@@ -228,7 +228,13 @@ export function renderEditor(deps) {
 
   const basics = document.createElement('div');
   basics.className = 'card basics-card';
-  basics.innerHTML = '<h3>Basics</h3>';
+  const basicsTitle = document.createElement('div');
+  basicsTitle.className = 'filter-card-title';
+  basicsTitle.innerHTML = '<h3>Basics</h3>';
+  basicsTitle.append(
+    switchInput('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirty(); }),
+    switchInput('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirty(); })
+  );
   const grid = document.createElement('div');
   grid.className = 'grid basic-fields-grid';
   grid.append(
@@ -240,12 +246,10 @@ export function renderEditor(deps) {
   metaGrid.className = 'grid basic-meta-grid';
   metaGrid.append(
     numberInput('Order', cat.Order, v => { cat.Order = v; markDirty(); }),
-    numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirty(); }),
-    switchInput('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirty(); }),
-    switchInput('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirty(); })
+    numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirty(); })
   );
 
-  basics.append(grid, metaGrid);
+  basics.append(basicsTitle, grid, metaGrid);
 
   const topEditorGrid = document.createElement('div');
   topEditorGrid.className = 'top-editor-grid';
