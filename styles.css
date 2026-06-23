@@ -52,9 +52,13 @@
   }
   :root[data-theme="aetherial"] {
     color-scheme: dark;
-    --bg: #0b1024; --panel: #151d39; --panel2: #202b50; --panel3: #101936;
-    --text: #eef7ff; --muted: #b8c9ea; --border: #435b91; --accent: #7ce7ff;
-    --danger: #ff87b7; --ok: #91f7d0; --warn: #ffe08a; --input: #0a122a; --shadow: rgba(39,91,150,.24);
+    --bg: #090b1f; --panel: #141936; --panel2: #20275a; --panel3: #10142d;
+    --text: #f2f7ff; --muted: #c4c9f4; --border: #5d6fd1; --accent: #83f1ff;
+    --danger: #ff74c8; --ok: #8ff7dd; --warn: #ffe59a; --input: #0b1028; --shadow: rgba(112, 122, 255, .22);
+  }
+  :root[data-theme="aetherial"] .card,
+  :root[data-theme="aetherial"] .topbar-group {
+    box-shadow: 0 8px 28px rgba(120, 180, 255, .12);
   }
   :root[data-theme="dalamud"] {
     color-scheme: dark;
@@ -185,6 +189,7 @@
     gap: 6px;
     padding: 5px 7px;
   }
+  .topbar-group-options button,
   .topbar-group-tools button,
   .topbar-group-help button {
     min-height: 32px;
@@ -203,6 +208,7 @@
   }
   .topbar-group-options .check {
     max-width: 220px;
+    min-height: 32px;
     font-size: 13px;
   }
   .topbar .spacer { flex: 1 1 24px; }
@@ -731,6 +737,7 @@
   :root[data-density="compact"] details.card > .details-body { padding: 0 10px 10px; }
   :root[data-density="compact"] .nested-card { padding: 8px; }
   :root[data-density="compact"] .grid { gap: 8px; }
+  :root[data-density="compact"] .top-editor-grid { gap: 10px; }
 
   :root[data-checkbox-style="large"] .check,
   :root[data-checkbox-style="pills"] .check {
