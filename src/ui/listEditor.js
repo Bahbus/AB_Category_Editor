@@ -75,8 +75,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
   }
 
   const row = document.createElement('div');
-  row.className = 'row';
-  row.style.marginTop = '10px';
+  row.className = 'row list-editor-row';
 
   const inputId = `list-editor-input-${Math.random().toString(36).slice(2)}`;
   const inputLabel = document.createElement('label');
@@ -86,7 +85,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
 
   const input = document.createElement('input');
   input.id = inputId;
-  input.style.width = 'min(420px, 100%)';
+  input.className = 'inline-input';
   input.placeholder = 'Add one value, or comma-separated values';
 
   const add = document.createElement('button');

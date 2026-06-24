@@ -102,6 +102,17 @@ test('duplicate item and UI category ID warnings do not expose numeric values', 
   assert.doesNotMatch(uiFinding.message, /67890/);
 });
 
+test('repair category labels fall back to position instead of raw category ID', () => {
+  const config = { Categories: [cleanCategory({ Id: 'secret-category-id', Name: '   ' })] };
+  config.Categories[0].Rules.AllowedItemIds = 'malformed';
+  const validation = validateConfig(config);
+  const repair = validation.repairs.find(item => item.field === 'AllowedItemIds');
+  assert.ok(repair);
+  assert.equal(repair.categoryName, 'Category 1');
+  assert.doesNotMatch(repair.categoryName, /secret-category-id/);
+  assert.doesNotMatch(repair.message, /secret-category-id/);
+});
+
 test('sort repair report suppresses user-facing before and after category ID arrays', () => {
   const validation = validateConfig({ Categories: [
     cleanCategory({ Id: 'later-secret', Name: 'Later', Order: 2, Priority: 2 }),

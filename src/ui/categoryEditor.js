@@ -130,8 +130,8 @@ function renderColorSection(cat, deps) {
       const n = Math.max(0, Math.min(255, Math.round(raw)));
       if (options.writeBack) input.value = String(n);
       setValue(n);
-      markDirty();
       updateColorVisuals();
+      markDirtyAndRenderList();
       return true;
     }
     input.oninput = e => {
@@ -285,25 +285,39 @@ export function renderEditor(deps) {
   const basicsTitle = document.createElement('div');
   basicsTitle.className = 'filter-card-title';
   basicsTitle.innerHTML = '<h3>Basics</h3>';
-  const categoryFindings = validateCategory(cat, cats);
-  const headerFindings = categoryFindings.filter(item => item.severity === 'error' || item.severity === 'warning');
-  if (headerFindings.length) {
-    const badge = document.createElement('span');
-    badge.className = 'validation-badge';
-    badge.textContent = `${headerFindings.length} validation ${headerFindings.length === 1 ? 'issue' : 'issues'}`;
-    requireScopedEl(header, '.section-header-row', 'category header').appendChild(badge);
+  function updateHeaderTitle() {
+    const title = requireScopedEl(header, '.flush-heading', 'category header');
+    title.textContent = cat.Name || '(unnamed)';
   }
+
+  function updateHeaderValidationBadge() {
+    const headerRow = requireScopedEl(header, '.section-header-row', 'category header');
+    const findings = validateCategory(cat, cats).filter(item => item.severity === 'error' || item.severity === 'warning');
+    const existing = headerRow.querySelector('.validation-badge');
+    if (!findings.length) {
+      existing?.remove();
+      return;
+    }
+    const badge = existing || document.createElement('span');
+    badge.className = 'validation-badge';
+    badge.textContent = `${findings.length} validation ${findings.length === 1 ? 'issue' : 'issues'}`;
+    if (!existing) headerRow.appendChild(badge);
+  }
+
+  updateHeaderValidationBadge();
 
   const basicsActions = document.createElement('div');
   basicsActions.className = 'filter-card-actions';
   basicsActions.append(
-    switchInput('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirtyAndRenderList(); }),
-    switchInput('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirtyAndRenderList(); })
+    switchInput('Enabled', cat.Enabled, v => { cat.Enabled = v; updateHeaderValidationBadge(); markDirtyAndRenderList(); }),
+    switchInput('Pinned', cat.Pinned, v => { cat.Pinned = v; updateHeaderValidationBadge(); markDirtyAndRenderList(); })
   );
   basicsTitle.appendChild(basicsActions);
   const debouncedRenderList = debounce(renderList);
-  function updateSidebarText(valueSetter) {
+  function updateSidebarText(valueSetter, options = {}) {
     valueSetter();
+    if (options.updateHeaderTitle) updateHeaderTitle();
+    updateHeaderValidationBadge();
     markDirty();
     debouncedRenderList();
   }
@@ -311,15 +325,15 @@ export function renderEditor(deps) {
   const grid = document.createElement('div');
   grid.className = 'grid basic-fields-grid';
   grid.append(
-    textInput('Name', cat.Name, v => updateSidebarText(() => { cat.Name = v; }), { validate: () => validateCategoryName(cat).filter(item => item.field === 'Name'), validateOnInput: true }),
+    textInput('Name', cat.Name, v => updateSidebarText(() => { cat.Name = v; }, { updateHeaderTitle: true }), { validate: () => validateCategoryName(cat).filter(item => item.field === 'Name'), validateOnInput: true }),
     textInput('Description', cat.Description, v => updateSidebarText(() => { cat.Description = v; }), { validate: () => validateCategoryName(cat).filter(item => item.field === 'Description'), validateOnInput: true })
   );
 
   const metaGrid = document.createElement('div');
   metaGrid.className = 'grid basic-meta-grid';
   metaGrid.append(
-    numberInput('Order', cat.Order, v => { cat.Order = v; markDirtyAndRenderList(); }, '1', null, null, { validate: () => validateCategoryOrder(cat, cats) }),
-    numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirtyAndRenderList(); }, '1', null, null, { validate: () => validateCategoryPriority(cat, cats) })
+    numberInput('Order', cat.Order, v => { cat.Order = v; updateHeaderValidationBadge(); markDirtyAndRenderList(); }, '1', null, null, { validate: () => validateCategoryOrder(cat, cats) }),
+    numberInput('Priority', cat.Priority, v => { cat.Priority = v; updateHeaderValidationBadge(); markDirtyAndRenderList(); }, '1', null, null, { validate: () => validateCategoryPriority(cat, cats) })
   );
 
   basics.append(basicsTitle, grid, metaGrid);
@@ -357,10 +371,7 @@ export function renderEditor(deps) {
     </div>
   `;
   root.appendChild(regexTool);
-  setTimeout(() => {
-    const btn = el('openRegexToItemIds');
-    if (btn) btn.onclick = openRegexToItemIdsTool;
-  }, 0);
+  requireScopedEl(regexTool, '#openRegexToItemIds', 'regex converter').onclick = openRegexToItemIdsTool;
 
   const ranges = document.createElement('details');
   ranges.className = 'card';
