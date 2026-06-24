@@ -36,11 +36,11 @@ export function openRegexToItemIdsTool(deps) {
         <input id="regexFlags" value="i" placeholder="Example: i">
       </div>
     </div>
-    <div style="margin-top:10px;">
+    <div class="modal-action-row">
       <label for="regexPatternInput">Regex</label>
       <input id="regexPatternInput" value="${escapeHtml(patterns[0] || '')}" placeholder="Example: ^Augmented .*">
     </div>
-    <div class="grid cols-3" style="margin-top:10px;">
+    <div class="grid cols-3" class="modal-action-row">
       <div>
         <label for="regexMaxMatches">Max matches to collect</label>
         <input id="regexMaxMatches" type="number" min="1" step="1" value="5000">
@@ -57,7 +57,7 @@ export function openRegexToItemIdsTool(deps) {
         </select>
       </div>
     </div>
-    <div class="row" style="margin-top:12px;">
+    <div class="row modal-action-row modal-action-row-loose">
       <button id="runRegexScan" class="primary">Scan matching items</button>
       <button id="cancelRegexScan" disabled hidden>Cancel scan</button>
       <button id="addRegexMatches" disabled>Add matched IDs</button>

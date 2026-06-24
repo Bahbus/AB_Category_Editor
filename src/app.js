@@ -73,7 +73,7 @@ function reportModalBindingError(context, err) {
 function confirmReplacingCurrentWork() {
   if (!dirty) return Promise.resolve(true);
   const wrap = document.createElement('div');
-  wrap.innerHTML = `<p class="hint">Current unexported changes will be replaced. Export or download them first if you want to keep them.</p><div class="row" style="margin-top:8px;"><button id="confirmReplaceWork" class="danger">Replace current data</button><button id="cancelReplaceWork">Cancel</button></div>`;
+  wrap.innerHTML = `<p class="hint">Current unexported changes will be replaced. Export or download them first if you want to keep them.</p><div class="row modal-action-row"><button id="confirmReplaceWork" class="danger">Replace current data</button><button id="cancelReplaceWork">Cancel</button></div>`;
   return new Promise(resolve => {
     let confirmed = false;
     openModal('Replace current data?', wrap, { onClose: () => resolve(confirmed) });
@@ -167,7 +167,7 @@ async function importText(text, sourceLabel='Import') {
 function showImportModal(initialText = '') {
   commitActiveField();
   const wrap = document.createElement('div');
-  wrap.innerHTML = `<p class="hint">Paste either formatted JSON or the gzip+Base64 blob. Then click Import.</p><div id="importError" class="modal-error hidden" role="alert"></div><textarea id="importText" class="raw" placeholder="Paste JSON or gzip+Base64 here">${escapeHtml(initialText)}</textarea><div class="row" style="margin-top:8px;"><button id="importNow" class="primary">Import</button></div>`;
+  wrap.innerHTML = `<p class="hint">Paste either formatted JSON or the gzip+Base64 blob. Then click Import.</p><div id="importError" class="modal-error hidden" role="alert"></div><textarea id="importText" class="raw" placeholder="Paste JSON or gzip+Base64 here">${escapeHtml(initialText)}</textarea><div class="row modal-action-row"><button id="importNow" class="primary">Import</button></div>`;
   openModal('Import / Paste', wrap);
   try {
     const importTextNode = requireScopedEl(wrap, '#importText', 'import');
@@ -188,7 +188,7 @@ function showImportModal(initialText = '') {
 function showRawModal(initialText = JSON.stringify(data, null, 2), initialError = '') {
   commitActiveField();
   const wrap = document.createElement('div');
-  wrap.innerHTML = `<p class="hint">This is the full JSON config. Edit carefully; invalid JSON cannot be applied.</p><div id="rawError" class="modal-error hidden" role="alert"></div><textarea id="rawFull" class="raw">${escapeHtml(initialText)}</textarea><div class="row" style="margin-top:8px;"><button id="applyRawFull" class="primary">Apply full JSON</button><button id="copyRawFull">Copy</button></div><p class="hint" id="rawCopyStatus"></p>`;
+  wrap.innerHTML = `<p class="hint">This is the full JSON config. Edit carefully; invalid JSON cannot be applied.</p><div id="rawError" class="modal-error hidden" role="alert"></div><textarea id="rawFull" class="raw">${escapeHtml(initialText)}</textarea><div class="row modal-action-row"><button id="applyRawFull" class="primary">Apply full JSON</button><button id="copyRawFull">Copy</button></div><p class="hint" id="rawCopyStatus"></p>`;
   openModal('Raw JSON', wrap);
   setInlineError('rawError', initialError);
   try {
@@ -224,8 +224,22 @@ function showRawModal(initialText = JSON.stringify(data, null, 2), initialError 
 let started = false;
 
 function bindAppEvents() {
-  const searchInput = bindInput('search', renderList);
-  if (searchInput) searchInput.addEventListener('keydown', e => { if (e.key === 'Escape') { e.currentTarget.value = ''; renderList(); } });
+  const searchInput = bindInput('search', () => { updateSearchClearButton(); renderList(); });
+  const clearSearchButton = el('clearSearch');
+  function updateSearchClearButton() {
+    if (!searchInput || !clearSearchButton) return;
+    clearSearchButton.disabled = searchInput.value.length === 0;
+  }
+  function clearSearch() {
+    if (!searchInput) return;
+    searchInput.value = '';
+    updateSearchClearButton();
+    renderList();
+    searchInput.focus();
+  }
+  updateSearchClearButton();
+  if (searchInput) searchInput.addEventListener('keydown', e => { if (e.key === 'Escape' && e.currentTarget.value) { e.preventDefault(); clearSearch(); } });
+  if (clearSearchButton) clearSearchButton.addEventListener('click', clearSearch);
   bindClick('addCategory', () => { commitActiveField(); getCategories().push(defaultCategory()); selectedIndex = getCategories().length - 1; markDirty(); renderAll(); });
   bindClick('sortByOrder', () => { commitActiveField(); getCategories().sort(compareCategoriesForImport); selectedIndex = 0; markDirty(); renderAll(); });
   bindClick('renumber', () => { commitActiveField(); renumberCategories(); markDirty(); renderAll(); });
@@ -257,7 +271,7 @@ function bindAppEvents() {
     try {
       const b64 = await makeBase64Export(data); hideBusy();
       const wrap = document.createElement('div');
-      wrap.innerHTML = `<p class="hint">Current gzip+Base64 export. This was automatically copied to your clipboard if the browser allowed it.</p><div id="exportError" class="modal-error hidden" role="alert"></div><textarea id="exportText" class="raw" readonly>${escapeHtml(b64)}</textarea><div class="row" style="margin-top:8px;"><button id="copyExportAgain" class="primary">Copy again</button></div><p class="hint" id="exportCopyStatus"></p>`;
+      wrap.innerHTML = `<p class="hint">Current gzip+Base64 export. This was automatically copied to your clipboard if the browser allowed it.</p><div id="exportError" class="modal-error hidden" role="alert"></div><textarea id="exportText" class="raw" readonly>${escapeHtml(b64)}</textarea><div class="row modal-action-row"><button id="copyExportAgain" class="primary">Copy again</button></div><p class="hint" id="exportCopyStatus"></p>`;
       openModal('Export / Copy', wrap);
       const copied = await copyTextToClipboard(b64); markSaved('Exported');
       const exportCopyStatus = requireScopedEl(wrap, '#exportCopyStatus', 'export');
