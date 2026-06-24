@@ -6,6 +6,51 @@ import { openModal, closeModal } from '../modals.js';
 import { STATE_FILTER_OPTIONS, numberInput, rangeSliderControl, segmentedControl, switchInput, textInput } from './formControls.js';
 import { listEditor } from './listEditor.js';
 
+
+const RANGE_FILTER_NAMES = {
+  Level: 'Level',
+  ItemLevel: 'Item Level',
+  VendorPrice: 'Vendor Price'
+};
+
+const STATE_FILTER_KEYS = ['Untradable', 'Unique', 'Collectable', 'Dyeable', 'Repairable', 'HighQuality', 'Desynthesizable', 'Glamourable', 'FullySpiritbonded'];
+
+export function rangeFiltersSummary(rules) {
+  const activeNames = Object.entries(RANGE_FILTER_NAMES)
+    .filter(([key]) => rules?.[key]?.Enabled === true)
+    .map(([, name]) => name);
+  if (!activeNames.length) return 'Range Filters · none active';
+  if (activeNames.length <= 2) return `Range Filters · ${activeNames.join(', ')} active`;
+  return `Range Filters · ${activeNames.length} active`;
+}
+
+export function stateFiltersSummary(rules) {
+  let required = 0;
+  let excluded = 0;
+  for (const key of STATE_FILTER_KEYS) {
+    const state = Number(rules?.[key]?.State ?? 0);
+    if (state === 1) required += 1;
+    if (state === 2) excluded += 1;
+  }
+  const parts = [];
+  if (required) parts.push(`${required} required`);
+  if (excluded) parts.push(`${excluded} excluded`);
+  return `State Filters · ${parts.length ? parts.join(' · ') : 'none active'}`;
+}
+
+function setDetailsSummary(details, text) {
+  const summary = details.querySelector('summary');
+  if (summary) summary.textContent = text;
+}
+
+function debounce(fn, delay = 160) {
+  let timer = null;
+  return (...args) => {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
 function displayFilterName(value) {
   return String(value).replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 }
@@ -82,7 +127,7 @@ function renderColorSection(cat, deps) {
       const n = Number.isNaN(raw) ? getValue() : Math.max(0, Math.min(255, Math.round(raw)));
       e.target.value = String(n);
       setValue(n);
-      markDirtyAndRenderList();
+      markDirty();
       updateColorVisuals();
       renderAll();
     };
@@ -214,8 +259,8 @@ export function renderEditor(deps) {
   const header = document.createElement('div');
   header.className = 'card';
   header.innerHTML = `
-    <div class="row" style="justify-content: space-between;">
-      <h2 style="margin:0;">${escapeHtml(cat.Name || '(unnamed)')}</h2>
+    <div class="row section-header-row">
+      <h2 class="flush-heading">${escapeHtml(cat.Name || '(unnamed)')}</h2>
       <div class="row">
         <button id="moveUp" class="small">Move up</button>
         <button id="moveDown" class="small">Move down</button>
@@ -238,11 +283,18 @@ export function renderEditor(deps) {
     switchInput('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirtyAndRenderList(); })
   );
   basicsTitle.appendChild(basicsActions);
+  const debouncedRenderList = debounce(renderList);
+  function updateSidebarText(valueSetter) {
+    valueSetter();
+    markDirty();
+    debouncedRenderList();
+  }
+
   const grid = document.createElement('div');
   grid.className = 'grid basic-fields-grid';
   grid.append(
-    textInput('Name', cat.Name, v => { cat.Name = v; markDirtyAndRenderList(); }),
-    textInput('Description', cat.Description, v => { cat.Description = v; markDirtyAndRenderList(); })
+    textInput('Name', cat.Name, v => updateSidebarText(() => { cat.Name = v; })),
+    textInput('Description', cat.Description, v => updateSidebarText(() => { cat.Description = v; }))
   );
 
   const metaGrid = document.createElement('div');
@@ -294,7 +346,7 @@ export function renderEditor(deps) {
 
   const ranges = document.createElement('details');
   ranges.className = 'card';
-  ranges.innerHTML = '<summary>Range Filters</summary><div class="details-body"></div>';
+  ranges.innerHTML = `<summary>${escapeHtml(rangeFiltersSummary(rules))}</summary><div class="details-body"></div>`;
   const rangeGrid = document.createElement('div');
   rangeGrid.className = 'grid cols-3 range-filter-grid';
   for (const key of ['Level','ItemLevel','VendorPrice']) {
@@ -307,7 +359,7 @@ export function renderEditor(deps) {
     title.innerHTML = `<h3>${escapeHtml(displayFilterName(key))}</h3>`;
     const titleActions = document.createElement('div');
     titleActions.className = 'filter-card-actions';
-    titleActions.appendChild(switchInput('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(); }));
+    titleActions.appendChild(switchInput('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(); setDetailsSummary(ranges, rangeFiltersSummary(rules)); }));
     title.appendChild(titleActions);
     box.append(
       title,
@@ -320,7 +372,7 @@ export function renderEditor(deps) {
 
   const bools = document.createElement('details');
   bools.className = 'card';
-  bools.innerHTML = '<summary>State Filters</summary><div class="details-body"></div>';
+  bools.innerHTML = `<summary>${escapeHtml(stateFiltersSummary(rules))}</summary><div class="details-body"></div>`;
   const boolGrid = document.createElement('div');
   boolGrid.className = 'grid cols-3';
 
@@ -338,6 +390,7 @@ export function renderEditor(deps) {
     titleActions.appendChild(segmentedControl(displayFilterName(filterName), obj.State ?? 0, STATE_FILTER_OPTIONS, next => {
       obj.State = next;
       markDirty();
+      setDetailsSummary(bools, stateFiltersSummary(rules));
     }));
     title.appendChild(titleActions);
     box.appendChild(title);
@@ -345,7 +398,7 @@ export function renderEditor(deps) {
     return box;
   }
 
-  for (const key of ['Untradable','Unique','Collectable','Dyeable','Repairable','HighQuality','Desynthesizable','Glamourable','FullySpiritbonded']) {
+  for (const key of STATE_FILTER_KEYS) {
     boolGrid.appendChild(renderStateFilterCard(key, rules[key]));
   }
 
@@ -359,7 +412,7 @@ export function renderEditor(deps) {
     <div class="details-body">
       <p class="hint">Edit the selected category directly. Click “Apply raw category JSON” after changes.</p>
       <textarea class="raw" id="rawCategory">${escapeHtml(JSON.stringify(cat, null, 2))}</textarea>
-      <div class="row" style="margin-top:8px;">
+      <div class="row modal-action-row">
         <button id="applyRawCategory">Apply raw category JSON</button>
       </div>
     </div>
@@ -405,7 +458,7 @@ export function renderEditor(deps) {
     wrap.innerHTML = `
       <p>Delete <strong>${escapeHtml(cat.Name || '(unnamed)')}</strong>?</p>
       <p class="hint">This only affects the browser copy until you download or export.</p>
-      <div class="row" style="margin-top:12px;">
+      <div class="row modal-action-row modal-action-row-loose">
         <button id="confirmDeleteCat" class="danger">Delete category</button>
         <button id="cancelDeleteCat">Cancel</button>
       </div>

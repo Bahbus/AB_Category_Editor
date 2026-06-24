@@ -6,7 +6,7 @@ function getCategorySearchText() {
   return search ? search.value.trim() : '';
 }
 
-function isCategorySearchActive() {
+export function isCategorySearchActive() {
   return getCategorySearchText().length > 0;
 }
 
@@ -90,16 +90,29 @@ export function renderCategoryList({
     const subtitle = getCategorySubtitle(cat);
     const subtitleTitle = getCategorySubtitleTitle(cat);
 
-    item.className = 'cat-item' + (idx === getSelectedIndex() ? ' active' : '') + (searchActive ? ' reorder-disabled' : '');
+    const active = idx === getSelectedIndex();
+    item.className = 'cat-item' + (active ? ' active' : '') + (searchActive ? ' reorder-disabled' : '');
     item.draggable = !searchActive;
+    item.tabIndex = 0;
+    item.role = 'button';
+    if (active) item.setAttribute('aria-current', 'true');
+    item.setAttribute('aria-label', `Select category ${displayName}. ${subtitle}`);
+    item.title = `Select ${displayName}`;
     item.dataset.index = String(idx);
     item.style.setProperty('--category-color', rgbaCssWithMinimumAlpha(cat.Color, 0.35));
     item.style.setProperty('--category-tint', rgbaCssWithMinimumAlpha({...cat.Color, W: Math.min(clamp01(cat.Color.W) * 0.16, 0.12)}, 0.035));
 
-    item.onclick = () => {
+    function selectCategory() {
       commitActiveField();
       setSelectedIndex(idx);
       renderAll();
+    }
+
+    item.onclick = selectCategory;
+    item.onkeydown = e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      e.preventDefault();
+      selectCategory();
     };
 
     item.ondragstart = ev => {

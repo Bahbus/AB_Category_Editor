@@ -10,7 +10,7 @@ export function showLookupCacheModal({ lookupCacheCount, clearLookupCache }) {
       <div><strong>Cached Item names:</strong> <span>${lookupCacheCount('Item').toLocaleString()}</span></div>
       <div><strong>Cached UI category names:</strong> <span>${lookupCacheCount('ItemUICategory').toLocaleString()}</span></div>
     </div>
-    <div class="row" style="margin-top: 14px;">
+    <div class="row modal-action-row modal-action-row-loose">
       <button id="clearLookupCache" class="danger">Clear lookup cache</button>
     </div>
   `;

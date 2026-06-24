@@ -135,9 +135,9 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     row.append(lookupButton);
 
     const searchWrap = document.createElement('div');
-    searchWrap.style.marginTop = '10px';
+    searchWrap.className = 'lookup-search-block';
     const searchId = `lookup-search-${Math.random().toString(36).slice(2)}`;
-    searchWrap.innerHTML = `<label for="${searchId}">Search ${escapeHtml(sheetLabel(lookupSheet))} by English name</label><div class="row"><input id="${searchId}" class="lookupSearchInput" style="width:min(420px, 100%)" placeholder="Example: potion, materia, weapon"><button class="lookupSearchButton">Search</button></div><div class="lookup-results"></div>`;
+    searchWrap.innerHTML = `<label for="${searchId}">Search ${escapeHtml(sheetLabel(lookupSheet))} by English name</label><div class="row lookup-search-row"><input id="${searchId}" class="lookupSearchInput inline-input" placeholder="Example: potion, materia, weapon"><button class="lookupSearchButton">Search</button></div><div class="lookup-results"></div>`;
 
     const searchInput = searchWrap.querySelector('.lookupSearchInput');
     const searchButton = searchWrap.querySelector('.lookupSearchButton');

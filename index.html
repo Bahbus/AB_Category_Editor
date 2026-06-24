@@ -29,7 +29,11 @@
       <div class="sub"><span id="format" class="hidden"></span><span id="count"></span> categories · <span id="saveState" class="save-state">No changes</span></div>
     </div>
     <div class="search">
-      <input id="search" placeholder="Search names, descriptions, regex, IDs">
+      <label class="sr-only" for="search">Search categories</label>
+      <div class="search-row">
+        <input id="search" placeholder="Search names, descriptions, regex, IDs">
+        <button id="clearSearch" class="small clear-search" type="button" aria-label="Clear search" disabled>Clear</button>
+      </div>
       <div class="row">
         <button id="addCategory" class="small">Add category</button>
         <button id="sortByOrder" class="small">Sort by Order</button>
@@ -81,8 +85,8 @@
 
 <div class="modal-backdrop hidden" id="modalBackdrop">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" tabindex="-1">
-    <div class="row" style="justify-content: space-between; margin-bottom: 10px;">
-      <h2 id="modalTitle" style="margin:0;">Modal</h2>
+    <div class="row section-header-row modal-title-row">
+      <h2 id="modalTitle" class="flush-heading">Modal</h2>
       <button id="closeModal">Close</button>
     </div>
     <div id="modalContent"></div>
