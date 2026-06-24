@@ -69,12 +69,30 @@ function validationSummaryText(categoryCount, analysis) {
   return parts.join(' · ');
 }
 
-function showValidationSummary(title, analysis) {
-  if (!analysis.findings.length) return;
+function shortRepairValue(value) {
+  const text = JSON.stringify(value);
+  if (text === undefined) return String(value);
+  return text.length > 120 ? `${text.slice(0, 117)}…` : text;
+}
+
+function formatRepairMessage(repair) {
+  const prefix = repair.categoryName ? `“${repair.categoryName}”: ` : '';
+  if (repair.before !== undefined || repair.after !== undefined) {
+    return `${prefix}${repair.message} Changed from ${shortRepairValue(repair.before)} to ${shortRepairValue(repair.after)}.`;
+  }
+  return `${prefix}${repair.message}`;
+}
+
+function showValidationSummary(title, analysis, repairs = []) {
+  if (!analysis.findings.length && !repairs.length) return;
   const wrap = document.createElement('div');
   const rows = analysis.findings.slice(0, 80).map(item => `<li class="field-${item.severity}"><strong>${escapeHtml(item.severity)}:</strong> ${escapeHtml(item.categoryName ? `${item.categoryName} · ${item.field}` : item.field)} — ${escapeHtml(item.message)}</li>`).join('');
   const more = analysis.findings.length > 80 ? `<p class="hint">Showing first 80 of ${analysis.findings.length} findings.</p>` : '';
-  wrap.innerHTML = `<p class="hint">Warnings and notes do not block import; they are guardrails for cleanup while editing.</p><ul class="validation-list">${rows}</ul>${more}<div class="row modal-action-row"><button id="closeValidationSummary" class="primary">Continue editing</button></div>`;
+  const findingsSection = analysis.findings.length ? `<ul class="validation-list">${rows}</ul>${more}` : '<p class="hint">No validation guardrail findings.</p>';
+  const repairRows = repairs.slice(0, 80).map(repair => `<li>${escapeHtml(formatRepairMessage(repair))}</li>`).join('');
+  const repairMore = repairs.length > 80 ? `<p class="hint">Showing first 80 of ${repairs.length} import changes.</p>` : '';
+  const repairSection = repairs.length ? `<h3>Changes made during import</h3><ul class="validation-list">${repairRows}</ul>${repairMore}` : '';
+  wrap.innerHTML = `<p class="hint">Warnings and notes do not block import; they are guardrails for cleanup while editing.</p>${findingsSection}${repairSection}<div class="row modal-action-row"><button id="closeValidationSummary" class="primary">Continue editing</button></div>`;
   openModal(title, wrap);
   try { requireScopedEl(wrap, '#closeValidationSummary', 'validation summary').addEventListener('click', closeModal); } catch (err) { reportModalBindingError('Validation summary unavailable', err); }
 }
@@ -199,7 +217,7 @@ async function importText(text, sourceLabel='Import') {
   setStatus(sourceLabel ? `${sourceLabel}: ${guardrailSummary}` : guardrailSummary, importAnalysis.counts.error || importAnalysis.counts.warning ? 'warn' : 'ok');
   commitActiveField();
   renderAll();
-  if (importAnalysis.findings.length) setTimeout(() => showValidationSummary('Import validation summary', importAnalysis), 0);
+  if (importAnalysis.findings.length || validation.repairs?.length) setTimeout(() => showValidationSummary('Import validation summary', importAnalysis, validation.repairs || []), 0);
   maybeAutoLookupImportedIds();
   return true;
 }
@@ -252,7 +270,7 @@ function showRawModal(initialText = JSON.stringify(data, null, 2), initialError 
       renderAll();
       const rawSummary = validationSummaryText(getCategories().length, rawAnalysis);
       setStatus(rawSummary, rawAnalysis.counts.error || rawAnalysis.counts.warning ? 'warn' : 'ok');
-      if (rawAnalysis.findings.length) setTimeout(() => showValidationSummary('Raw JSON validation summary', rawAnalysis), 0);
+      if (rawAnalysis.findings.length || validation.repairs?.length) setTimeout(() => showValidationSummary('Raw JSON validation summary', rawAnalysis, validation.repairs || []), 0);
       maybeAutoLookupImportedIds();
     });
     requireScopedEl(wrap, '#copyRawFull', 'raw JSON').addEventListener('click', async () => {

@@ -44,3 +44,17 @@ test('segmented state filter legends are accessible without repeating visible he
   assert.match(categoryEditorSource, /segmentedControl\(displayFilterName\(filterName\)/);
   assert.match(formControlsSource, /<legend class="sr-only">\$\{escapeHtml\(label\)\}<\/legend>/);
 });
+
+test('number controls commit finite input events without committing empty partial values', () => {
+  const formControlsSource = fs.readFileSync(new URL('../src/ui/formControls.js', import.meta.url), 'utf8');
+  const categoryEditorSource = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
+  assert.match(formControlsSource, /input\.oninput = e =>/);
+  assert.match(formControlsSource, /String\(rawValue\)\.trim\(\) === ''/);
+  assert.match(formControlsSource, /minNumber\.oninput = \(\) => commitFiniteNumberInput/);
+  assert.match(categoryEditorSource, /input\.oninput = e =>/);
+});
+
+test('hidden range validation keeps hidden display precedence', () => {
+  const styles = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
+  assert.match(styles, /\.validation-list\[hidden\],\s*\.range-validation\[hidden\]\s*{\s*display: none !important;/);
+});

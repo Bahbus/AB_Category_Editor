@@ -123,13 +123,24 @@ function renderColorSection(cat, deps) {
     const id = `rgba-${label.toLowerCase()}-${Math.random().toString(36).slice(2)}`;
     wrap.innerHTML = `<label for="${id}">${label}</label><input id="${id}" type="number" min="0" max="255" step="1" value="${escapeHtml(getValue())}">`;
     const input = wrap.querySelector('input');
-    input.onblur = e => {
-      const raw = Number(e.target.value);
-      const n = Number.isNaN(raw) ? getValue() : Math.max(0, Math.min(255, Math.round(raw)));
-      e.target.value = String(n);
+    function commitFinite(rawValue, options = {}) {
+      if (String(rawValue).trim() === '') return false;
+      const raw = Number(rawValue);
+      if (!Number.isFinite(raw)) return false;
+      const n = Math.max(0, Math.min(255, Math.round(raw)));
+      if (options.writeBack) input.value = String(n);
       setValue(n);
       markDirty();
       updateColorVisuals();
+      return true;
+    }
+    input.oninput = e => {
+      commitFinite(e.target.value);
+    };
+    input.onblur = e => {
+      const raw = Number(e.target.value);
+      const n = Number.isNaN(raw) ? getValue() : Math.max(0, Math.min(255, Math.round(raw)));
+      commitFinite(n, { writeBack: true });
       renderAll();
     };
     input.addEventListener('keydown', e => {
@@ -369,7 +380,7 @@ export function renderEditor(deps) {
     title.innerHTML = `<h3>${escapeHtml(displayFilterName(key))}</h3>`;
     const titleActions = document.createElement('div');
     titleActions.className = 'filter-card-actions';
-    titleActions.appendChild(switchInput('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(); setDetailsSummary(ranges, rangeFiltersSummary(rules)); renderAll(); }));
+    titleActions.appendChild(switchInput('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(); setDetailsSummary(ranges, rangeFiltersSummary(rules)); }));
     title.appendChild(titleActions);
     box.append(
       title,
@@ -497,4 +508,3 @@ export function renderEditor(deps) {
     }
   };
 }
-

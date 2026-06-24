@@ -48,6 +48,17 @@ export function numberInput(label, value, onChange, step='1', min=null, max=null
     else { input.removeAttribute('aria-describedby'); message.hidden = true; message.textContent = ''; }
   }
   setValidation(options.validate ? options.validate(value) : []);
+  function commitFiniteInput(rawValue) {
+    if (String(rawValue).trim() === '') return false;
+    const next = Number(rawValue);
+    if (!Number.isFinite(next)) return false;
+    onChange(next);
+    setValidation(options.validate ? options.validate(next) : []);
+    return true;
+  }
+  input.oninput = e => {
+    commitFiniteInput(e.target.value);
+  };
   input.onblur = e => {
     const fallback = Number(value) || 0;
     let next = Number(e.target.value);
@@ -166,14 +177,17 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
     minNumber.classList.toggle('invalid', reversed || !Number.isFinite(minValue));
     maxNumber.classList.toggle('invalid', reversed || !Number.isFinite(maxValue));
     validation.textContent = nonFinite ? 'Minimum and maximum must be finite numbers.' : 'Minimum is greater than maximum. Values are preserved until you edit them.';
-    validation.className = `validation-list ${nonFinite ? 'field-error' : 'field-warning'}`;
+    validation.classList.add('range-validation');
+    validation.classList.toggle('validation-list', reversed || nonFinite);
+    validation.classList.toggle('field-error', nonFinite);
+    validation.classList.toggle('field-warning', !nonFinite && reversed);
     validation.hidden = !(reversed || nonFinite);
     minNumber.setAttribute('aria-invalid', (reversed || !Number.isFinite(minValue)) ? 'true' : 'false');
     maxNumber.setAttribute('aria-invalid', (reversed || !Number.isFinite(maxValue)) ? 'true' : 'false');
   }
   function commitNumber(key, input) {
     const next = Number(input.value);
-    if (Number.isNaN(next)) {
+    if (!Number.isFinite(next)) {
       input.value = String(rangeObj[key]);
       return;
     }
@@ -188,6 +202,23 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
     syncValidity();
     onChange();
   }
+  function commitFiniteNumberInput(key, input) {
+    if (input.value.trim() === '') return;
+    const next = Number(input.value);
+    if (!Number.isFinite(next)) return;
+    rangeObj[key] = next;
+    const nextBounds = rangeSliderBounds(rangeObj.Min, rangeObj.Max, defaults);
+    for (const slider of [minSlider, maxSlider]) {
+      slider.min = String(nextBounds.min);
+      slider.max = String(nextBounds.max);
+    }
+    minSlider.value = String(rangeObj.Min);
+    maxSlider.value = String(rangeObj.Max);
+    syncValidity();
+    onChange();
+  }
+  minNumber.oninput = () => commitFiniteNumberInput('Min', minNumber);
+  maxNumber.oninput = () => commitFiniteNumberInput('Max', maxNumber);
   minNumber.onblur = () => commitNumber('Min', minNumber);
   maxNumber.onblur = () => commitNumber('Max', maxNumber);
   minNumber.addEventListener('keydown', e => { if (e.key === 'Enter') e.currentTarget.blur(); });

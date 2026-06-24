@@ -54,6 +54,7 @@ function isPlainObject(value) {
 
 const RANGE_RULE_KEYS = ['Level', 'ItemLevel', 'VendorPrice'];
 const STATE_RULE_KEYS = ['Untradable', 'Unique', 'Collectable', 'Dyeable', 'Repairable', 'HighQuality', 'Desynthesizable', 'Glamourable', 'FullySpiritbonded'];
+const LIST_RULE_KEYS = ['AllowedItemIds','AllowedItemNamePatterns','AllowedUiCategoryIds','AllowedRarities'];
 const VALID_STATE_VALUES = new Set([0, 1, 2]);
 
 function finiteOrDefault(value, fallback) {
@@ -155,6 +156,68 @@ export function normalizeAllowedRaritiesWithReport(cat) {
   return { normalized, changed };
 }
 
+function valuesEqual(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function snapshotCategoryForRepairs(cat) {
+  const rules = isPlainObject(cat?.Rules) ? cat.Rules : {};
+  const snapshot = {
+    categoryName: cat?.Name,
+    categoryId: cat?.Id,
+    RulesWasPlainObject: isPlainObject(cat?.Rules),
+    Rules: cat?.Rules
+  };
+  for (const key of LIST_RULE_KEYS) snapshot[key] = Array.isArray(rules[key]) ? rules[key].slice() : rules[key];
+  for (const key of RANGE_RULE_KEYS) snapshot[key] = isPlainObject(rules[key]) ? clone(rules[key]) : rules[key];
+  for (const key of STATE_RULE_KEYS) snapshot[key] = isPlainObject(rules[key]) ? clone(rules[key]) : rules[key];
+  return snapshot;
+}
+
+function displayCategoryName(cat, before) {
+  return cat?.Name || before?.categoryName || cat?.Id || before?.categoryId || '(unnamed category)';
+}
+
+function repairRecord(cat, before, field, beforeValue, afterValue, message) {
+  return {
+    categoryName: displayCategoryName(cat, before),
+    categoryId: cat?.Id || before?.categoryId,
+    field,
+    before: beforeValue,
+    after: afterValue,
+    message
+  };
+}
+
+function collectCategoryRepairs(cat, before) {
+  const repairs = [];
+  if (!before.RulesWasPlainObject) {
+    repairs.push(repairRecord(cat, before, 'Rules', before.Rules, cat.Rules, 'Rules were missing or malformed and replaced with defaults.'));
+    return repairs;
+  }
+  for (const key of LIST_RULE_KEYS) {
+    if (!valuesEqual(before[key], cat.Rules[key])) {
+      const message = key === 'AllowedRarities'
+        ? 'Allowed Rarities changed during import normalization.'
+        : `${key} was malformed and replaced with an empty array.`;
+      repairs.push(repairRecord(cat, before, key, before[key], cat.Rules[key], message));
+    }
+  }
+  for (const key of RANGE_RULE_KEYS) {
+    if (!valuesEqual(before[key], cat.Rules[key])) {
+      const malformed = !isPlainObject(before[key]);
+      repairs.push(repairRecord(cat, before, key, before[key], cat.Rules[key], malformed ? `${key} filter was malformed and replaced with defaults.` : `${key} filter values were normalized.`));
+    }
+  }
+  for (const key of STATE_RULE_KEYS) {
+    if (!valuesEqual(before[key], cat.Rules[key])) {
+      const malformed = !isPlainObject(before[key]);
+      repairs.push(repairRecord(cat, before, key, before[key], cat.Rules[key], malformed ? `${key} filter was malformed and replaced with defaults.` : `${key} filter values were normalized.`));
+    }
+  }
+  return repairs;
+}
+
 export function buildImportSummary(categoryCount, normalizedRarityCategoryCount) {
   let message = `Imported ${categoryCount.toLocaleString()} ${categoryCount === 1 ? 'category' : 'categories'} and sorted ${categoryCount === 1 ? 'it' : 'them'} by Order.`;
   if (normalizedRarityCategoryCount > 0) {
@@ -167,10 +230,23 @@ export function validateConfig(obj) {
   if (!obj || typeof obj !== 'object') throw new Error('Root must be a JSON object.');
   if (!Array.isArray(obj.Categories)) throw new Error('Root must contain a Categories array.');
   let normalizedRarityCategoryCount = 0;
+  const repairs = [];
+  const originalOrder = obj.Categories.map(cat => String(cat?.Id ?? cat?.Name ?? ''));
   obj.Categories.forEach(cat => {
+    const before = snapshotCategoryForRepairs(cat);
     ensureShape(cat);
     if (normalizeAllowedRaritiesWithReport(cat).changed) normalizedRarityCategoryCount++;
+    repairs.push(...collectCategoryRepairs(cat, before));
   });
   sortImportedCategories(obj);
-  return { config: obj, summary: buildImportSummary(obj.Categories.length, normalizedRarityCategoryCount) };
+  const sortedOrder = obj.Categories.map(cat => String(cat?.Id ?? cat?.Name ?? ''));
+  if (!valuesEqual(originalOrder, sortedOrder)) {
+    repairs.push({
+      field: 'Categories',
+      before: originalOrder,
+      after: sortedOrder,
+      message: 'Categories were sorted by Order, Priority, Name, and Id.'
+    });
+  }
+  return { config: obj, summary: buildImportSummary(obj.Categories.length, normalizedRarityCategoryCount), repairs };
 }
