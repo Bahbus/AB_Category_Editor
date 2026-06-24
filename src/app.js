@@ -35,7 +35,12 @@ function clearLookupCache() { lookupCache = emptyLookupCache(); removeLookupCach
 function getCategories() { if (!data.Categories) data.Categories = []; return data.Categories; }
 function defaultCategory() { const maxOrder = getCategories().reduce((m, c) => Math.max(m, Number(c.Order || 0)), 0); return makeDefaultCategory(maxOrder); }
 function renumberCategories() { getCategories().forEach((cat, i) => { cat.Order = i + 1; cat.Priority = i + 1; }); }
-function markDirty() { dirty = true; setSaveState('Changes not exported', 'warn'); renderList(); }
+function markDirty(options = {}) {
+  dirty = true;
+  setSaveState('Changes not exported', 'warn');
+  if (options.renderList) renderList();
+}
+function markDirtyAndRenderList() { markDirty({ renderList: true }); }
 function markSaved(label='Exported') { dirty = false; setSaveState(label); }
 function applyValidatedConfig(validation) { data = validation.config; return validation.summary; }
 function openRegexToItemIdsTool() { commitActiveField(); openRegexTool({ getCategories, getSelectedIndex: () => selectedIndex, ensureShape, lookupCache, saveLookupCache, markDirty, renderAll }); }
@@ -98,7 +103,7 @@ function renderList() {
     setSelectedIndex: value => { selectedIndex = value; },
     getDraggedIndex: () => draggedIndex,
     setDraggedIndex: value => { draggedIndex = value; },
-    renumberCategories, markDirty, renderAll, commitActiveField
+    renumberCategories, markDirty: markDirtyAndRenderList, renderAll, commitActiveField
   });
 }
 
@@ -107,7 +112,7 @@ function renderEditor() {
     getCategories,
     getSelectedIndex: () => selectedIndex,
     setSelectedIndex: value => { selectedIndex = value; },
-    ensureShape, markDirty, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, commitActiveField,
+    ensureShape, markDirty, markDirtyAndRenderList, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, commitActiveField,
     listEditorDeps: { lookupName, fetchLookupBatch, searchXivapi, lookupCache, saveLookupCache, markDirty }
   });
 }

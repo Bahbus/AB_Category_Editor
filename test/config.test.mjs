@@ -123,3 +123,84 @@ test('validateConfig normalizes valid configs and returns a summary without thro
   assert.deepEqual(config.Categories.map(category => category.Id), ['first', 'later']);
   assert.deepEqual(config.Categories[1].Rules.AllowedRarities, [1, 7]);
 });
+
+test('ensureShape repairs malformed range, state, and array rules safely', () => {
+  const category = {
+    Rules: {
+      AllowedItemIds: 'bad',
+      AllowedItemNamePatterns: null,
+      AllowedUiCategoryIds: {},
+      AllowedRarities: 'bad',
+      Level: null,
+      ItemLevel: [],
+      VendorPrice: 'bad',
+      Untradable: null,
+      Unique: [],
+      Collectable: 'bad',
+      Dyeable: { State: 99, Filter: 3 },
+      Repairable: { State: 1 },
+      HighQuality: { State: '2', Filter: '7' }
+    }
+  };
+
+  assert.doesNotThrow(() => ensureShape(category));
+
+  assert.deepEqual(category.Rules.AllowedItemIds, []);
+  assert.deepEqual(category.Rules.AllowedItemNamePatterns, []);
+  assert.deepEqual(category.Rules.AllowedUiCategoryIds, []);
+  assert.deepEqual(category.Rules.AllowedRarities, []);
+  assert.deepEqual(category.Rules.Level, { Enabled: false, Min: 0, Max: 200 });
+  assert.deepEqual(category.Rules.ItemLevel, { Enabled: false, Min: 0, Max: 2000 });
+  assert.deepEqual(category.Rules.VendorPrice, { Enabled: false, Min: 0, Max: 9999999 });
+  assert.deepEqual(category.Rules.Untradable, { State: 0, Filter: 0 });
+  assert.deepEqual(category.Rules.Unique, { State: 0, Filter: 0 });
+  assert.deepEqual(category.Rules.Collectable, { State: 0, Filter: 0 });
+  assert.deepEqual(category.Rules.Dyeable, { State: 0, Filter: 3 });
+  assert.deepEqual(category.Rules.Repairable, { State: 1, Filter: 0 });
+  assert.deepEqual(category.Rules.HighQuality, { State: 2, Filter: 7 });
+});
+
+test('ensureShape repairs malformed range fields while preserving finite unusual values', () => {
+  const category = {
+    Rules: {
+      Level: { Enabled: 'yes', Min: -50, Max: 'bad' },
+      ItemLevel: { Enabled: 0, Max: 12345 },
+      VendorPrice: { Enabled: false, Min: 1.5, Max: 999999999 }
+    }
+  };
+
+  ensureShape(category);
+
+  assert.deepEqual(category.Rules.Level, { Enabled: true, Min: -50, Max: 200 });
+  assert.deepEqual(category.Rules.ItemLevel, { Enabled: false, Min: 0, Max: 12345 });
+  assert.deepEqual(category.Rules.VendorPrice, { Enabled: false, Min: 1.5, Max: 999999999 });
+});
+
+test('validateConfig does not crash on malformed but repairable nested rules', () => {
+  const config = {
+    Categories: [{
+      Id: 'broken',
+      Rules: {
+        AllowedItemIds: 'bad',
+        AllowedItemNamePatterns: null,
+        AllowedUiCategoryIds: {},
+        AllowedRarities: 'bad',
+        Level: null,
+        ItemLevel: [],
+        VendorPrice: 'bad',
+        Untradable: null,
+        Unique: [],
+        Collectable: 'bad',
+        Dyeable: { State: 3, Filter: 'bad' }
+      }
+    }]
+  };
+
+  assert.doesNotThrow(() => validateConfig(config));
+  validateConfig(config);
+
+  assert.deepEqual(config.Categories[0].Rules.Level, { Enabled: false, Min: 0, Max: 200 });
+  assert.deepEqual(config.Categories[0].Rules.ItemLevel, { Enabled: false, Min: 0, Max: 2000 });
+  assert.deepEqual(config.Categories[0].Rules.VendorPrice, { Enabled: false, Min: 0, Max: 9999999 });
+  assert.deepEqual(config.Categories[0].Rules.Dyeable, { State: 0, Filter: 0 });
+});
