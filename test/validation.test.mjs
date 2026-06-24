@@ -45,6 +45,36 @@ test('Min greater than Max is reported for range filters', () => {
   assert.ok(findings.some(item => /minimum is greater than maximum/.test(item.message)));
 });
 
+test('default range filter values do not report Min greater than Max', () => {
+  assert.equal(validateRangeFilter('Level', { Min: 0, Max: 200 }).length, 0);
+  assert.equal(validateRangeFilter('ItemLevel', { Min: 0, Max: 2000 }).length, 0);
+  assert.equal(validateRangeFilter('VendorPrice', { Min: 0, Max: 9999999 }).length, 0);
+});
+
+test('duplicate Order alone does not warn when Priority differs', () => {
+  const analysis = analyzeImportedConfig({ Categories: [
+    cleanCategory({ Id: 'a', Order: 1, Priority: 1 }),
+    cleanCategory({ Id: 'b', Order: 1, Priority: 2 })
+  ] });
+  assert.equal(analysis.findings.some(item => /Duplicate sort position/.test(item.message)), false);
+});
+
+test('duplicate Priority alone does not warn when Order differs', () => {
+  const analysis = analyzeImportedConfig({ Categories: [
+    cleanCategory({ Id: 'a', Order: 1, Priority: 1 }),
+    cleanCategory({ Id: 'b', Order: 2, Priority: 1 })
+  ] });
+  assert.equal(analysis.findings.some(item => /Duplicate sort position/.test(item.message)), false);
+});
+
+test('duplicate Order and Priority pair warns as duplicate sort position', () => {
+  const analysis = analyzeImportedConfig({ Categories: [
+    cleanCategory({ Id: 'a', Order: 1, Priority: 1 }),
+    cleanCategory({ Id: 'b', Order: 1, Priority: 1 })
+  ] });
+  assert.ok(analysis.findings.some(item => item.field === 'SortPosition' && /Duplicate sort position: Order 1 \/ Priority 1/.test(item.message)));
+});
+
 test('duplicate item IDs, UI category IDs, and regex patterns are reported', () => {
   const category = cleanCategory();
   category.Rules.AllowedItemIds = [1, 1];

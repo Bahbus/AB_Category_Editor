@@ -119,9 +119,44 @@ test('validateConfig normalizes valid configs and returns a summary without thro
 
   assert.equal(result.config, config);
   assert.equal(typeof result.summary, 'string');
+  assert.ok(Array.isArray(result.repairs));
   assert.match(result.summary, /Imported 2 categories/);
   assert.deepEqual(config.Categories.map(category => category.Id), ['first', 'later']);
   assert.deepEqual(config.Categories[1].Rules.AllowedRarities, [1, 7]);
+});
+
+test('validateConfig repair report includes rarity normalization details', () => {
+  const config = { Categories: [{ Id: 'potions', Name: 'Potions', Rules: { AllowedRarities: [1, 99, 7, 7] } }] };
+
+  const result = validateConfig(config);
+
+  assert.ok(result.repairs.some(repair => (
+    repair.categoryName === 'Potions'
+    && repair.field === 'AllowedRarities'
+    && /Allowed Rarities changed/.test(repair.message)
+    && repair.before.length === 4
+    && repair.after.length === 2
+  )));
+});
+
+test('validateConfig repair report includes malformed range, state, and list details', () => {
+  const config = {
+    Categories: [{
+      Id: 'gear',
+      Name: 'Gear',
+      Rules: {
+        AllowedItemIds: 'bad',
+        Level: null,
+        Dyeable: []
+      }
+    }]
+  };
+
+  const result = validateConfig(config);
+
+  assert.ok(result.repairs.some(repair => repair.field === 'AllowedItemIds' && /empty array/.test(repair.message)));
+  assert.ok(result.repairs.some(repair => repair.field === 'Level' && /malformed/.test(repair.message)));
+  assert.ok(result.repairs.some(repair => repair.field === 'Dyeable' && /malformed/.test(repair.message)));
 });
 
 test('ensureShape repairs malformed range, state, and array rules safely', () => {

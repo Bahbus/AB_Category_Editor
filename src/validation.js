@@ -17,15 +17,27 @@ export function validateCategoryName(category) {
   return findings;
 }
 
-function duplicateNumber(category, allCategories, key) {
+function validateFiniteNumber(category, key) {
   if (!isFiniteValue(category?.[key])) return [finding('error', key, `${key} must be a finite number.`)];
-  const value = Number(category[key]);
-  const dupes = (allCategories || []).filter(other => other !== category && isFiniteValue(other?.[key]) && Number(other[key]) === value);
-  return dupes.length ? [finding('warning', key, `Duplicate ${key} value ${value}.`)] : [];
+  return [];
 }
 
-export function validateCategoryOrder(category, allCategories = []) { return duplicateNumber(category, allCategories, 'Order'); }
-export function validateCategoryPriority(category, allCategories = []) { return duplicateNumber(category, allCategories, 'Priority'); }
+export function validateCategoryOrder(category) { return validateFiniteNumber(category, 'Order'); }
+export function validateCategoryPriority(category) { return validateFiniteNumber(category, 'Priority'); }
+
+export function validateCategorySortPosition(category, allCategories = []) {
+  if (!isFiniteValue(category?.Order) || !isFiniteValue(category?.Priority)) return [];
+  const order = Number(category.Order);
+  const priority = Number(category.Priority);
+  const dupes = (allCategories || []).filter(other => (
+    other !== category
+    && isFiniteValue(other?.Order)
+    && isFiniteValue(other?.Priority)
+    && Number(other.Order) === order
+    && Number(other.Priority) === priority
+  ));
+  return dupes.length ? [finding('warning', 'SortPosition', `Duplicate sort position: Order ${order} / Priority ${priority}.`)] : [];
+}
 
 export function validateRegexPattern(pattern) {
   try { new RegExp(String(pattern)); return []; }
@@ -70,8 +82,9 @@ export function validateCategory(category, allCategories = []) {
   const rules = rulesOf(category);
   const findings = [
     ...validateCategoryName(category),
-    ...validateCategoryOrder(category, allCategories),
-    ...validateCategoryPriority(category, allCategories),
+    ...validateCategoryOrder(category),
+    ...validateCategoryPriority(category),
+    ...validateCategorySortPosition(category, allCategories),
     ...validateRarities(category),
     ...duplicateFindings(rules.AllowedItemIds, 'AllowedItemIds', 'Item ID'),
     ...duplicateFindings(rules.AllowedUiCategoryIds, 'AllowedUiCategoryIds', 'UI Category ID'),
