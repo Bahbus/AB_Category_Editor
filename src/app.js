@@ -11,6 +11,7 @@ import { showAppearanceModal } from './ui/appearanceModal.js';
 import { openRegexToItemIdsTool as openRegexTool } from './tools/regexToItemIds.js';
 import { EXPORT_FILENAME, copyTextToClipboard, downloadText, makeBase64Export, parseImportedText } from './importExport.js';
 import { sheetLabel, collectReferencedIds, countReferencedIds, countUncachedReferencedIds, fetchLookupBatch as xivapiFetchLookupBatch, searchXivapi } from './xivapi.js';
+import { analyzeImportedConfig, countFindings } from './validation.js';
 
 let data = JSON.parse(JSON.stringify(INITIAL_DATA));
 let selectedIndex = -1;
@@ -43,6 +44,40 @@ function markDirty(options = {}) {
 function markDirtyAndRenderList() { markDirty({ renderList: true }); }
 function markSaved(label='Exported') { dirty = false; setSaveState(label); }
 function applyValidatedConfig(validation) { data = validation.config; return validation.summary; }
+
+function mergeValidationFindings(...analyses) {
+  const seen = new Set();
+  const findings = [];
+  for (const analysis of analyses) {
+    for (const item of analysis?.findings || []) {
+      const key = `${item.severity}|${item.field}|${item.categoryId || ''}|${item.message}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      findings.push(item);
+    }
+  }
+  return { findings, counts: countFindings(findings) };
+}
+
+function validationSummaryText(categoryCount, analysis) {
+  const counts = analysis.counts || {};
+  const parts = [`Imported ${categoryCount.toLocaleString()} ${categoryCount === 1 ? 'category' : 'categories'}`];
+  if (counts.error) parts.push(`${counts.error} ${counts.error === 1 ? 'error' : 'errors'}`);
+  if (counts.warning) parts.push(`${counts.warning} ${counts.warning === 1 ? 'warning' : 'warnings'}`);
+  if (counts.note) parts.push(`${counts.note} ${counts.note === 1 ? 'note' : 'notes'}`);
+  if (!counts.error && !counts.warning && !counts.note) parts.push('no validation issues');
+  return parts.join(' · ');
+}
+
+function showValidationSummary(title, analysis) {
+  if (!analysis.findings.length) return;
+  const wrap = document.createElement('div');
+  const rows = analysis.findings.slice(0, 80).map(item => `<li class="field-${item.severity}"><strong>${escapeHtml(item.severity)}:</strong> ${escapeHtml(item.categoryName ? `${item.categoryName} · ${item.field}` : item.field)} — ${escapeHtml(item.message)}</li>`).join('');
+  const more = analysis.findings.length > 80 ? `<p class="hint">Showing first 80 of ${analysis.findings.length} findings.</p>` : '';
+  wrap.innerHTML = `<p class="hint">Warnings and notes do not block import; they are guardrails for cleanup while editing.</p><ul class="validation-list">${rows}</ul>${more}<div class="row modal-action-row"><button id="closeValidationSummary" class="primary">Continue editing</button></div>`;
+  openModal(title, wrap);
+  try { requireScopedEl(wrap, '#closeValidationSummary', 'validation summary').addEventListener('click', closeModal); } catch (err) { reportModalBindingError('Validation summary unavailable', err); }
+}
 function openRegexToItemIdsTool() { commitActiveField(); openRegexTool({ getCategories, getSelectedIndex: () => selectedIndex, ensureShape, lookupCache, saveLookupCache, markDirty, renderAll }); }
 
 function commitActiveField() {
@@ -152,14 +187,19 @@ function maybeAutoLookupImportedIds() {
 
 async function importText(text, sourceLabel='Import') {
   const parsed = await parseImportedText(text);
+  const preAnalysis = analyzeImportedConfig(parsed);
   const validation = validateConfig(parsed);
+  const postAnalysis = analyzeImportedConfig(validation.config);
+  const importAnalysis = mergeValidationFindings(preAnalysis, postAnalysis);
   if (!(await confirmReplacingCurrentWork())) return false;
   const importSummary = applyValidatedConfig(validation);
   selectedIndex = getCategories().length ? 0 : -1;
   markSaved('No changes');
-  setStatus(sourceLabel ? `${sourceLabel}: ${importSummary}` : importSummary, 'ok');
+  const guardrailSummary = validationSummaryText(getCategories().length, importAnalysis);
+  setStatus(sourceLabel ? `${sourceLabel}: ${guardrailSummary}` : guardrailSummary, importAnalysis.counts.error || importAnalysis.counts.warning ? 'warn' : 'ok');
   commitActiveField();
   renderAll();
+  if (importAnalysis.findings.length) setTimeout(() => showValidationSummary('Import validation summary', importAnalysis), 0);
   maybeAutoLookupImportedIds();
   return true;
 }
@@ -198,16 +238,21 @@ function showRawModal(initialText = JSON.stringify(data, null, 2), initialError 
       commitActiveField();
       const text = rawFull.value;
       let validation;
-      try { validation = validateConfig(JSON.parse(text)); }
+      let preAnalysis;
+      try { const parsed = JSON.parse(text); preAnalysis = analyzeImportedConfig(parsed); validation = validateConfig(parsed); }
       catch (err) { const message = errorMessage('Invalid full JSON', err); setInlineError('rawError', message); setStatus(message, 'err'); return; }
       setInlineError('rawError', '');
       if (!(await confirmReplacingCurrentWork())) { showRawModal(text); return; }
+      const rawAnalysis = mergeValidationFindings(preAnalysis, analyzeImportedConfig(validation.config));
       applyValidatedConfig(validation);
       selectedIndex = getCategories().length ? 0 : -1;
       closeModal();
       markDirty();
       commitActiveField();
       renderAll();
+      const rawSummary = validationSummaryText(getCategories().length, rawAnalysis);
+      setStatus(rawSummary, rawAnalysis.counts.error || rawAnalysis.counts.warning ? 'warn' : 'ok');
+      if (rawAnalysis.findings.length) setTimeout(() => showValidationSummary('Raw JSON validation summary', rawAnalysis), 0);
       maybeAutoLookupImportedIds();
     });
     requireScopedEl(wrap, '#copyRawFull', 'raw JSON').addEventListener('click', async () => {
