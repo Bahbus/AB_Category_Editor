@@ -428,7 +428,8 @@ input.invalid {
   white-space: nowrap;
 }
 .badge.on { color: var(--ok); border-color: color-mix(in srgb, var(--ok), transparent 35%); }
-.badge.pin { color: var(--warn); border-color: color-mix(in srgb, var(--warn), transparent 35%); }
+.badge.pin { display: inline-flex; align-items: center; color: var(--warn); border-color: color-mix(in srgb, var(--warn), transparent 35%); padding-inline: 4px; }
+.badge-icon { width: 1.8em; height: 1.8em; display: block; }
 .editor {
   overflow: auto;
   padding: 16px;
@@ -456,25 +457,52 @@ details.card > summary {
 .details-summary-title {
   font-weight: 700;
 }
-.details-summary-meta {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 500;
+.details-summary-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-left: 8px;
+  vertical-align: middle;
 }
-.has-validation-issues {
+.details-summary-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--panel2), transparent 35%);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 2px 7px;
+}
+.details-summary-badge.success {
+  border-color: color-mix(in srgb, var(--ok), transparent 35%);
+  color: var(--ok);
+}
+.details-summary-badge.required {
+  border-color: var(--ok);
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok), var(--panel3) 82%);
+}
+.details-summary-badge.excluded {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger), var(--panel3) 86%);
+}
+.details-summary-badge.warning {
+  border-color: color-mix(in srgb, var(--warn), transparent 35%);
+  color: var(--warn);
+  background: color-mix(in srgb, var(--warn), transparent 92%);
+}
+details.card.has-validation-issues:not([open]) {
   border-color: color-mix(in srgb, var(--warn), transparent 20%);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--warn), transparent 70%), 0 8px 24px var(--shadow);
 }
 details.card.has-validation-issues:not([open]) > summary {
   background: color-mix(in srgb, var(--warn), transparent 92%);
 }
-details.card.has-validation-issues:not([open]) .details-summary-meta::after {
-  content: ' ⚠';
-  color: var(--warn);
-  font-weight: 800;
-}
-:root[data-theme="high-contrast"] .has-validation-issues {
+:root[data-theme="high-contrast"] details.card.has-validation-issues:not([open]) {
   border-color: var(--warn);
   box-shadow: 0 0 0 2px var(--warn), 0 8px 24px var(--shadow);
 }
@@ -561,18 +589,39 @@ details.card > .details-body {
 .row > * { flex: 0 0 auto; }
 .section-header-row {
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
 }
 .category-header-title {
   display: grid;
-  gap: 6px;
+  min-width: min(100%, 18rem);
+  flex: 1 1 18rem;
+}
+.category-header-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   min-width: 0;
+  line-height: 1.15;
+}
+.category-header-title-row .flush-heading {
+  line-height: 1.15;
 }
 .category-header-actions {
   margin-left: auto;
 }
 .category-validation-summary {
   justify-self: start;
+}
+.basic-switch-area {
+  display: grid;
+  justify-items: end;
+  gap: 4px;
+  margin-left: auto;
+}
+.basic-switch-validation {
+  text-align: right;
+  max-width: 24rem;
 }
 .modal-title-row {
   margin-bottom: 10px;
@@ -583,7 +632,8 @@ details.card > .details-body {
 .modal-action-row-loose {
   margin-top: 12px;
 }
-.flush-heading {
+.flush-heading,
+.card h2.flush-heading {
   margin: 0;
 }
 .inline-input {

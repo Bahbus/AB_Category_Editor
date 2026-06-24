@@ -159,7 +159,7 @@ export function renderCategoryList({
       </div>
       <div class="badges">
         <span class="badge ${cat.Enabled ? 'on' : ''}">${cat.Enabled ? 'on' : 'off'}</span>
-        ${cat.Pinned ? '<span class="badge pin">pin</span>' : ''}
+        ${cat.Pinned ? '<span class="badge pin" title="Pinned" aria-label="Pinned"><svg class="badge-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M10.8 1.2 14.8 5.2 13.4 6.6 12.6 5.8 9.8 8.6 10.2 10.6 9.2 11.6 6.7 9.1 3.1 12.7 2.2 11.8 5.8 8.2 3.4 5.8 4.4 4.8 6.4 5.2 9.2 2.4 8.4 1.6 9.8.2 10.8 1.2Z"/></svg></span>' : ''}
       </div>
     `;
     list.appendChild(item);

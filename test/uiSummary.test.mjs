@@ -9,35 +9,66 @@ import {
   stateFiltersSummaryParts
 } from '../src/ui/categoryEditor.js';
 
-test('rangeFiltersSummary describes no active ranges', () => {
-  assert.equal(rangeFiltersSummary({}), 'Range Filters · none active');
+test('rangeFiltersSummaryParts returns no badges for inactive valid ranges', () => {
+  assert.deepEqual(rangeFiltersSummaryParts({}), {
+    title: 'Range Filters',
+    badges: [],
+    issueCount: 0
+  });
+  assert.equal(rangeFiltersSummary({}), 'Range Filters');
 });
 
-test('rangeFiltersSummary lists one or two active range names and counts three', () => {
-  assert.equal(rangeFiltersSummary({ Level: { Enabled: true } }), 'Range Filters · Level active');
-  assert.equal(rangeFiltersSummary({ Level: { Enabled: true }, ItemLevel: { Enabled: true } }), 'Range Filters · Level, Item Level active');
-  assert.equal(rangeFiltersSummary({ Level: { Enabled: true }, ItemLevel: { Enabled: true }, VendorPrice: { Enabled: true } }), 'Range Filters · 3 active');
+test('rangeFiltersSummaryParts returns active range badges', () => {
+  assert.deepEqual(rangeFiltersSummaryParts({ Level: { Enabled: true } }).badges, [
+    { label: 'Level', tone: 'success' }
+  ]);
+  assert.deepEqual(rangeFiltersSummaryParts({ Level: { Enabled: true }, ItemLevel: { Enabled: true } }).badges, [
+    { label: 'Level', tone: 'success' },
+    { label: 'Item Level', tone: 'success' }
+  ]);
+  assert.deepEqual(rangeFiltersSummaryParts({ Level: { Enabled: true }, ItemLevel: { Enabled: true }, VendorPrice: { Enabled: true } }).badges, [
+    { label: '3 active', tone: 'success' }
+  ]);
 });
 
-test('rangeFiltersSummaryParts includes issue count for invalid ranges', () => {
+test('rangeFiltersSummaryParts includes issue badge for invalid ranges', () => {
   assert.deepEqual(rangeFiltersSummaryParts({ Level: { Enabled: false, Min: 20, Max: 10 } }), {
     title: 'Range Filters',
-    meta: 'none active · 1 issue',
+    badges: [{ label: '1 issue', tone: 'warning' }],
     issueCount: 1
   });
 });
 
-test('stateFiltersSummary describes required and excluded state filters', () => {
-  assert.equal(stateFiltersSummary({}), 'State Filters · none active');
-  assert.equal(stateFiltersSummary({ Unique: { State: 1 }, Dyeable: { State: 1 } }), 'State Filters · 2 required');
-  assert.equal(stateFiltersSummary({ Unique: { State: 2 } }), 'State Filters · 1 excluded');
-  assert.equal(stateFiltersSummary({ Unique: { State: 1 }, Dyeable: { State: 1 }, Repairable: { State: 2 } }), 'State Filters · 2 required · 1 excluded');
+test('stateFiltersSummaryParts returns no badges for inactive valid states', () => {
+  assert.deepEqual(stateFiltersSummaryParts({}), {
+    title: 'State Filters',
+    badges: [],
+    issueCount: 0
+  });
+  assert.equal(stateFiltersSummary({}), 'State Filters');
 });
 
-test('stateFiltersSummaryParts preserves state counts and includes issue count', () => {
+test('stateFiltersSummaryParts returns required and excluded badges', () => {
+  assert.deepEqual(stateFiltersSummaryParts({ Unique: { State: 1 }, Dyeable: { State: 1 } }).badges, [
+    { label: '2 required', tone: 'required' }
+  ]);
+  assert.deepEqual(stateFiltersSummaryParts({ Unique: { State: 2 } }).badges, [
+    { label: '1 excluded', tone: 'excluded' }
+  ]);
+  assert.deepEqual(stateFiltersSummaryParts({ Unique: { State: 1 }, Dyeable: { State: 1 }, Repairable: { State: 2 } }).badges, [
+    { label: '2 required', tone: 'required' },
+    { label: '1 excluded', tone: 'excluded' }
+  ]);
+});
+
+test('stateFiltersSummaryParts preserves state counts and includes issue badge', () => {
   assert.deepEqual(stateFiltersSummaryParts({ Unique: { State: 1 }, Dyeable: { State: 7 }, Repairable: { State: 2 } }), {
     title: 'State Filters',
-    meta: '1 required · 1 excluded · 1 issue',
+    badges: [
+      { label: '1 required', tone: 'required' },
+      { label: '1 excluded', tone: 'excluded' },
+      { label: '1 issue', tone: 'warning' }
+    ],
     issueCount: 1
   });
 });
