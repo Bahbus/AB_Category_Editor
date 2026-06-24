@@ -48,10 +48,12 @@ export function numberInput(label, value, onChange, step='1', min=null, max=null
     else { input.removeAttribute('aria-describedby'); message.hidden = true; message.textContent = ''; }
   }
   setValidation(options.validate ? options.validate(value) : []);
+  let lastCommitted = Number(value) || 0;
   function commitFiniteInput(rawValue) {
     if (String(rawValue).trim() === '') return false;
     const next = Number(rawValue);
     if (!Number.isFinite(next)) return false;
+    lastCommitted = next;
     onChange(next);
     setValidation(options.validate ? options.validate(next) : []);
     return true;
@@ -60,7 +62,7 @@ export function numberInput(label, value, onChange, step='1', min=null, max=null
     commitFiniteInput(e.target.value);
   };
   input.onblur = e => {
-    const fallback = Number(value) || 0;
+    const fallback = lastCommitted;
     let next = Number(e.target.value);
     if (Number.isNaN(next)) next = fallback;
     if (min !== null) next = Math.max(Number(min), next);

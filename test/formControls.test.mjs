@@ -60,6 +60,9 @@ test('number controls commit finite input events without committing empty partia
   const categoryEditorSource = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
   assert.match(formControlsSource, /input\.oninput = e =>/);
   assert.match(formControlsSource, /String\(rawValue\)\.trim\(\) === ''/);
+  assert.match(formControlsSource, /let lastCommitted = Number\(value\) \|\| 0/);
+  assert.match(formControlsSource, /lastCommitted = next/);
+  assert.match(formControlsSource, /const fallback = lastCommitted/);
   assert.match(formControlsSource, /minNumber\.oninput = \(\) => commitFiniteNumberInput/);
   assert.match(categoryEditorSource, /input\.oninput = e =>/);
 });

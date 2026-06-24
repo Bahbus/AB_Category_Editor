@@ -553,6 +553,9 @@ details.card > .details-body {
 .inline-input {
   width: min(420px, 100%);
 }
+.list-editor-row {
+  margin-top: 10px;
+}
 .lookup-search-block {
   margin-top: 10px;
 }
