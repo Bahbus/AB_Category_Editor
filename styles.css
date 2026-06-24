@@ -450,9 +450,33 @@ details.card {
 details.card > summary {
   padding: 14px;
   cursor: pointer;
-  font-weight: 700;
   color: var(--text);
   list-style-position: inside;
+}
+.details-summary-title {
+  font-weight: 700;
+}
+.details-summary-meta {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 8px;
+}
+.has-validation-issues {
+  border-color: color-mix(in srgb, var(--warn), transparent 20%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--warn), transparent 70%), 0 8px 24px var(--shadow);
+}
+details.card.has-validation-issues:not([open]) > summary {
+  background: color-mix(in srgb, var(--warn), transparent 92%);
+}
+details.card.has-validation-issues:not([open]) .details-summary-meta::after {
+  content: ' ⚠';
+  color: var(--warn);
+  font-weight: 800;
+}
+:root[data-theme="high-contrast"] .has-validation-issues {
+  border-color: var(--warn);
+  box-shadow: 0 0 0 2px var(--warn), 0 8px 24px var(--shadow);
 }
 details.card > .details-body {
   padding: 0 14px 14px;
@@ -537,6 +561,18 @@ details.card > .details-body {
 .row > * { flex: 0 0 auto; }
 .section-header-row {
   justify-content: space-between;
+  align-items: flex-start;
+}
+.category-header-title {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.category-header-actions {
+  margin-left: auto;
+}
+.category-validation-summary {
+  justify-self: start;
 }
 .modal-title-row {
   margin-bottom: 10px;
@@ -1153,11 +1189,15 @@ details.card > .details-body {
 .range-validation[hidden] {
   display: none !important;
 }
+.category-validation-summary[hidden] {
+  display: none !important;
+}
 .validation-list p { margin: 0; }
 .field-warning { color: var(--warn); }
 .field-error { color: var(--danger); }
 .field-note { color: var(--muted); }
-.validation-badge {
+.validation-badge,
+.category-validation-summary {
   display: inline-flex;
   align-items: center;
   border: 1px solid color-mix(in srgb, var(--warn), transparent 35%);
@@ -1166,7 +1206,6 @@ details.card > .details-body {
   font-size: 12px;
   font-weight: 700;
   padding: 3px 8px;
-  margin-left: auto;
 }
 input[aria-invalid="true"], textarea[aria-invalid="true"] {
   border-color: var(--danger);

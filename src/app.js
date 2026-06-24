@@ -187,6 +187,7 @@ function renderEditor() {
   });
 }
 
+// Use renderAll only for structural changes; local field edits should update local UI/list instead.
 function renderAll() { renderList(); renderEditor(); updateExportControls(); }
 
 async function lookupReferencedIds(options = {}) {
