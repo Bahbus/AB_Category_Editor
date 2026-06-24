@@ -10,8 +10,8 @@ Published page: <https://bahbus.github.io/AB_Category_Editor/>
 - Export/copy updated gzip+Base64 data, or download it as a local `.txt` file.
 - Category reorder/editing, including drag/drop ordering, sort-by-order, renumbering, names, descriptions, colors, and enabled/pinned state.
 - Rule editing for item IDs, UI category IDs, regex item-name patterns, ranges, state filters, custom sorting, and custom item order.
-- Rarity checkboxes for supported AetherBags rarity values.
-- Appearance preferences for theme, layout density, and checkbox style.
+- Rarity controls for supported AetherBags rarity values.
+- Appearance preferences for theme and layout density.
 - Batched XIVAPI lookups for referenced Item and ItemUICategory names.
 - Lookup cache backed by browser `localStorage`, with an in-app cache viewer and clear button.
 - Regex → Item IDs conversion using cancelable XIVAPI item sheet scans.

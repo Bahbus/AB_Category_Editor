@@ -45,7 +45,7 @@ function renderAllowedRaritiesEditor(cat, deps) {
 }
 
 function renderColorSection(cat, deps) {
-  const { renderAll, markDirty } = deps;
+  const { renderAll, markDirty, markDirtyAndRenderList = () => markDirty({ renderList: true }) } = deps;
   const color = document.createElement('div');
   color.className = 'card color-card';
   color.innerHTML = '<h3>Color</h3>';
@@ -57,8 +57,8 @@ function renderColorSection(cat, deps) {
   left.className = 'color-preview-field';
   left.innerHTML = `
     <div class="color-preview" title="Click to open the color picker">
-      <div class="color-fill" id="colorFill"></div>
-      <input class="color-native-input" id="rgbPicker" type="color" value="${colorToHex(cat.Color)}" aria-label="Pick RGB color">
+      <div class="color-fill"></div>
+      <input class="color-native-input" type="color" value="${colorToHex(cat.Color)}" aria-label="Pick RGB color">
     </div>
   `;
 
@@ -66,7 +66,8 @@ function renderColorSection(cat, deps) {
   right.className = 'grid';
 
   const hexWrap = document.createElement('div');
-  hexWrap.innerHTML = `<label for="hexColorInput">Hex RGBA</label><input id="hexColorInput" placeholder="#RRGGBBAA" value="${colorToHexRGBA(cat.Color).toUpperCase()}">`;
+  const hexInputId = `hex-color-input-${Math.random().toString(36).slice(2)}`;
+  hexWrap.innerHTML = `<label for="${hexInputId}">Hex RGBA</label><input id="${hexInputId}" class="hex-color-input" placeholder="#RRGGBBAA" value="${colorToHexRGBA(cat.Color).toUpperCase()}">`;
 
   const nums = document.createElement('div');
   nums.className = 'grid cols-3 rgb-grid';
@@ -81,7 +82,7 @@ function renderColorSection(cat, deps) {
       const n = Number.isNaN(raw) ? getValue() : Math.max(0, Math.min(255, Math.round(raw)));
       e.target.value = String(n);
       setValue(n);
-      markDirty();
+      markDirtyAndRenderList();
       updateColorVisuals();
       renderAll();
     };
@@ -99,103 +100,102 @@ function renderColorSection(cat, deps) {
 
   const alphaWrap = document.createElement('div');
   alphaWrap.className = 'alpha-slider-wrap';
+  const alphaSliderId = `alpha-slider-${Math.random().toString(36).slice(2)}`;
   alphaWrap.innerHTML = `
     <div class="alpha-slider-label">
-      <label for="alphaSlider">A</label>
-      <output id="alphaValue" for="alphaSlider">${escapeHtml(componentTo255(cat.Color.W))}</output>
+      <label for="${alphaSliderId}">A</label>
+      <output class="alpha-value" for="${alphaSliderId}">${escapeHtml(componentTo255(cat.Color.W))}</output>
     </div>
-    <input id="alphaSlider" type="range" min="0" max="255" step="1" value="${escapeHtml(componentTo255(cat.Color.W))}" aria-label="Alpha">
+    <input id="${alphaSliderId}" class="alpha-slider" type="range" min="0" max="255" step="1" value="${escapeHtml(componentTo255(cat.Color.W))}" aria-label="Alpha">
   `;
 
   right.append(hexWrap, nums, alphaWrap);
   layout.append(left, right);
   color.append(layout);
 
-  setTimeout(() => {
-    const fill = el('colorFill');
-    const picker = el('rgbPicker');
-    const hexInput = el('hexColorInput');
-    const alphaSlider = el('alphaSlider');
-    const alphaValue = el('alphaValue');
+  const fill = requireScopedEl(color, '.color-fill', 'color editor');
+  const picker = requireScopedEl(color, '.color-native-input', 'color editor');
+  const hexInput = requireScopedEl(color, '.hex-color-input', 'color editor');
+  const alphaSlider = requireScopedEl(color, '.alpha-slider', 'color editor');
+  const alphaValue = requireScopedEl(color, '.alpha-value', 'color editor');
 
-    function validHex(value) {
-      return /^#?[0-9a-fA-F]{8}$/.test(value.trim());
-    }
+  function validHex(value) {
+    return /^#?[0-9a-fA-F]{8}$/.test(value.trim());
+  }
 
-    function updateColorVisuals() {
-      const hex = colorToHexRGBA(cat.Color).toUpperCase();
-      const a255 = componentTo255(cat.Color.W);
-      fill.style.background = rgbaCss(cat.Color);
-      picker.value = colorToHex(cat.Color);
-      hexInput.value = hex;
-      alphaSlider.value = String(a255);
-      alphaValue.textContent = String(a255);
-    }
+  function updateColorVisuals() {
+    const hex = colorToHexRGBA(cat.Color).toUpperCase();
+    const a255 = componentTo255(cat.Color.W);
+    fill.style.background = rgbaCss(cat.Color);
+    picker.value = colorToHex(cat.Color);
+    hexInput.value = hex;
+    alphaSlider.value = String(a255);
+    alphaValue.textContent = String(a255);
+  }
 
-    picker.oninput = e => {
-      const rgb = hexToRgb01(e.target.value);
-      cat.Color.X = rgb.X;
-      cat.Color.Y = rgb.Y;
-      cat.Color.Z = rgb.Z;
-      updateColorVisuals();
-      markDirty();
-    };
-    picker.onchange = () => renderAll();
-
-    function setHexValidity(value) {
-      const trimmed = value.trim();
-      const valid = validHex(trimmed);
-      hexInput.setCustomValidity(valid ? '' : 'Use #RRGGBBAA or RRGGBBAA.');
-      hexInput.classList.toggle('invalid', Boolean(trimmed) && !valid);
-      return valid;
-    }
-
-    function applyHexInput() {
-      const value = hexInput.value.trim();
-      if (!setHexValidity(value)) {
-        hexInput.reportValidity();
-        return false;
-      }
-      const rgba = hexToRgba01(value.startsWith('#') ? value : '#' + value);
-      cat.Color.X = rgba.X;
-      cat.Color.Y = rgba.Y;
-      cat.Color.Z = rgba.Z;
-      cat.Color.W = rgba.W;
-      updateColorVisuals();
-      markDirty();
-      return true;
-    }
-
-    hexInput.oninput = e => {
-      setHexValidity(e.target.value);
-    };
-    hexInput.onblur = applyHexInput;
-    hexInput.onchange = applyHexInput;
-    hexInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        applyHexInput();
-      }
-    });
-
-    alphaSlider.oninput = e => {
-      const n = Number(e.target.value);
-      cat.Color.W = n / 255;
-      alphaValue.textContent = String(n);
-      updateColorVisuals();
-      markDirty();
-    };
-    alphaSlider.onchange = () => renderAll();
-
+  picker.oninput = e => {
+    const rgb = hexToRgb01(e.target.value);
+    cat.Color.X = rgb.X;
+    cat.Color.Y = rgb.Y;
+    cat.Color.Z = rgb.Z;
     updateColorVisuals();
-    setHexValidity(hexInput.value);
-  }, 0);
+    markDirtyAndRenderList();
+  };
+  picker.onchange = () => renderAll();
+
+  function setHexValidity(value) {
+    const trimmed = value.trim();
+    const valid = validHex(trimmed);
+    hexInput.setCustomValidity(valid ? '' : 'Use #RRGGBBAA or RRGGBBAA.');
+    hexInput.classList.toggle('invalid', Boolean(trimmed) && !valid);
+    return valid;
+  }
+
+  function applyHexInput() {
+    const value = hexInput.value.trim();
+    if (!setHexValidity(value)) {
+      hexInput.reportValidity();
+      return false;
+    }
+    const rgba = hexToRgba01(value.startsWith('#') ? value : '#' + value);
+    cat.Color.X = rgba.X;
+    cat.Color.Y = rgba.Y;
+    cat.Color.Z = rgba.Z;
+    cat.Color.W = rgba.W;
+    updateColorVisuals();
+    markDirtyAndRenderList();
+    return true;
+  }
+
+  hexInput.oninput = e => {
+    setHexValidity(e.target.value);
+  };
+  hexInput.onblur = applyHexInput;
+  hexInput.onchange = applyHexInput;
+  hexInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      applyHexInput();
+    }
+  });
+
+  alphaSlider.oninput = e => {
+    const n = Number(e.target.value);
+    cat.Color.W = n / 255;
+    alphaValue.textContent = String(n);
+    updateColorVisuals();
+    markDirtyAndRenderList();
+  };
+  alphaSlider.onchange = () => renderAll();
+
+  updateColorVisuals();
+  setHexValidity(hexInput.value);
 
   return color;
 }
 
 export function renderEditor(deps) {
-  const { getCategories, getSelectedIndex, setSelectedIndex, ensureShape, markDirty, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, listEditorDeps, commitActiveField = () => {} } = deps;
+  const { getCategories, getSelectedIndex, setSelectedIndex, ensureShape, markDirty, markDirtyAndRenderList = () => markDirty({ renderList: true }), renderAll, renderList, renumberCategories, openRegexToItemIdsTool, listEditorDeps, commitActiveField = () => {} } = deps;
   let selectedIndex = getSelectedIndex();
   const cats = getCategories();
   const root = requireEl('editor');
@@ -234,22 +234,22 @@ export function renderEditor(deps) {
   const basicsActions = document.createElement('div');
   basicsActions.className = 'filter-card-actions';
   basicsActions.append(
-    switchInput('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirty(); }),
-    switchInput('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirty(); })
+    switchInput('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirtyAndRenderList(); }),
+    switchInput('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirtyAndRenderList(); })
   );
   basicsTitle.appendChild(basicsActions);
   const grid = document.createElement('div');
   grid.className = 'grid basic-fields-grid';
   grid.append(
-    textInput('Name', cat.Name, v => { cat.Name = v; markDirty(); }),
-    textInput('Description', cat.Description, v => { cat.Description = v; markDirty(); })
+    textInput('Name', cat.Name, v => { cat.Name = v; markDirtyAndRenderList(); }),
+    textInput('Description', cat.Description, v => { cat.Description = v; markDirtyAndRenderList(); })
   );
 
   const metaGrid = document.createElement('div');
   metaGrid.className = 'grid basic-meta-grid';
   metaGrid.append(
-    numberInput('Order', cat.Order, v => { cat.Order = v; markDirty(); }),
-    numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirty(); })
+    numberInput('Order', cat.Order, v => { cat.Order = v; markDirtyAndRenderList(); }),
+    numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirtyAndRenderList(); })
   );
 
   basics.append(basicsTitle, grid, metaGrid);
@@ -324,7 +324,7 @@ export function renderEditor(deps) {
   const boolGrid = document.createElement('div');
   boolGrid.className = 'grid cols-3';
 
-  function stateSelect(filterName, obj) {
+  function renderStateFilterCard(filterName, obj) {
     if (typeof obj.State !== 'number') obj.State = 0;
     if (typeof obj.Filter !== 'number') obj.Filter = 0;
 
@@ -338,7 +338,6 @@ export function renderEditor(deps) {
     titleActions.appendChild(segmentedControl(displayFilterName(filterName), obj.State ?? 0, STATE_FILTER_OPTIONS, next => {
       obj.State = next;
       markDirty();
-      renderList();
     }));
     title.appendChild(titleActions);
     box.appendChild(title);
@@ -347,7 +346,7 @@ export function renderEditor(deps) {
   }
 
   for (const key of ['Untradable','Unique','Collectable','Dyeable','Repairable','HighQuality','Desynthesizable','Glamourable','FullySpiritbonded']) {
-    boolGrid.appendChild(stateSelect(key, rules[key]));
+    boolGrid.appendChild(renderStateFilterCard(key, rules[key]));
   }
 
   requireScopedEl(bools, '.details-body', 'state filters').appendChild(boolGrid);

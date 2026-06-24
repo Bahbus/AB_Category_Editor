@@ -54,7 +54,7 @@ export async function fetchLookupRow(sheet, id) {
 
 export async function fetchLookupBatch(sheet, ids, options = {}) {
   const batchSize = Math.max(1, Number(options.batchSize) || LOOKUP_BATCH_SIZE);
-  const lookupCache = options.lookupCache;
+  const lookupCache = options.lookupCache || {};
   const saveLookupCache = options.saveLookupCache || (() => {});
   const cache = lookupCache[sheet] || (lookupCache[sheet] = {});
   const missing = normalizeLookupIds(ids).filter(id => !cache[String(id)]);

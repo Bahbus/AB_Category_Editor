@@ -48,18 +48,50 @@ export function defaultCategory(maxOrder = 0) {
   };
 }
 
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+const RANGE_RULE_KEYS = ['Level', 'ItemLevel', 'VendorPrice'];
+const STATE_RULE_KEYS = ['Untradable', 'Unique', 'Collectable', 'Dyeable', 'Repairable', 'HighQuality', 'Desynthesizable', 'Glamourable', 'FullySpiritbonded'];
+const VALID_STATE_VALUES = new Set([0, 1, 2]);
+
+function finiteOrDefault(value, fallback) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
 export function ensureShape(cat) {
   if (!cat.Color) cat.Color = { X: 1, Y: 1, Z: 1, W: 1 };
   for (const key of ['X','Y','Z','W']) {
     if (typeof cat.Color[key] !== 'number') cat.Color[key] = 1;
   }
-  if (!cat.Rules) cat.Rules = defaultRules();
+  if (!isPlainObject(cat.Rules)) cat.Rules = defaultRules();
   const r = cat.Rules;
   for (const key of ['AllowedItemIds','AllowedItemNamePatterns','AllowedUiCategoryIds','AllowedRarities']) {
     if (!Array.isArray(r[key])) r[key] = [];
   }
-  for (const [key, val] of Object.entries(defaultRules())) {
+  const defaults = defaultRules();
+  for (const [key, val] of Object.entries(defaults)) {
     if (r[key] === undefined) r[key] = clone(val);
+  }
+  for (const key of RANGE_RULE_KEYS) {
+    const fallback = defaults[key];
+    if (!isPlainObject(r[key])) r[key] = clone(fallback);
+    else {
+      r[key].Enabled = typeof r[key].Enabled === 'boolean' ? r[key].Enabled : Boolean(r[key].Enabled);
+      r[key].Min = finiteOrDefault(r[key].Min, fallback.Min);
+      r[key].Max = finiteOrDefault(r[key].Max, fallback.Max);
+    }
+  }
+  for (const key of STATE_RULE_KEYS) {
+    const fallback = defaults[key];
+    if (!isPlainObject(r[key])) r[key] = clone(fallback);
+    else {
+      const state = Number(r[key].State);
+      r[key].State = Number.isFinite(state) && VALID_STATE_VALUES.has(state) ? state : 0;
+      r[key].Filter = finiteOrDefault(r[key].Filter, fallback.Filter);
+    }
   }
 }
 
