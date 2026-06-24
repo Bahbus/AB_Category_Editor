@@ -482,15 +482,13 @@ details.card > summary {
 }
 .details-summary-badge.required {
   border-color: var(--ok);
-  color: #fff;
+  color: var(--ok);
   background: color-mix(in srgb, var(--ok), var(--panel3) 82%);
-  font-weight: 500;
 }
 .details-summary-badge.excluded {
   border-color: var(--danger);
-  color: #fff;
+  color: var(--danger);
   background: color-mix(in srgb, var(--danger), var(--panel3) 86%);
-  font-weight: 500;
 }
 .details-summary-badge.warning {
   border-color: color-mix(in srgb, var(--warn), transparent 35%);
