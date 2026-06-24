@@ -20,14 +20,14 @@ test('rangeFiltersSummaryParts returns no badges for inactive valid ranges', () 
 
 test('rangeFiltersSummaryParts returns active range badges', () => {
   assert.deepEqual(rangeFiltersSummaryParts({ Level: { Enabled: true } }).badges, [
-    { label: 'Level', tone: 'neutral' }
+    { label: 'Level', tone: 'success' }
   ]);
   assert.deepEqual(rangeFiltersSummaryParts({ Level: { Enabled: true }, ItemLevel: { Enabled: true } }).badges, [
-    { label: 'Level', tone: 'neutral' },
-    { label: 'Item Level', tone: 'neutral' }
+    { label: 'Level', tone: 'success' },
+    { label: 'Item Level', tone: 'success' }
   ]);
   assert.deepEqual(rangeFiltersSummaryParts({ Level: { Enabled: true }, ItemLevel: { Enabled: true }, VendorPrice: { Enabled: true } }).badges, [
-    { label: '3 active', tone: 'neutral' }
+    { label: '3 active', tone: 'success' }
   ]);
 });
 
@@ -50,14 +50,14 @@ test('stateFiltersSummaryParts returns no badges for inactive valid states', () 
 
 test('stateFiltersSummaryParts returns required and excluded badges', () => {
   assert.deepEqual(stateFiltersSummaryParts({ Unique: { State: 1 }, Dyeable: { State: 1 } }).badges, [
-    { label: '2 required', tone: 'neutral' }
+    { label: '2 required', tone: 'success' }
   ]);
   assert.deepEqual(stateFiltersSummaryParts({ Unique: { State: 2 } }).badges, [
-    { label: '1 excluded', tone: 'neutral' }
+    { label: '1 excluded', tone: 'success' }
   ]);
   assert.deepEqual(stateFiltersSummaryParts({ Unique: { State: 1 }, Dyeable: { State: 1 }, Repairable: { State: 2 } }).badges, [
-    { label: '2 required', tone: 'neutral' },
-    { label: '1 excluded', tone: 'neutral' }
+    { label: '2 required', tone: 'success' },
+    { label: '1 excluded', tone: 'success' }
   ]);
 });
 
@@ -65,8 +65,8 @@ test('stateFiltersSummaryParts preserves state counts and includes issue badge',
   assert.deepEqual(stateFiltersSummaryParts({ Unique: { State: 1 }, Dyeable: { State: 7 }, Repairable: { State: 2 } }), {
     title: 'State Filters',
     badges: [
-      { label: '1 required', tone: 'neutral' },
-      { label: '1 excluded', tone: 'neutral' },
+      { label: '1 required', tone: 'success' },
+      { label: '1 excluded', tone: 'success' },
       { label: '1 issue', tone: 'warning' }
     ],
     issueCount: 1

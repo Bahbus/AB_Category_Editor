@@ -42,9 +42,9 @@ export function rangeFiltersSummaryParts(rules) {
     .map(([, name]) => name);
   const issueCount = countRangeFilterIssues(rules);
   const badges = [];
-  if (activeNames.length === 1) badges.push({ label: activeNames[0], tone: 'neutral' });
-  else if (activeNames.length === 2) activeNames.forEach(name => badges.push({ label: name, tone: 'neutral' }));
-  else if (activeNames.length > 2) badges.push({ label: `${activeNames.length} active`, tone: 'neutral' });
+  if (activeNames.length === 1) badges.push({ label: activeNames[0], tone: 'success' });
+  else if (activeNames.length === 2) activeNames.forEach(name => badges.push({ label: name, tone: 'success' }));
+  else if (activeNames.length > 2) badges.push({ label: `${activeNames.length} active`, tone: 'success' });
   if (issueCount) badges.push({ label: issueCountLabel(issueCount), tone: 'warning' });
   return { title: 'Range Filters', badges, issueCount };
 }
@@ -64,8 +64,8 @@ export function stateFiltersSummaryParts(rules) {
   }
   const issueCount = countStateFilterIssues(rules);
   const badges = [];
-  if (required) badges.push({ label: `${required} required`, tone: 'neutral' });
-  if (excluded) badges.push({ label: `${excluded} excluded`, tone: 'neutral' });
+  if (required) badges.push({ label: `${required} required`, tone: 'success' });
+  if (excluded) badges.push({ label: `${excluded} excluded`, tone: 'success' });
   if (issueCount) badges.push({ label: issueCountLabel(issueCount), tone: 'warning' });
   return { title: 'State Filters', badges, issueCount };
 }
@@ -90,7 +90,7 @@ function setDetailsSummary(details, parts) {
     badgeBox.className = 'details-summary-badges';
     for (const badge of badges) {
       const badgeEl = document.createElement('span');
-      badgeEl.className = `details-summary-badge${badge.tone === 'warning' ? ' warning' : ''}`;
+      badgeEl.className = `details-summary-badge${badge.tone ? ` ${badge.tone}` : ''}`;
       badgeEl.textContent = badge.label;
       badgeBox.appendChild(badgeEl);
     }
@@ -513,7 +513,7 @@ export function renderEditor(deps) {
   const advanced = document.createElement('details');
   advanced.className = 'card';
   advanced.innerHTML = `
-    <summary><span class="details-summary-title">Advanced</span><span class="details-summary-badges"><span class="details-summary-badge">raw selected category JSON</span></span></summary>
+    <summary><span class="details-summary-title">Advanced</span></summary>
     <div class="details-body">
       <p class="hint">Edit the selected category directly. Click “Apply raw category JSON” after changes.</p>
       <textarea class="raw" id="rawCategory">${escapeHtml(JSON.stringify(cat, null, 2))}</textarea>

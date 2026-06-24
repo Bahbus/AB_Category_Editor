@@ -429,6 +429,7 @@ input.invalid {
 }
 .badge.on { color: var(--ok); border-color: color-mix(in srgb, var(--ok), transparent 35%); }
 .badge.pin { color: var(--warn); border-color: color-mix(in srgb, var(--warn), transparent 35%); }
+.badge-icon { width: 0.9em; height: 0.9em; display: block; }
 .editor {
   overflow: auto;
   padding: 16px;
@@ -474,6 +475,10 @@ details.card > summary {
   font-weight: 700;
   line-height: 1.2;
   padding: 2px 7px;
+}
+.details-summary-badge.success {
+  border-color: color-mix(in srgb, var(--ok), transparent 35%);
+  color: var(--ok);
 }
 .details-summary-badge.warning {
   border-color: color-mix(in srgb, var(--warn), transparent 35%);
@@ -578,7 +583,6 @@ details.card > .details-body {
 }
 .category-header-title {
   display: grid;
-  gap: 6px;
   min-width: min(100%, 18rem);
   flex: 1 1 18rem;
 }
