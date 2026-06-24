@@ -91,7 +91,7 @@ function renderAllowedRaritiesEditor(cat, deps) {
 }
 
 function renderColorSection(cat, deps) {
-  const { renderAll, markDirty, markDirtyAndRenderList = () => markDirty({ renderList: true }) } = deps;
+  const { markDirty, markDirtyAndRenderList = () => markDirty({ renderList: true }) } = deps;
   const color = document.createElement('div');
   color.className = 'card color-card';
   color.innerHTML = '<h3>Color</h3>';
@@ -141,7 +141,6 @@ function renderColorSection(cat, deps) {
       const raw = Number(e.target.value);
       const n = Number.isNaN(raw) ? getValue() : Math.max(0, Math.min(255, Math.round(raw)));
       commitFinite(n, { writeBack: true });
-      renderAll();
     };
     input.addEventListener('keydown', e => {
       if (e.key === 'Enter') e.currentTarget.blur();
@@ -198,7 +197,6 @@ function renderColorSection(cat, deps) {
     updateColorVisuals();
     markDirtyAndRenderList();
   };
-  picker.onchange = () => renderAll();
 
   function setHexValidity(value) {
     const trimmed = value.trim();
@@ -243,7 +241,6 @@ function renderColorSection(cat, deps) {
     updateColorVisuals();
     markDirtyAndRenderList();
   };
-  alphaSlider.onchange = () => renderAll();
 
   updateColorVisuals();
   setHexValidity(hexInput.value);
@@ -300,8 +297,8 @@ export function renderEditor(deps) {
   const basicsActions = document.createElement('div');
   basicsActions.className = 'filter-card-actions';
   basicsActions.append(
-    switchInput('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirtyAndRenderList(); renderAll(); }),
-    switchInput('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirtyAndRenderList(); renderAll(); })
+    switchInput('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirtyAndRenderList(); }),
+    switchInput('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirtyAndRenderList(); })
   );
   basicsTitle.appendChild(basicsActions);
   const debouncedRenderList = debounce(renderList);
@@ -314,8 +311,8 @@ export function renderEditor(deps) {
   const grid = document.createElement('div');
   grid.className = 'grid basic-fields-grid';
   grid.append(
-    textInput('Name', cat.Name, v => updateSidebarText(() => { cat.Name = v; }), { validate: () => validateCategoryName(cat).filter(item => item.field === 'Name') }),
-    textInput('Description', cat.Description, v => updateSidebarText(() => { cat.Description = v; }), { validate: () => validateCategoryName(cat).filter(item => item.field === 'Description') })
+    textInput('Name', cat.Name, v => updateSidebarText(() => { cat.Name = v; }), { validate: () => validateCategoryName(cat).filter(item => item.field === 'Name'), validateOnInput: true }),
+    textInput('Description', cat.Description, v => updateSidebarText(() => { cat.Description = v; }), { validate: () => validateCategoryName(cat).filter(item => item.field === 'Description'), validateOnInput: true })
   );
 
   const metaGrid = document.createElement('div');

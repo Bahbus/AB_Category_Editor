@@ -9,7 +9,7 @@ import {
   validateRarities,
   validateStateFilter
 } from '../src/validation.js';
-import { defaultCategory } from '../src/config.js';
+import { defaultCategory, validateConfig } from '../src/config.js';
 
 function cleanCategory(overrides = {}) {
   const category = defaultCategory(0);
@@ -24,9 +24,12 @@ function cleanCategory(overrides = {}) {
 
 function fields(analysis) { return analysis.findings.map(item => item.field); }
 
-test('duplicate category IDs are reported', () => {
-  const analysis = analyzeImportedConfig({ Categories: [cleanCategory({ Id: 'same' }), cleanCategory({ Id: 'same', Order: 2, Priority: 2 })] });
-  assert.ok(analysis.findings.some(item => item.field === 'Id' && /Duplicate category ID/.test(item.message)));
+test('duplicate category IDs are reported without exposing the ID value', () => {
+  const analysis = analyzeImportedConfig({ Categories: [cleanCategory({ Id: 'same-secret' }), cleanCategory({ Id: 'same-secret', Order: 2, Priority: 2 })] });
+  const finding = analysis.findings.find(item => item.field === 'Id');
+  assert.ok(finding);
+  assert.match(finding.message, /share the same internal category ID/);
+  assert.doesNotMatch(finding.message, /same-secret/);
 });
 
 test('blank category names are reported', () => {
@@ -84,6 +87,30 @@ test('duplicate item IDs, UI category IDs, and regex patterns are reported', () 
   assert.ok(fields(analysis).includes('AllowedItemIds'));
   assert.ok(fields(analysis).includes('AllowedUiCategoryIds'));
   assert.ok(fields(analysis).includes('AllowedItemNamePatterns'));
+});
+
+test('duplicate item and UI category ID warnings do not expose numeric values', () => {
+  const category = cleanCategory();
+  category.Rules.AllowedItemIds = [12345, 12345];
+  category.Rules.AllowedUiCategoryIds = [67890, 67890];
+  const analysis = analyzeImportedConfig({ Categories: [category] });
+  const itemFinding = analysis.findings.find(item => item.field === 'AllowedItemIds');
+  const uiFinding = analysis.findings.find(item => item.field === 'AllowedUiCategoryIds');
+  assert.ok(itemFinding);
+  assert.ok(uiFinding);
+  assert.doesNotMatch(itemFinding.message, /12345/);
+  assert.doesNotMatch(uiFinding.message, /67890/);
+});
+
+test('sort repair report suppresses user-facing before and after category ID arrays', () => {
+  const validation = validateConfig({ Categories: [
+    cleanCategory({ Id: 'later-secret', Name: 'Later', Order: 2, Priority: 2 }),
+    cleanCategory({ Id: 'earlier-secret', Name: 'Earlier', Order: 1, Priority: 1 })
+  ] });
+  const repair = validation.repairs.find(item => item.field === 'Categories');
+  assert.ok(repair);
+  assert.equal(repair.showBeforeAfter, false);
+  assert.doesNotMatch(repair.message, /later-secret|earlier-secret/);
 });
 
 test('unsupported rarities are reported', () => {

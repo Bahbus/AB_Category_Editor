@@ -75,9 +75,26 @@ function shortRepairValue(value) {
   return text.length > 120 ? `${text.slice(0, 117)}…` : text;
 }
 
+function repairFieldAllowsBeforeAfter(field) {
+  return field === 'AllowedRarities'
+    || field === 'Level'
+    || field === 'ItemLevel'
+    || field === 'VendorPrice'
+    || field === 'Untradable'
+    || field === 'Unique'
+    || field === 'Collectable'
+    || field === 'Dyeable'
+    || field === 'Repairable'
+    || field === 'HighQuality'
+    || field === 'Desynthesizable'
+    || field === 'Glamourable'
+    || field === 'FullySpiritbonded';
+}
+
 function formatRepairMessage(repair) {
   const prefix = repair.categoryName ? `“${repair.categoryName}”: ` : '';
-  if (repair.before !== undefined || repair.after !== undefined) {
+  const canShowBeforeAfter = repair.showBeforeAfter !== false && repairFieldAllowsBeforeAfter(repair.field);
+  if (canShowBeforeAfter && (repair.before !== undefined || repair.after !== undefined)) {
     return `${prefix}${repair.message} Changed from ${shortRepairValue(repair.before)} to ${shortRepairValue(repair.after)}.`;
   }
   return `${prefix}${repair.message}`;

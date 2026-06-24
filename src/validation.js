@@ -5,7 +5,11 @@ export const STATE_FILTER_KEYS = ['Untradable', 'Unique', 'Collectable', 'Dyeabl
 const VALID_STATE_VALUES = new Set([0, 1, 2]);
 
 function finding(severity, field, message) { return { severity, field, message }; }
-function label(category) { return category?.Name || category?.Id || '(unnamed category)'; }
+function label(category, index = null) {
+  const name = String(category?.Name ?? '').trim();
+  if (name) return name;
+  return Number.isInteger(index) ? `Category ${index + 1}` : '(unnamed category)';
+}
 function rulesOf(category) { return category?.Rules && typeof category.Rules === 'object' ? category.Rules : {}; }
 function isFiniteValue(value) { return Number.isFinite(Number(value)); }
 
@@ -75,7 +79,7 @@ function duplicateFindings(values, field, labelText) {
     if (seen.has(key)) dupes.add(key);
     seen.add(key);
   }
-  return [...dupes].map(value => finding('warning', field, `Duplicate ${labelText}: ${value}.`));
+  return [...dupes].map(() => finding('warning', field, `Duplicate ${labelText} in this category.`));
 }
 
 export function validateCategory(category, allCategories = []) {
@@ -106,12 +110,12 @@ export function analyzeImportedConfig(config) {
     const id = String(category?.Id ?? '');
     if (id) ids.set(id, (ids.get(id) || 0) + 1);
   }
-  for (const [id, count] of ids) {
-    if (count > 1) findings.push(finding('warning', 'Id', `Duplicate category ID: ${id}.`));
+  for (const [, count] of ids) {
+    if (count > 1) findings.push(finding('warning', 'Id', 'Two or more categories share the same internal category ID.'));
   }
-  for (const category of categories) {
+  for (const [index, category] of categories.entries()) {
     for (const item of validateCategory(category, categories)) {
-      findings.push({ ...item, categoryId: category?.Id, categoryName: label(category) });
+      findings.push({ ...item, categoryId: category?.Id, categoryName: label(category, index) });
     }
   }
   return { findings, counts: countFindings(findings) };
