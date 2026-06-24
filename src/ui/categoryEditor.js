@@ -41,17 +41,17 @@ export function rangeFiltersSummaryParts(rules) {
     .filter(([key]) => rules?.[key]?.Enabled === true)
     .map(([, name]) => name);
   const issueCount = countRangeFilterIssues(rules);
-  const metaParts = [];
-  if (!activeNames.length) metaParts.push('none active');
-  else if (activeNames.length <= 2) metaParts.push(`${activeNames.join(', ')} active`);
-  else metaParts.push(`${activeNames.length} active`);
-  if (issueCount) metaParts.push(issueCountLabel(issueCount));
-  return { title: 'Range Filters', meta: metaParts.join(' · '), issueCount };
+  const badges = [];
+  if (activeNames.length === 1) badges.push({ label: activeNames[0], tone: 'neutral' });
+  else if (activeNames.length === 2) activeNames.forEach(name => badges.push({ label: name, tone: 'neutral' }));
+  else if (activeNames.length > 2) badges.push({ label: `${activeNames.length} active`, tone: 'neutral' });
+  if (issueCount) badges.push({ label: issueCountLabel(issueCount), tone: 'warning' });
+  return { title: 'Range Filters', badges, issueCount };
 }
 
 export function rangeFiltersSummary(rules) {
-  const { title, meta } = rangeFiltersSummaryParts(rules);
-  return `${title} · ${meta}`;
+  const { title, badges } = rangeFiltersSummaryParts(rules);
+  return [title, ...badges.map(badge => badge.label)].join(' · ');
 }
 
 export function stateFiltersSummaryParts(rules) {
@@ -62,18 +62,17 @@ export function stateFiltersSummaryParts(rules) {
     if (state === 1) required += 1;
     if (state === 2) excluded += 1;
   }
-  const parts = [];
-  if (required) parts.push(`${required} required`);
-  if (excluded) parts.push(`${excluded} excluded`);
-  if (!parts.length) parts.push('none active');
   const issueCount = countStateFilterIssues(rules);
-  if (issueCount) parts.push(issueCountLabel(issueCount));
-  return { title: 'State Filters', meta: parts.join(' · '), issueCount };
+  const badges = [];
+  if (required) badges.push({ label: `${required} required`, tone: 'neutral' });
+  if (excluded) badges.push({ label: `${excluded} excluded`, tone: 'neutral' });
+  if (issueCount) badges.push({ label: issueCountLabel(issueCount), tone: 'warning' });
+  return { title: 'State Filters', badges, issueCount };
 }
 
 export function stateFiltersSummary(rules) {
-  const { title, meta } = stateFiltersSummaryParts(rules);
-  return `${title} · ${meta}`;
+  const { title, badges } = stateFiltersSummaryParts(rules);
+  return [title, ...badges.map(badge => badge.label)].join(' · ');
 }
 
 function setDetailsSummary(details, parts) {
@@ -83,10 +82,20 @@ function setDetailsSummary(details, parts) {
   const title = document.createElement('span');
   title.className = 'details-summary-title';
   title.textContent = parts.title;
-  const meta = document.createElement('span');
-  meta.className = 'details-summary-meta';
-  meta.textContent = parts.meta;
-  summary.append(title, meta);
+  summary.appendChild(title);
+
+  const badges = Array.isArray(parts.badges) ? parts.badges : [];
+  if (badges.length) {
+    const badgeBox = document.createElement('span');
+    badgeBox.className = 'details-summary-badges';
+    for (const badge of badges) {
+      const badgeEl = document.createElement('span');
+      badgeEl.className = `details-summary-badge${badge.tone === 'warning' ? ' warning' : ''}`;
+      badgeEl.textContent = badge.label;
+      badgeBox.appendChild(badgeEl);
+    }
+    summary.appendChild(badgeBox);
+  }
   details.classList.toggle('has-validation-issues', (parts.issueCount || 0) > 0);
 }
 
@@ -316,8 +325,10 @@ export function renderEditor(deps) {
   header.innerHTML = `
     <div class="row section-header-row">
       <div class="category-header-title">
-        <h2 class="flush-heading">${escapeHtml(cat.Name || '(unnamed)')}</h2>
-        <div class="category-validation-summary" hidden></div>
+        <div class="category-header-title-row">
+          <h2 class="flush-heading">${escapeHtml(cat.Name || '(unnamed)')}</h2>
+          <span class="validation-badge category-validation-summary" hidden></span>
+        </div>
       </div>
       <div class="row category-header-actions">
         <button id="moveUp" class="small">Move up</button>
@@ -368,7 +379,14 @@ export function renderEditor(deps) {
     switchInput('Enabled', cat.Enabled, v => { cat.Enabled = v; updateValidationUi(); markDirtyAndRenderList(); }),
     switchInput('Pinned', cat.Pinned, v => { cat.Pinned = v; updateValidationUi(); markDirtyAndRenderList(); })
   );
-  basicsTitle.appendChild(basicsActions);
+  const basicSwitchArea = document.createElement('div');
+  basicSwitchArea.className = 'basic-switch-area';
+  basicSwitchArea.appendChild(basicsActions);
+  const basicSwitchValidation = document.createElement('div');
+  basicSwitchValidation.className = 'validation-list basic-switch-validation';
+  basicSwitchValidation.hidden = true;
+  basicSwitchArea.appendChild(basicSwitchValidation);
+  basicsTitle.appendChild(basicSwitchArea);
   const debouncedRenderList = debounce(renderList);
   function updateSidebarText(valueSetter, options = {}) {
     valueSetter();
@@ -392,11 +410,7 @@ export function renderEditor(deps) {
     numberInput('Priority', cat.Priority, v => { cat.Priority = v; updateValidationUi(); markDirtyAndRenderList(); }, '1', null, null, { validate: () => validateCategoryPriority(cat, cats) })
   );
 
-  const basicSwitchValidation = document.createElement('div');
-  basicSwitchValidation.className = 'validation-list basic-switch-validation';
-  basicSwitchValidation.hidden = true;
-
-  basics.append(basicsTitle, basicSwitchValidation, grid, metaGrid);
+  basics.append(basicsTitle, grid, metaGrid);
   updateValidationUi();
 
   const topEditorGrid = document.createElement('div');
@@ -499,7 +513,7 @@ export function renderEditor(deps) {
   const advanced = document.createElement('details');
   advanced.className = 'card';
   advanced.innerHTML = `
-    <summary><span class="details-summary-title">Advanced</span><span class="details-summary-meta">raw selected category JSON</span></summary>
+    <summary><span class="details-summary-title">Advanced</span><span class="details-summary-badges"><span class="details-summary-badge">raw selected category JSON</span></span></summary>
     <div class="details-body">
       <p class="hint">Edit the selected category directly. Click “Apply raw category JSON” after changes.</p>
       <textarea class="raw" id="rawCategory">${escapeHtml(JSON.stringify(cat, null, 2))}</textarea>

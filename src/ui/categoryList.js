@@ -159,7 +159,7 @@ export function renderCategoryList({
       </div>
       <div class="badges">
         <span class="badge ${cat.Enabled ? 'on' : ''}">${cat.Enabled ? 'on' : 'off'}</span>
-        ${cat.Pinned ? '<span class="badge pin">pin</span>' : ''}
+        ${cat.Pinned ? '<span class="badge pin" title="Pinned" aria-label="Pinned">📌</span>' : ''}
       </div>
     `;
     list.appendChild(item);
