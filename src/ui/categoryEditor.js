@@ -4,6 +4,7 @@ import { colorToHex, colorToHexRGBA, hexToRgb01, hexToRgba01, rgbaCss, component
 import { clone, makeId, getNormalizedAllowedRarities } from '../config.js';
 import { openModal, closeModal } from '../modals.js';
 import { STATE_FILTER_OPTIONS, numberInput, rangeSliderControl, segmentedControl, switchInput, textInput } from './formControls.js';
+import { validateCategoryName, validateCategoryOrder, validateCategoryPriority, validateRegexPattern, validateCategory } from '../validation.js';
 import { listEditor } from './listEditor.js';
 
 
@@ -276,11 +277,20 @@ export function renderEditor(deps) {
   const basicsTitle = document.createElement('div');
   basicsTitle.className = 'filter-card-title';
   basicsTitle.innerHTML = '<h3>Basics</h3>';
+  const categoryFindings = validateCategory(cat, cats);
+  const headerFindings = categoryFindings.filter(item => item.severity === 'error' || item.severity === 'warning');
+  if (headerFindings.length) {
+    const badge = document.createElement('span');
+    badge.className = 'validation-badge';
+    badge.textContent = `${headerFindings.length} validation ${headerFindings.length === 1 ? 'issue' : 'issues'}`;
+    requireScopedEl(header, '.section-header-row', 'category header').appendChild(badge);
+  }
+
   const basicsActions = document.createElement('div');
   basicsActions.className = 'filter-card-actions';
   basicsActions.append(
-    switchInput('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirtyAndRenderList(); }),
-    switchInput('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirtyAndRenderList(); })
+    switchInput('Enabled', cat.Enabled, v => { cat.Enabled = v; markDirtyAndRenderList(); renderAll(); }),
+    switchInput('Pinned', cat.Pinned, v => { cat.Pinned = v; markDirtyAndRenderList(); renderAll(); })
   );
   basicsTitle.appendChild(basicsActions);
   const debouncedRenderList = debounce(renderList);
@@ -293,15 +303,15 @@ export function renderEditor(deps) {
   const grid = document.createElement('div');
   grid.className = 'grid basic-fields-grid';
   grid.append(
-    textInput('Name', cat.Name, v => updateSidebarText(() => { cat.Name = v; })),
-    textInput('Description', cat.Description, v => updateSidebarText(() => { cat.Description = v; }))
+    textInput('Name', cat.Name, v => updateSidebarText(() => { cat.Name = v; }), { validate: () => validateCategoryName(cat).filter(item => item.field === 'Name') }),
+    textInput('Description', cat.Description, v => updateSidebarText(() => { cat.Description = v; }), { validate: () => validateCategoryName(cat).filter(item => item.field === 'Description') })
   );
 
   const metaGrid = document.createElement('div');
   metaGrid.className = 'grid basic-meta-grid';
   metaGrid.append(
-    numberInput('Order', cat.Order, v => { cat.Order = v; markDirtyAndRenderList(); }),
-    numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirtyAndRenderList(); })
+    numberInput('Order', cat.Order, v => { cat.Order = v; markDirtyAndRenderList(); }, '1', null, null, { validate: () => validateCategoryOrder(cat, cats) }),
+    numberInput('Priority', cat.Priority, v => { cat.Priority = v; markDirtyAndRenderList(); }, '1', null, null, { validate: () => validateCategoryPriority(cat, cats) })
   );
 
   basics.append(basicsTitle, grid, metaGrid);
@@ -319,12 +329,12 @@ export function renderEditor(deps) {
     listEditor('Allowed UI Category IDs', rules.AllowedUiCategoryIds, x => {
       if (!/^-?\d+$/.test(x)) throw new Error('UI category IDs must be integers.');
       return Number(x);
-    }, x => x, { hint: 'Game ItemUICategory row IDs accepted by this category.', lookupSheet: 'ItemUICategory', ...listEditorDeps }),
+    }, x => x, { hint: 'Game ItemUICategory row IDs accepted by this category.', lookupSheet: 'ItemUICategory', validateList: () => validateCategory(cat, cats).filter(item => item.field === 'AllowedUiCategoryIds'), ...listEditorDeps }),
     listEditor('Allowed Item IDs', rules.AllowedItemIds, x => {
       if (!/^-?\d+$/.test(x)) throw new Error('Item IDs must be integers.');
       return Number(x);
-    }, x => x, { hint: 'Specific Item row IDs accepted by this category.', lookupSheet: 'Item', ...listEditorDeps }),
-    listEditor('Allowed Item Name Patterns', rules.AllowedItemNamePatterns, x => x, x => x, { hint: 'Regex/name patterns matched against item names.', markDirty }),
+    }, x => x, { hint: 'Specific Item row IDs accepted by this category.', lookupSheet: 'Item', validateList: () => validateCategory(cat, cats).filter(item => item.field === 'AllowedItemIds'), ...listEditorDeps }),
+    listEditor('Allowed Item Name Patterns', rules.AllowedItemNamePatterns, x => x, x => x, { hint: 'Regex/name patterns matched against item names.', markDirty, validateValue: validateRegexPattern, validateList: () => validateCategory(cat, cats).filter(item => item.field === 'AllowedItemNamePatterns') }),
     renderAllowedRaritiesEditor(cat, deps)
   );
   root.appendChild(ruleGrid);
@@ -359,7 +369,7 @@ export function renderEditor(deps) {
     title.innerHTML = `<h3>${escapeHtml(displayFilterName(key))}</h3>`;
     const titleActions = document.createElement('div');
     titleActions.className = 'filter-card-actions';
-    titleActions.appendChild(switchInput('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(); setDetailsSummary(ranges, rangeFiltersSummary(rules)); }));
+    titleActions.appendChild(switchInput('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(); setDetailsSummary(ranges, rangeFiltersSummary(rules)); renderAll(); }));
     title.appendChild(titleActions);
     box.append(
       title,

@@ -10,12 +10,34 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     searchXivapi,
     lookupCache,
     saveLookupCache,
-    markDirty
+    markDirty,
+    validateValue = null,
+    validateList = null
   } = options;
 
   const card = document.createElement('div');
   card.className = 'card';
+  const validationId = `list-validation-${Math.random().toString(36).slice(2)}`;
   card.innerHTML = `<h3>${escapeHtml(title)}</h3>${hint ? `<p class="hint">${escapeHtml(hint)}</p>` : ''}`;
+
+  const validationBox = document.createElement('div');
+  validationBox.id = validationId;
+  validationBox.className = 'validation-list';
+  validationBox.hidden = true;
+
+  function renderValidation(extraFindings = []) {
+    const findings = [...(validateList ? validateList(arr) : []), ...extraFindings];
+    validationBox.hidden = findings.length === 0;
+    validationBox.innerHTML = findings.map(item => `<p class="field-${item.severity}">${escapeHtml(item.message)}</p>`).join('');
+    input?.classList?.toggle('invalid', extraFindings.some(item => item.severity === 'error'));
+    if (extraFindings.some(item => item.severity === 'error')) {
+      input.setAttribute('aria-invalid', 'true');
+      input.setAttribute('aria-describedby', validationId);
+    } else if (input) {
+      input.setAttribute('aria-invalid', 'false');
+      input.removeAttribute('aria-describedby');
+    }
+  }
 
   const pills = document.createElement('div');
   pills.className = 'pill-list';
@@ -41,6 +63,8 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       };
       pills.appendChild(pill);
     });
+
+    renderValidation();
 
     if (!arr.length) {
       const empty = document.createElement('span');
@@ -76,7 +100,16 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       : [raw];
 
     try {
-      for (const part of parts) arr.push(parser(part));
+      const parsedParts = [];
+      for (const part of parts) {
+        const findingList = validateValue ? validateValue(part) : [];
+        if (findingList.some(item => item.severity === 'error')) {
+          renderValidation(findingList);
+          return;
+        }
+        parsedParts.push(parser(part));
+      }
+      for (const part of parsedParts) arr.push(part);
       input.value = '';
       markDirty();
       renderPills();
@@ -188,9 +221,9 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       }
     };
 
-    card.append(pills, row, searchWrap);
+    card.append(pills, validationBox, row, searchWrap);
   } else {
-    card.append(pills, row);
+    card.append(pills, validationBox, row);
   }
 
   renderPills();

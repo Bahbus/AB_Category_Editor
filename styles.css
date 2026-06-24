@@ -1136,3 +1136,32 @@ details.card > .details-body {
     transition: none !important;
   }
 }
+
+.validation-list {
+  display: grid;
+  gap: 4px;
+  margin: 6px 0 0;
+  padding: 0;
+  color: var(--muted);
+  font-size: 12px;
+  list-style-position: inside;
+}
+.validation-list p { margin: 0; }
+.field-warning { color: var(--warn); }
+.field-error { color: var(--danger); }
+.field-note { color: var(--muted); }
+.validation-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--warn), transparent 35%);
+  border-radius: 999px;
+  color: var(--warn);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 3px 8px;
+  margin-left: auto;
+}
+input[aria-invalid="true"], textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger), transparent 55%);
+}

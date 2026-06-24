@@ -1,0 +1,112 @@
+import { ALLOWED_RARITY_IDS } from './constants.js';
+
+export const RANGE_FILTER_KEYS = ['Level', 'ItemLevel', 'VendorPrice'];
+export const STATE_FILTER_KEYS = ['Untradable', 'Unique', 'Collectable', 'Dyeable', 'Repairable', 'HighQuality', 'Desynthesizable', 'Glamourable', 'FullySpiritbonded'];
+const VALID_STATE_VALUES = new Set([0, 1, 2]);
+
+function finding(severity, field, message) { return { severity, field, message }; }
+function label(category) { return category?.Name || category?.Id || '(unnamed category)'; }
+function rulesOf(category) { return category?.Rules && typeof category.Rules === 'object' ? category.Rules : {}; }
+function isFiniteValue(value) { return Number.isFinite(Number(value)); }
+
+export function validateCategoryName(category) {
+  const findings = [];
+  if (!String(category?.Name ?? '').trim()) findings.push(finding('warning', 'Name', 'Category name is blank.'));
+  if (!String(category?.Description ?? '').trim()) findings.push(finding('note', 'Description', 'Description is blank.'));
+  if (category?.Enabled === false && category?.Pinned === true) findings.push(finding('warning', 'Pinned', 'Disabled categories should usually not be pinned.'));
+  return findings;
+}
+
+function duplicateNumber(category, allCategories, key) {
+  if (!isFiniteValue(category?.[key])) return [finding('error', key, `${key} must be a finite number.`)];
+  const value = Number(category[key]);
+  const dupes = (allCategories || []).filter(other => other !== category && isFiniteValue(other?.[key]) && Number(other[key]) === value);
+  return dupes.length ? [finding('warning', key, `Duplicate ${key} value ${value}.`)] : [];
+}
+
+export function validateCategoryOrder(category, allCategories = []) { return duplicateNumber(category, allCategories, 'Order'); }
+export function validateCategoryPriority(category, allCategories = []) { return duplicateNumber(category, allCategories, 'Priority'); }
+
+export function validateRegexPattern(pattern) {
+  try { new RegExp(String(pattern)); return []; }
+  catch (err) { return [finding('error', 'AllowedItemNamePatterns', `Invalid regex pattern: ${err.message}`)]; }
+}
+
+export function validateRangeFilter(label, range) {
+  const findings = [];
+  const min = Number(range?.Min);
+  const max = Number(range?.Max);
+  if (!Number.isFinite(min)) findings.push(finding('error', label, `${label} minimum must be a finite number.`));
+  if (!Number.isFinite(max)) findings.push(finding('error', label, `${label} maximum must be a finite number.`));
+  if (Number.isFinite(min) && Number.isFinite(max) && min > max) findings.push(finding('warning', label, `${label} minimum is greater than maximum.`));
+  return findings;
+}
+
+export function validateStateFilter(label, stateFilter) {
+  const state = Number(stateFilter?.State);
+  return Number.isFinite(state) && VALID_STATE_VALUES.has(state) ? [] : [finding('warning', label, `${label} uses an unsupported state and will be treated as Ignored.`)];
+}
+
+export function validateRarities(category) {
+  const values = rulesOf(category).AllowedRarities;
+  if (!Array.isArray(values)) return [finding('warning', 'AllowedRarities', 'Allowed rarities list is malformed and will be normalized.')];
+  const unsupported = values.filter(value => !ALLOWED_RARITY_IDS.has(Number(value)));
+  return unsupported.length ? [finding('warning', 'AllowedRarities', `Unsupported rarity value(s) will be ignored: ${unsupported.join(', ')}.`)] : [];
+}
+
+function duplicateFindings(values, field, labelText) {
+  if (!Array.isArray(values)) return [];
+  const seen = new Set();
+  const dupes = new Set();
+  for (const value of values) {
+    const key = String(value);
+    if (seen.has(key)) dupes.add(key);
+    seen.add(key);
+  }
+  return [...dupes].map(value => finding('warning', field, `Duplicate ${labelText}: ${value}.`));
+}
+
+export function validateCategory(category, allCategories = []) {
+  const rules = rulesOf(category);
+  const findings = [
+    ...validateCategoryName(category),
+    ...validateCategoryOrder(category, allCategories),
+    ...validateCategoryPriority(category, allCategories),
+    ...validateRarities(category),
+    ...duplicateFindings(rules.AllowedItemIds, 'AllowedItemIds', 'Item ID'),
+    ...duplicateFindings(rules.AllowedUiCategoryIds, 'AllowedUiCategoryIds', 'UI Category ID'),
+    ...duplicateFindings(rules.AllowedItemNamePatterns, 'AllowedItemNamePatterns', 'regex pattern')
+  ];
+  if (Array.isArray(rules.AllowedItemNamePatterns)) {
+    for (const pattern of rules.AllowedItemNamePatterns) findings.push(...validateRegexPattern(pattern));
+  }
+  for (const key of RANGE_FILTER_KEYS) findings.push(...validateRangeFilter(key, rules[key]));
+  for (const key of STATE_FILTER_KEYS) findings.push(...validateStateFilter(key, rules[key]));
+  return findings;
+}
+
+export function analyzeImportedConfig(config) {
+  const categories = Array.isArray(config?.Categories) ? config.Categories : [];
+  const findings = [];
+  const ids = new Map();
+  for (const category of categories) {
+    const id = String(category?.Id ?? '');
+    if (id) ids.set(id, (ids.get(id) || 0) + 1);
+  }
+  for (const [id, count] of ids) {
+    if (count > 1) findings.push(finding('warning', 'Id', `Duplicate category ID: ${id}.`));
+  }
+  for (const category of categories) {
+    for (const item of validateCategory(category, categories)) {
+      findings.push({ ...item, categoryId: category?.Id, categoryName: label(category) });
+    }
+  }
+  return { findings, counts: countFindings(findings) };
+}
+
+export function countFindings(findings) {
+  return findings.reduce((counts, item) => {
+    counts[item.severity] = (counts[item.severity] || 0) + 1;
+    return counts;
+  }, { error: 0, warning: 0, note: 0 });
+}

@@ -31,13 +31,23 @@ export function rangeSliderBounds(min, max, defaults = {}) {
   return { min: Math.floor(lower), max: Math.ceil(upper) };
 }
 
-export function numberInput(label, value, onChange, step='1', min=null, max=null) {
+export function numberInput(label, value, onChange, step='1', min=null, max=null, options = {}) {
   const wrap = document.createElement('div');
   const id = makeControlId('number-input');
   const minAttr = min === null ? '' : ` min="${min}"`;
   const maxAttr = max === null ? '' : ` max="${max}"`;
-  wrap.innerHTML = `<label for="${id}">${escapeHtml(label)}</label><input id="${id}" type="number" step="${step}"${minAttr}${maxAttr} value="${escapeHtml(value)}">`;
+  const messageId = options.messageId || `${id}-validation`;
+  wrap.innerHTML = `<label for="${id}">${escapeHtml(label)}</label><input id="${id}" type="number" step="${step}"${minAttr}${maxAttr} value="${escapeHtml(value)}"><p id="${messageId}" class="validation-list" hidden></p>`;
   const input = wrap.querySelector('input');
+  const message = wrap.querySelector(`#${messageId}`);
+  function setValidation(findings = []) {
+    const errors = findings.filter(item => item.severity === 'error' || item.severity === 'warning');
+    input.classList.toggle('invalid', errors.length > 0);
+    input.setAttribute('aria-invalid', errors.length ? 'true' : 'false');
+    if (findings.length) { input.setAttribute('aria-describedby', messageId); message.hidden = false; message.innerHTML = findings.map(item => `<span class="field-${item.severity}">${escapeHtml(item.message)}</span>`).join(''); }
+    else { input.removeAttribute('aria-describedby'); message.hidden = true; message.textContent = ''; }
+  }
+  setValidation(options.validate ? options.validate(value) : []);
   input.onblur = e => {
     const fallback = Number(value) || 0;
     let next = Number(e.target.value);
@@ -46,6 +56,7 @@ export function numberInput(label, value, onChange, step='1', min=null, max=null
     if (max !== null) next = Math.min(Number(max), next);
     e.target.value = String(next);
     onChange(next);
+    setValidation(options.validate ? options.validate(next) : []);
   };
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter') e.currentTarget.blur();
@@ -53,11 +64,23 @@ export function numberInput(label, value, onChange, step='1', min=null, max=null
   return wrap;
 }
 
-export function textInput(label, value, onChange) {
+export function textInput(label, value, onChange, options = {}) {
   const wrap = document.createElement('div');
   const id = makeControlId('text-input');
-  wrap.innerHTML = `<label for="${id}">${escapeHtml(label)}</label><input id="${id}" value="${escapeHtml(value)}">`;
-  wrap.querySelector('input').oninput = e => onChange(e.target.value);
+  const messageId = options.messageId || `${id}-validation`;
+  wrap.innerHTML = `<label for="${id}">${escapeHtml(label)}</label><input id="${id}" value="${escapeHtml(value)}"><p id="${messageId}" class="validation-list" hidden></p>`;
+  const input = wrap.querySelector('input');
+  const message = wrap.querySelector(`#${messageId}`);
+  function setValidation(findings = []) {
+    const serious = findings.filter(item => item.severity === 'error' || item.severity === 'warning');
+    input.classList.toggle('invalid', serious.length > 0);
+    input.setAttribute('aria-invalid', serious.length ? 'true' : 'false');
+    if (findings.length) { input.setAttribute('aria-describedby', messageId); message.hidden = false; message.innerHTML = findings.map(item => `<span class="field-${item.severity}">${escapeHtml(item.message)}</span>`).join(''); }
+    else { input.removeAttribute('aria-describedby'); message.hidden = true; message.textContent = ''; }
+  }
+  setValidation(options.validate ? options.validate(value) : []);
+  input.oninput = e => onChange(e.target.value);
+  input.onblur = e => setValidation(options.validate ? options.validate(e.target.value) : []);
   return wrap;
 }
 
@@ -131,15 +154,22 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
     const lowerBound = Number(minSlider.min);
     const upperBound = Number(minSlider.max);
     const span = upperBound - lowerBound || 1;
-    const reversed = minValue > maxValue;
-    const start = Math.max(0, Math.min(100, ((Math.min(minValue, maxValue) - lowerBound) / span) * 100));
-    const end = Math.max(0, Math.min(100, ((Math.max(minValue, maxValue) - lowerBound) / span) * 100));
+    const nonFinite = !Number.isFinite(minValue) || !Number.isFinite(maxValue);
+    const reversed = Number.isFinite(minValue) && Number.isFinite(maxValue) && minValue > maxValue;
+    const visualMin = Number.isFinite(minValue) ? minValue : lowerBound;
+    const visualMax = Number.isFinite(maxValue) ? maxValue : upperBound;
+    const start = Math.max(0, Math.min(100, ((Math.min(visualMin, visualMax) - lowerBound) / span) * 100));
+    const end = Math.max(0, Math.min(100, ((Math.max(visualMin, visualMax) - lowerBound) / span) * 100));
     wrap.style.setProperty('--range-start', `${start}%`);
     wrap.style.setProperty('--range-end', `${end}%`);
     minSlider.classList.toggle('range-active-slider', reversed || minValue >= maxValue);
-    minNumber.classList.toggle('invalid', reversed);
-    maxNumber.classList.toggle('invalid', reversed);
-    validation.hidden = !reversed;
+    minNumber.classList.toggle('invalid', reversed || !Number.isFinite(minValue));
+    maxNumber.classList.toggle('invalid', reversed || !Number.isFinite(maxValue));
+    validation.textContent = nonFinite ? 'Minimum and maximum must be finite numbers.' : 'Minimum is greater than maximum. Values are preserved until you edit them.';
+    validation.className = `validation-list ${nonFinite ? 'field-error' : 'field-warning'}`;
+    validation.hidden = !(reversed || nonFinite);
+    minNumber.setAttribute('aria-invalid', (reversed || !Number.isFinite(minValue)) ? 'true' : 'false');
+    maxNumber.setAttribute('aria-invalid', (reversed || !Number.isFinite(maxValue)) ? 'true' : 'false');
   }
   function commitNumber(key, input) {
     const next = Number(input.value);
