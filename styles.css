@@ -482,13 +482,15 @@ details.card > summary {
 }
 .details-summary-badge.required {
   border-color: var(--ok);
-  color: var(--ok);
+  color: #fff;
   background: color-mix(in srgb, var(--ok), var(--panel3) 82%);
+  font-weight: 500;
 }
 .details-summary-badge.excluded {
   border-color: var(--danger);
-  color: var(--danger);
+  color: #fff;
   background: color-mix(in srgb, var(--danger), var(--panel3) 86%);
+  font-weight: 500;
 }
 .details-summary-badge.warning {
   border-color: color-mix(in srgb, var(--warn), transparent 35%);
@@ -632,7 +634,8 @@ details.card > .details-body {
 .modal-action-row-loose {
   margin-top: 12px;
 }
-.flush-heading {
+.flush-heading,
+.card h2.flush-heading {
   margin: 0;
 }
 .inline-input {
