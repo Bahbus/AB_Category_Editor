@@ -64,8 +64,8 @@ export function stateFiltersSummaryParts(rules) {
   }
   const issueCount = countStateFilterIssues(rules);
   const badges = [];
-  if (required) badges.push({ label: `${required} required`, tone: 'success' });
-  if (excluded) badges.push({ label: `${excluded} excluded`, tone: 'success' });
+  if (required) badges.push({ label: `${required} required`, tone: 'required' });
+  if (excluded) badges.push({ label: `${excluded} excluded`, tone: 'excluded' });
   if (issueCount) badges.push({ label: issueCountLabel(issueCount), tone: 'warning' });
   return { title: 'State Filters', badges, issueCount };
 }

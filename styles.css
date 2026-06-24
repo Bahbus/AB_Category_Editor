@@ -428,8 +428,8 @@ input.invalid {
   white-space: nowrap;
 }
 .badge.on { color: var(--ok); border-color: color-mix(in srgb, var(--ok), transparent 35%); }
-.badge.pin { color: var(--warn); border-color: color-mix(in srgb, var(--warn), transparent 35%); }
-.badge-icon { width: 0.9em; height: 0.9em; display: block; }
+.badge.pin { display: inline-flex; align-items: center; color: var(--warn); border-color: color-mix(in srgb, var(--warn), transparent 35%); padding-inline: 4px; }
+.badge-icon { width: 1.8em; height: 1.8em; display: block; }
 .editor {
   overflow: auto;
   padding: 16px;
@@ -479,6 +479,16 @@ details.card > summary {
 .details-summary-badge.success {
   border-color: color-mix(in srgb, var(--ok), transparent 35%);
   color: var(--ok);
+}
+.details-summary-badge.required {
+  border-color: var(--ok);
+  color: var(--ok);
+  background: color-mix(in srgb, var(--ok), var(--panel3) 82%);
+}
+.details-summary-badge.excluded {
+  border-color: var(--danger);
+  color: var(--danger);
+  background: color-mix(in srgb, var(--danger), var(--panel3) 86%);
 }
 .details-summary-badge.warning {
   border-color: color-mix(in srgb, var(--warn), transparent 35%);
@@ -579,7 +589,7 @@ details.card > .details-body {
 .row > * { flex: 0 0 auto; }
 .section-header-row {
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
 }
 .category-header-title {
   display: grid;
@@ -592,6 +602,10 @@ details.card > .details-body {
   flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
+  line-height: 1.15;
+}
+.category-header-title-row .flush-heading {
+  line-height: 1.15;
 }
 .category-header-actions {
   margin-left: auto;

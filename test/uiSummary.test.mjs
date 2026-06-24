@@ -50,14 +50,14 @@ test('stateFiltersSummaryParts returns no badges for inactive valid states', () 
 
 test('stateFiltersSummaryParts returns required and excluded badges', () => {
   assert.deepEqual(stateFiltersSummaryParts({ Unique: { State: 1 }, Dyeable: { State: 1 } }).badges, [
-    { label: '2 required', tone: 'success' }
+    { label: '2 required', tone: 'required' }
   ]);
   assert.deepEqual(stateFiltersSummaryParts({ Unique: { State: 2 } }).badges, [
-    { label: '1 excluded', tone: 'success' }
+    { label: '1 excluded', tone: 'excluded' }
   ]);
   assert.deepEqual(stateFiltersSummaryParts({ Unique: { State: 1 }, Dyeable: { State: 1 }, Repairable: { State: 2 } }).badges, [
-    { label: '2 required', tone: 'success' },
-    { label: '1 excluded', tone: 'success' }
+    { label: '2 required', tone: 'required' },
+    { label: '1 excluded', tone: 'excluded' }
   ]);
 });
 
@@ -65,8 +65,8 @@ test('stateFiltersSummaryParts preserves state counts and includes issue badge',
   assert.deepEqual(stateFiltersSummaryParts({ Unique: { State: 1 }, Dyeable: { State: 7 }, Repairable: { State: 2 } }), {
     title: 'State Filters',
     badges: [
-      { label: '1 required', tone: 'success' },
-      { label: '1 excluded', tone: 'success' },
+      { label: '1 required', tone: 'required' },
+      { label: '1 excluded', tone: 'excluded' },
       { label: '1 issue', tone: 'warning' }
     ],
     issueCount: 1
