@@ -90,7 +90,10 @@ export function textInput(label, value, onChange, options = {}) {
     else { input.removeAttribute('aria-describedby'); message.hidden = true; message.textContent = ''; }
   }
   setValidation(options.validate ? options.validate(value) : []);
-  input.oninput = e => onChange(e.target.value);
+  input.oninput = e => {
+    onChange(e.target.value);
+    if (options.validateOnInput) setValidation(options.validate ? options.validate(e.target.value) : []);
+  };
   input.onblur = e => setValidation(options.validate ? options.validate(e.target.value) : []);
   return wrap;
 }

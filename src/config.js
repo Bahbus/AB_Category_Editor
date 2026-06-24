@@ -160,11 +160,12 @@ function valuesEqual(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-function snapshotCategoryForRepairs(cat) {
+function snapshotCategoryForRepairs(cat, index = null) {
   const rules = isPlainObject(cat?.Rules) ? cat.Rules : {};
   const snapshot = {
     categoryName: cat?.Name,
     categoryId: cat?.Id,
+    categoryIndex: index,
     RulesWasPlainObject: isPlainObject(cat?.Rules),
     Rules: cat?.Rules
   };
@@ -175,7 +176,9 @@ function snapshotCategoryForRepairs(cat) {
 }
 
 function displayCategoryName(cat, before) {
-  return cat?.Name || before?.categoryName || cat?.Id || before?.categoryId || '(unnamed category)';
+  const name = String(cat?.Name ?? before?.categoryName ?? '').trim();
+  if (name) return name;
+  return Number.isInteger(before?.categoryIndex) ? `Category ${before.categoryIndex + 1}` : '(unnamed category)';
 }
 
 function repairRecord(cat, before, field, beforeValue, afterValue, message) {
@@ -232,8 +235,8 @@ export function validateConfig(obj) {
   let normalizedRarityCategoryCount = 0;
   const repairs = [];
   const originalOrder = obj.Categories.map(cat => String(cat?.Id ?? cat?.Name ?? ''));
-  obj.Categories.forEach(cat => {
-    const before = snapshotCategoryForRepairs(cat);
+  obj.Categories.forEach((cat, index) => {
+    const before = snapshotCategoryForRepairs(cat, index);
     ensureShape(cat);
     if (normalizeAllowedRaritiesWithReport(cat).changed) normalizedRarityCategoryCount++;
     repairs.push(...collectCategoryRepairs(cat, before));
@@ -245,7 +248,8 @@ export function validateConfig(obj) {
       field: 'Categories',
       before: originalOrder,
       after: sortedOrder,
-      message: 'Categories were sorted by Order, Priority, Name, and Id.'
+      showBeforeAfter: false,
+      message: 'Categories were sorted by Order, Priority, Name, and internal fallback.'
     });
   }
   return { config: obj, summary: buildImportSummary(obj.Categories.length, normalizedRarityCategoryCount), repairs };
