@@ -97,3 +97,31 @@ test('importText does not keep an unused importSummary binding', () => {
   assert.doesNotMatch(source, /const\s+importSummary\s*=/);
   assert.match(source, /applyValidatedConfig\(validation\);/);
 });
+
+test('generated description UI wiring stays safe and source-consistent', () => {
+  const editor = read('src/ui/categoryEditor.js');
+  const app = read('src/app.js');
+  const styles = read('styles.css');
+
+  assert.match(editor, /descriptionRow\.className = 'description-generate-row'/);
+  assert.match(editor, /descriptionRow\.append\(descriptionInput, generateButton\)/);
+  assert.match(styles, /\.description-generate-row\s*{[\s\S]*?display:\s*grid;[\s\S]*?grid-template-columns:\s*minmax\(0, 1fr\) auto;[\s\S]*?gap:\s*8px;[\s\S]*?align-items:\s*start;/);
+  assert.match(styles, /@media \(max-width: 640px\)\s*{[\s\S]*?\.description-generate-row\s*{[\s\S]*?grid-template-columns:\s*1fr;/);
+  assert.match(editor, /textInput\('Name',[\s\S]*autoGenerate: 'name changed'/);
+  assert.match(app, /renderCategoryEditor\(\{[\s\S]*copyTextToClipboard,/);
+  assert.match(editor, /const ok = await copyTextToClipboard\(generated\);/);
+  assert.doesNotMatch(editor, /navigator\.clipboard\?\.writeText\(generated\)/);
+});
+
+test('import and raw JSON paths do not auto-generate descriptions', () => {
+  const app = read('src/app.js');
+  const config = read('src/config.js');
+  const validation = read('src/validation.js');
+  const importTextBody = app.match(/async function importText\([^)]*\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
+  const rawApplyBody = app.match(/requireScopedEl\(wrap, '#applyRawFull'[\s\S]*?\.onclick = async \(\) => \{(?<body>[\s\S]*?)\n    \};/)?.groups.body ?? '';
+
+  assert.doesNotMatch(importTextBody, /generateCategoryDescription/);
+  assert.doesNotMatch(rawApplyBody, /generateCategoryDescription/);
+  assert.doesNotMatch(config, /generateCategoryDescription/);
+  assert.doesNotMatch(validation, /generateCategoryDescription/);
+});
