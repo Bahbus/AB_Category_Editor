@@ -1,10 +1,16 @@
-import { ALLOWED_RARITY_IDS } from './constants.js';
+import { ALLOWED_RARITY_IDS, RANGE_FILTERS, RANGE_FILTER_KEYS, STATE_FILTER_KEYS } from './constants.js';
 
 export function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
 }
 
 export function makeId() {
+  const bytes = new Uint8Array(16);
+  if (globalThis.crypto?.getRandomValues) {
+    globalThis.crypto.getRandomValues(bytes);
+    return [...bytes].map(byte => byte.toString(16).padStart(2, '0')).join('');
+  }
+
   const chars = '0123456789abcdef';
   let out = '';
   for (let i = 0; i < 32; i++) out += chars[Math.floor(Math.random() * chars.length)];
@@ -17,18 +23,8 @@ export function defaultRules() {
     AllowedItemNamePatterns: [],
     AllowedUiCategoryIds: [],
     AllowedRarities: [],
-    Level: { Enabled: false, Min: 0, Max: 200 },
-    ItemLevel: { Enabled: false, Min: 0, Max: 2000 },
-    VendorPrice: { Enabled: false, Min: 0, Max: 9999999 },
-    Untradable: { State: 0, Filter: 0 },
-    Unique: { State: 0, Filter: 0 },
-    Collectable: { State: 0, Filter: 0 },
-    Dyeable: { State: 0, Filter: 0 },
-    Repairable: { State: 0, Filter: 0 },
-    HighQuality: { State: 0, Filter: 0 },
-    Desynthesizable: { State: 0, Filter: 0 },
-    Glamourable: { State: 0, Filter: 0 },
-    FullySpiritbonded: { State: 0, Filter: 0 }
+    ...Object.fromEntries(RANGE_FILTERS.map(filter => [filter.key, clone(filter.defaults)])),
+    ...Object.fromEntries(STATE_FILTER_KEYS.map(key => [key, { State: 0, Filter: 0 }]))
   };
 }
 
@@ -52,8 +48,8 @@ function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
-const RANGE_RULE_KEYS = ['Level', 'ItemLevel', 'VendorPrice'];
-const STATE_RULE_KEYS = ['Untradable', 'Unique', 'Collectable', 'Dyeable', 'Repairable', 'HighQuality', 'Desynthesizable', 'Glamourable', 'FullySpiritbonded'];
+const RANGE_RULE_KEYS = RANGE_FILTER_KEYS;
+const STATE_RULE_KEYS = STATE_FILTER_KEYS;
 const LIST_RULE_KEYS = ['AllowedItemIds','AllowedItemNamePatterns','AllowedUiCategoryIds','AllowedRarities'];
 const VALID_STATE_VALUES = new Set([0, 1, 2]);
 
@@ -222,7 +218,7 @@ function collectCategoryRepairs(cat, before) {
 }
 
 export function buildImportSummary(categoryCount, normalizedRarityCategoryCount) {
-  let message = `Imported ${categoryCount.toLocaleString()} ${categoryCount === 1 ? 'category' : 'categories'} and sorted ${categoryCount === 1 ? 'it' : 'them'} by Order.`;
+  let message = `Imported ${categoryCount.toLocaleString()} ${categoryCount === 1 ? 'category' : 'categories'} and sorted ${categoryCount === 1 ? 'it' : 'them'} by Order, Priority, and Name.`;
   if (normalizedRarityCategoryCount > 0) {
     message += ` Normalized rarity values in ${normalizedRarityCategoryCount.toLocaleString()} ${normalizedRarityCategoryCount === 1 ? 'category' : 'categories'}.`;
   }

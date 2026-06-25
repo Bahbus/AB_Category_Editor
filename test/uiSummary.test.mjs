@@ -153,3 +153,34 @@ test('setDetailsSummary updates stable summary parts without replacing summary h
   assert.match(source, /summaryParts\.badges\.replaceChildren/);
   assert.doesNotMatch(source, /summary\.innerHTML\s*=\s*renderDetailsSummaryHtml/);
 });
+
+
+test('category editor uses shared range defaults and advanced stable summary path', () => {
+  const source = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
+
+  assert.match(source, /for \(const filter of RANGE_FILTERS\)/);
+  assert.match(source, /const defaults = \{ min: filter\.defaults\.Min, max: filter\.defaults\.Max \}/);
+  assert.doesNotMatch(source, /max:\s*100000/);
+  assert.doesNotMatch(source, /max:\s*key === 'Level' \? 100 : 800/);
+  assert.match(source, /setDetailsSummary\(advanced, \{ title: 'Advanced', badges: \[\], issueCount: 0 \}\)/);
+});
+
+test('regex tool and help modal source text stay current', () => {
+  const regexSource = fs.readFileSync(new URL('../src/tools/regexToItemIds.js', import.meta.url), 'utf8');
+  const helpSource = fs.readFileSync(new URL('../src/ui/helpModal.js', import.meta.url), 'utf8');
+
+  assert.doesNotMatch(regexSource, /class="[^"]*"\s+class=/);
+  assert.match(regexSource, /class="grid cols-3 modal-action-row"/);
+  assert.doesNotMatch(helpSource, /checkbox style/i);
+  assert.match(helpSource, /comfortable\/compact density/);
+});
+
+test('shared state filters are imported by validation and editor', () => {
+  const validationSource = fs.readFileSync(new URL('../src/validation.js', import.meta.url), 'utf8');
+  const editorSource = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
+
+  assert.match(validationSource, /import \{ ALLOWED_RARITY_IDS, RANGE_FILTER_KEYS, STATE_FILTER_KEYS \}/);
+  assert.doesNotMatch(validationSource, /export const STATE_FILTER_KEYS = \[/);
+  assert.match(editorSource, /STATE_FILTERS, STATE_FILTER_KEYS/);
+  assert.doesNotMatch(editorSource, /const STATE_FILTER_KEYS = \[/);
+});

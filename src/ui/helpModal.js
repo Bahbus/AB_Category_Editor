@@ -21,9 +21,9 @@ export function showHelpModal() {
     </ul>
     <h3>Appearance preferences</h3>
     <ul>
-      <li><strong>Appearance</strong> lets you choose editor-only themes, comfortable/compact density, and checkbox style.</li>
+      <li><strong>Appearance</strong> lets you choose editor-only themes and comfortable/compact density.</li>
       <li>Appearance preferences are stored locally in this browser with <code>localStorage</code>.</li>
-      <li>Themes, density, and checkbox style affect only this editor UI and are not included in exported AetherBags config data.</li>
+      <li>Themes and density affect only this editor UI and are not included in exported AetherBags config data.</li>
     </ul>
     <h3>Privacy</h3>
     <ul>
