@@ -1,6 +1,6 @@
 import { el, escapeHtml } from '../dom.js';
 import { clamp01, rgbaCssWithMinimumAlpha } from '../color.js';
-import { getCategoryIssueCount, getCategoryIssueCounts } from '../validation.js';
+import { getCategoryIssueCounts } from '../validation.js';
 
 function getCategorySearchText() {
   const search = el('search');
