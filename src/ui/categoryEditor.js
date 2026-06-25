@@ -386,7 +386,7 @@ export function renderEditor(deps) {
   descriptionInput = requireScopedEl(descriptionField, 'input', 'description field');
   const generateButton = document.createElement('button');
   generateButton.type = 'button';
-  generateButton.className = 'small generate-description-button';
+  generateButton.className = 'generate-description-button';
   generateButton.textContent = 'Generate';
   generateButton.title = 'Generate description for this category';
   generateButton.setAttribute('aria-label', 'Generate description for this category');
