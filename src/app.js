@@ -228,7 +228,7 @@ async function importText(text, sourceLabel='Import') {
   const postAnalysis = analyzeImportedConfig(validation.config);
   const importAnalysis = mergeValidationFindings(preAnalysis, postAnalysis);
   if (!(await confirmReplacingCurrentWork())) return false;
-  const importSummary = applyValidatedConfig(validation);
+  applyValidatedConfig(validation);
   selectedIndex = getCategories().length ? 0 : -1;
   markSaved('No changes');
   const guardrailSummary = validationSummaryText(getCategories().length, importAnalysis);

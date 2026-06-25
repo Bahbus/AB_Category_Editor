@@ -93,6 +93,24 @@ test('default range filter values do not report Min greater than Max', () => {
   assert.equal(validateRangeFilter('VendorPrice', { Min: 0, Max: 9999999 }).length, 0);
 });
 
+
+
+test('category validation uses friendly Range and State labels while keeping stable fields', () => {
+  const category = cleanCategory();
+  category.Rules.ItemLevel = { Enabled: true, Min: 10, Max: 2 };
+  category.Rules.HighQuality = { State: 9, Filter: 0 };
+  const analysis = analyzeImportedConfig({ Categories: [category] });
+  const itemLevelFinding = analysis.findings.find(item => item.field === 'ItemLevel');
+  const highQualityFinding = analysis.findings.find(item => item.field === 'HighQuality');
+
+  assert.ok(itemLevelFinding);
+  assert.match(itemLevelFinding.message, /Item Level minimum is greater than maximum/);
+  assert.doesNotMatch(itemLevelFinding.message, /ItemLevel/);
+  assert.ok(highQualityFinding);
+  assert.match(highQualityFinding.message, /High Quality uses an unsupported state/);
+  assert.doesNotMatch(highQualityFinding.message, /HighQuality/);
+});
+
 test('duplicate Order alone does not warn when Priority differs', () => {
   const analysis = analyzeImportedConfig({ Categories: [
     cleanCategory({ Id: 'a', Order: 1, Priority: 1 }),

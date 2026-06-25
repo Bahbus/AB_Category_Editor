@@ -1,4 +1,4 @@
-import { RARITIES, ALLOWED_RARITY_IDS, RANGE_FILTERS, STATE_FILTERS } from '../constants.js';
+import { RARITIES, ALLOWED_RARITY_IDS, RANGE_FILTERS, STATE_FILTERS, STATE_FILTER_KEYS } from '../constants.js';
 import { el, escapeHtml, requireEl, requireScopedEl, setStatus } from '../dom.js';
 import { setDetailsSummary } from './detailsSummary.js';
 export { renderDetailsSummaryHtml } from './detailsSummary.js';
@@ -50,7 +50,7 @@ function displayFilterName(value) {
 }
 
 function renderAllowedRaritiesEditor(cat, deps) {
-  const { markDirty } = deps;
+  const { markDirty, onValidationChanged = () => {} } = deps;
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = `
@@ -75,6 +75,7 @@ function renderAllowedRaritiesEditor(cat, deps) {
         .filter(value => ALLOWED_RARITY_IDS.has(value))
         .sort((a, b) => a - b);
       markDirty();
+      onValidationChanged();
     };
     grid.appendChild(label);
   }
@@ -374,7 +375,7 @@ export function renderEditor(deps) {
       return Number(x);
     }, x => x, { hint: 'Specific Item row IDs accepted by this category.', lookupSheet: 'Item', validateList: () => validateCategory(cat, cats).filter(item => item.field === 'AllowedItemIds'), onItemsChanged: () => { updateValidationUi(); renderList(); }, ...listEditorDeps }),
     listEditor('Allowed Item Name Patterns', rules.AllowedItemNamePatterns, x => x, x => x, { hint: 'Regex/name patterns matched against item names.', markDirty, validateValue: validateRegexPattern, validateList: () => validateCategory(cat, cats).filter(item => item.field === 'AllowedItemNamePatterns'), onItemsChanged: () => { updateValidationUi(); renderList(); } }),
-    renderAllowedRaritiesEditor(cat, deps)
+    renderAllowedRaritiesEditor(cat, { ...deps, onValidationChanged: () => { updateValidationUi(); renderList(); } })
   );
   root.appendChild(ruleGrid);
 

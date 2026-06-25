@@ -58,3 +58,42 @@ test('summary and focus CSS tokens remain in place', () => {
   assert.doesNotMatch(styles, /\.details-summary-title\s*{[^}]*--title-control-height/s);
   assert.match(styles, /summary:focus-visible/);
 });
+
+
+function importFromConstants(source) {
+  return source.match(/import \{(?<names>[^}]+)\} from ['"]\.\.\/constants\.js['"];/)?.groups.names
+    .split(',')
+    .map(name => name.trim())
+    .filter(Boolean) ?? [];
+}
+
+test('category editor imports shared state filter keys when referenced', () => {
+  const source = read('src/ui/categoryEditor.js');
+  if (!/\bSTATE_FILTER_KEYS\b/.test(source)) return;
+  assert.ok(importFromConstants(source).includes('STATE_FILTER_KEYS'), 'categoryEditor.js references STATE_FILTER_KEYS but does not import it from constants.js');
+});
+
+test('range filter key references are imported or locally declared', () => {
+  for (const file of sourceFiles('src')) {
+    const source = read(file);
+    if (!/\bRANGE_FILTER_KEYS\b/.test(source)) continue;
+    const importsRangeKeys = /import \{[^}]*\bRANGE_FILTER_KEYS\b[^}]*\} from ['"][^'"]*constants\.js['"];/.test(source);
+    const declaresRangeKeys = /\b(?:const|let|var)\s+RANGE_FILTER_KEYS\b/.test(source);
+    assert.ok(importsRangeKeys || declaresRangeKeys, `${file} references RANGE_FILTER_KEYS without importing or declaring it`);
+  }
+});
+
+test('allowed rarity checkbox changes refresh validation and category list without full render', () => {
+  const source = read('src/ui/categoryEditor.js');
+  assert.match(source, /onValidationChanged = \(\) => \{\}/);
+  assert.match(source, /onValidationChanged\(\);/);
+  assert.match(source, /renderAllowedRaritiesEditor\(cat, \{ \.\.\.deps, onValidationChanged: \(\) => \{ updateValidationUi\(\); renderList\(\); \} \}\)/);
+  const rarityEditorBody = source.match(/function renderAllowedRaritiesEditor\(cat, deps\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
+  assert.doesNotMatch(rarityEditorBody, /renderAll\(\)/);
+});
+
+test('importText does not keep an unused importSummary binding', () => {
+  const source = read('src/app.js');
+  assert.doesNotMatch(source, /const\s+importSummary\s*=/);
+  assert.match(source, /applyValidatedConfig\(validation\);/);
+});

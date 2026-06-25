@@ -1,6 +1,8 @@
-import { ALLOWED_RARITY_IDS, RANGE_FILTER_KEYS, STATE_FILTER_KEYS } from './constants.js';
+import { ALLOWED_RARITY_IDS, RANGE_FILTERS, RANGE_FILTER_KEYS, STATE_FILTERS, STATE_FILTER_KEYS } from './constants.js';
 
 const VALID_STATE_VALUES = new Set([0, 1, 2]);
+const RANGE_FILTER_LABELS = Object.fromEntries(RANGE_FILTERS.map(filter => [filter.key, filter.label]));
+const STATE_FILTER_LABELS = Object.fromEntries(STATE_FILTERS.map(filter => [filter.key, filter.label]));
 
 function finding(severity, field, message) { return { severity, field, message }; }
 function label(category, index = null) {
@@ -50,19 +52,19 @@ export function validateRegexPattern(pattern) {
   catch (err) { return [finding('error', 'AllowedItemNamePatterns', `Invalid regex pattern: ${err.message}`)]; }
 }
 
-export function validateRangeFilter(label, range) {
+export function validateRangeFilter(field, range, labelText = field) {
   const findings = [];
   const min = Number(range?.Min);
   const max = Number(range?.Max);
-  if (!Number.isFinite(min)) findings.push(finding('error', label, `${label} minimum must be a finite number.`));
-  if (!Number.isFinite(max)) findings.push(finding('error', label, `${label} maximum must be a finite number.`));
-  if (Number.isFinite(min) && Number.isFinite(max) && min > max) findings.push(finding('warning', label, `${label} minimum is greater than maximum.`));
+  if (!Number.isFinite(min)) findings.push(finding('error', field, `${labelText} minimum must be a finite number.`));
+  if (!Number.isFinite(max)) findings.push(finding('error', field, `${labelText} maximum must be a finite number.`));
+  if (Number.isFinite(min) && Number.isFinite(max) && min > max) findings.push(finding('warning', field, `${labelText} minimum is greater than maximum.`));
   return findings;
 }
 
-export function validateStateFilter(label, stateFilter) {
+export function validateStateFilter(field, stateFilter, labelText = field) {
   const state = Number(stateFilter?.State);
-  return Number.isFinite(state) && VALID_STATE_VALUES.has(state) ? [] : [finding('warning', label, `${label} uses an unsupported state and will be treated as Ignored.`)];
+  return Number.isFinite(state) && VALID_STATE_VALUES.has(state) ? [] : [finding('warning', field, `${labelText} uses an unsupported state and will be treated as Ignored.`)];
 }
 
 export function validateRarities(category) {
@@ -117,8 +119,8 @@ function getCategoryIssueCountWithoutSortPosition(category) {
   if (Array.isArray(rules.AllowedItemNamePatterns)) {
     for (const pattern of rules.AllowedItemNamePatterns) count += validateRegexPattern(pattern).filter(isIssueFinding).length;
   }
-  for (const key of RANGE_FILTER_KEYS) count += validateRangeFilter(key, rules[key]).filter(isIssueFinding).length;
-  for (const key of STATE_FILTER_KEYS) count += validateStateFilter(key, rules[key]).filter(isIssueFinding).length;
+  for (const key of RANGE_FILTER_KEYS) count += validateRangeFilter(key, rules[key], RANGE_FILTER_LABELS[key]).filter(isIssueFinding).length;
+  for (const key of STATE_FILTER_KEYS) count += validateStateFilter(key, rules[key], STATE_FILTER_LABELS[key]).filter(isIssueFinding).length;
   return count;
 }
 
@@ -154,8 +156,8 @@ export function validateCategory(category, allCategories = []) {
   if (Array.isArray(rules.AllowedItemNamePatterns)) {
     for (const pattern of rules.AllowedItemNamePatterns) findings.push(...validateRegexPattern(pattern));
   }
-  for (const key of RANGE_FILTER_KEYS) findings.push(...validateRangeFilter(key, rules[key]));
-  for (const key of STATE_FILTER_KEYS) findings.push(...validateStateFilter(key, rules[key]));
+  for (const key of RANGE_FILTER_KEYS) findings.push(...validateRangeFilter(key, rules[key], RANGE_FILTER_LABELS[key]));
+  for (const key of STATE_FILTER_KEYS) findings.push(...validateStateFilter(key, rules[key], STATE_FILTER_LABELS[key]));
   return findings;
 }
 
