@@ -13,6 +13,12 @@
   --warn: #ffd38a;
   --input: #0f1218;
   --shadow: rgba(0,0,0,.25);
+  --badge-muted-color: var(--muted);
+  --badge-muted-border: var(--border);
+  --badge-success-color: var(--ok);
+  --badge-warning-color: var(--warn);
+  --badge-danger-color: var(--danger);
+  --badge-pin-color: var(--accent);
 }
 @media (prefers-color-scheme: light) {
   :root,
@@ -414,22 +420,67 @@ input.invalid {
 }
 .badges {
   display: flex;
+  align-items: center;
   gap: 4px;
   justify-content: flex-end;
   flex: 0 0 auto;
   min-width: max-content;
 }
-.badge {
-  font-size: 11px;
-  color: var(--muted);
-  border: 1px solid var(--border);
+.badge,
+.validation-badge,
+.details-summary-badge,
+.ui-badge {
+  --badge-color: var(--badge-muted-color, var(--muted));
+  --badge-border: var(--badge-muted-border, var(--border));
+  --badge-bg: color-mix(in srgb, var(--panel2), transparent 35%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--badge-border);
   border-radius: 999px;
-  padding: 1px 6px;
+  background: var(--badge-bg);
+  color: var(--badge-color);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  min-height: 1.35rem;
+  padding: 2px 7px;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
-.badge.on { color: var(--ok); border-color: color-mix(in srgb, var(--ok), transparent 35%); }
-.badge.pin { display: inline-flex; align-items: center; color: var(--warn); border-color: color-mix(in srgb, var(--warn), transparent 35%); padding-inline: 4px; }
-.badge-icon { width: 1.8em; height: 1.8em; display: block; }
+.ui-badge-muted { --badge-color: var(--badge-muted-color, var(--muted)); --badge-border: var(--badge-muted-border, var(--border)); }
+.ui-badge-success,
+.badge.on,
+.details-summary-badge.success,
+.details-summary-badge.required {
+  --badge-color: var(--badge-success-color, var(--ok));
+  --badge-border: color-mix(in srgb, var(--badge-success-color, var(--ok)), transparent 35%);
+  --badge-bg: color-mix(in srgb, var(--badge-success-color, var(--ok)), var(--panel3) 86%);
+}
+.ui-badge-danger,
+.details-summary-badge.excluded {
+  --badge-color: var(--badge-danger-color, var(--danger));
+  --badge-border: color-mix(in srgb, var(--badge-danger-color, var(--danger)), transparent 25%);
+  --badge-bg: color-mix(in srgb, var(--badge-danger-color, var(--danger)), var(--panel3) 86%);
+}
+.ui-badge-warning,
+.details-summary-badge.warning,
+.validation-badge,
+.category-validation-summary {
+  --badge-color: var(--badge-warning-color, var(--warn));
+  --badge-border: color-mix(in srgb, var(--badge-warning-color, var(--warn)), transparent 28%);
+  --badge-bg: color-mix(in srgb, var(--badge-warning-color, var(--warn)), var(--panel3) 88%);
+}
+.ui-badge-pin,
+.badge.pin {
+  --badge-color: var(--badge-pin-color, var(--accent));
+  --badge-border: color-mix(in srgb, var(--badge-pin-color, var(--accent)), transparent 28%);
+  --badge-bg: color-mix(in srgb, var(--badge-pin-color, var(--accent)), var(--panel3) 90%);
+  padding-inline: 5px;
+}
+.ui-badge-icon { min-width: 1.35rem; }
+.category-issue-badge { min-width: 1.35rem; }
+.badge-icon { width: 1.25em; height: 1.25em; display: block; }
 .editor {
   overflow: auto;
   padding: 16px;
@@ -454,46 +505,26 @@ details.card > summary {
   color: var(--text);
   list-style-position: inside;
 }
+.details-summary-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  vertical-align: middle;
+}
 .details-summary-title {
   font-weight: 700;
+  line-height: 1.2;
 }
 .details-summary-badges {
   display: inline-flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  margin-left: 8px;
-  vertical-align: middle;
 }
 .details-summary-badge {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  color: var(--muted);
-  background: color-mix(in srgb, var(--panel2), transparent 35%);
   font-size: 12px;
-  font-weight: 700;
-  line-height: 1.2;
-  padding: 2px 7px;
-}
-.details-summary-badge.success {
-  border-color: color-mix(in srgb, var(--ok), transparent 35%);
-  color: var(--ok);
-}
-.details-summary-badge.required {
-  border-color: var(--ok);
-  color: var(--ok);
-  background: color-mix(in srgb, var(--ok), var(--panel3) 82%);
-}
-.details-summary-badge.excluded {
-  border-color: var(--danger);
-  color: var(--danger);
-  background: color-mix(in srgb, var(--danger), var(--panel3) 86%);
-}
-.details-summary-badge.warning {
-  border-color: color-mix(in srgb, var(--warn), transparent 35%);
-  color: var(--warn);
-  background: color-mix(in srgb, var(--warn), transparent 92%);
+  line-height: 1.1;
 }
 details.card.has-validation-issues:not([open]) {
   border-color: color-mix(in srgb, var(--warn), transparent 20%);
@@ -602,10 +633,13 @@ details.card > .details-body {
   flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
-  line-height: 1.15;
+  line-height: 1.2;
 }
+.flush-heading,
+.card h2,
+.card h3,
 .category-header-title-row .flush-heading {
-  line-height: 1.15;
+  line-height: 1.2;
 }
 .category-header-actions {
   margin-left: auto;
@@ -1246,17 +1280,7 @@ details.card > .details-body {
 .field-warning { color: var(--warn); }
 .field-error { color: var(--danger); }
 .field-note { color: var(--muted); }
-.validation-badge,
-.category-validation-summary {
-  display: inline-flex;
-  align-items: center;
-  border: 1px solid color-mix(in srgb, var(--warn), transparent 35%);
-  border-radius: 999px;
-  color: var(--warn);
-  font-size: 12px;
-  font-weight: 700;
-  padding: 3px 8px;
-}
+.category-validation-summary { font-size: 12px; padding-inline: 8px; }
 input[aria-invalid="true"], textarea[aria-invalid="true"] {
   border-color: var(--danger);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger), transparent 55%);

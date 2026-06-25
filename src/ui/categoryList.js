@@ -1,5 +1,6 @@
 import { el, escapeHtml } from '../dom.js';
 import { clamp01, rgbaCssWithMinimumAlpha } from '../color.js';
+import { RANGE_FILTER_KEYS, STATE_FILTER_KEYS, validateCategory, validateCategoryName, validateCategoryOrder, validateCategoryPriority, validateRangeFilter, validateRarities, validateRegexPattern, validateStateFilter } from '../validation.js';
 
 function getCategorySearchText() {
   const search = el('search');
@@ -26,6 +27,73 @@ function getCategorySubtitle(cat) {
 
 function getCategorySubtitleTitle(cat) {
   return getCategoryDescriptionText(cat) || 'No description';
+}
+
+function isIssueFinding(item) {
+  return item.severity === 'error' || item.severity === 'warning';
+}
+
+function rulesOf(category) {
+  return category?.Rules && typeof category.Rules === 'object' ? category.Rules : {};
+}
+
+function isFiniteValue(value) {
+  return Number.isFinite(Number(value));
+}
+
+function duplicateValueCount(values) {
+  if (!Array.isArray(values)) return 0;
+  const seen = new Set();
+  const dupes = new Set();
+  for (const value of values) {
+    const key = String(value);
+    if (seen.has(key)) dupes.add(key);
+    seen.add(key);
+  }
+  return dupes.size;
+}
+
+function categoryIssueCountWithoutSortPosition(cat) {
+  const rules = rulesOf(cat);
+  let count = [
+    ...validateCategoryName(cat),
+    ...validateCategoryOrder(cat),
+    ...validateCategoryPriority(cat),
+    ...validateRarities(cat)
+  ].filter(isIssueFinding).length;
+
+  count += duplicateValueCount(rules.AllowedItemIds);
+  count += duplicateValueCount(rules.AllowedUiCategoryIds);
+  count += duplicateValueCount(rules.AllowedItemNamePatterns);
+
+  if (Array.isArray(rules.AllowedItemNamePatterns)) {
+    for (const pattern of rules.AllowedItemNamePatterns) count += validateRegexPattern(pattern).filter(isIssueFinding).length;
+  }
+  for (const key of RANGE_FILTER_KEYS) count += validateRangeFilter(key, rules[key]).filter(isIssueFinding).length;
+  for (const key of STATE_FILTER_KEYS) count += validateStateFilter(key, rules[key]).filter(isIssueFinding).length;
+  return count;
+}
+
+function sortPositionKey(cat) {
+  if (!isFiniteValue(cat?.Order) || !isFiniteValue(cat?.Priority)) return '';
+  return `${Number(cat.Order)}:${Number(cat.Priority)}`;
+}
+
+export function computeCategoryIssueCounts(cats = []) {
+  const sortPositionCounts = new Map();
+  for (const cat of cats) {
+    const key = sortPositionKey(cat);
+    if (key) sortPositionCounts.set(key, (sortPositionCounts.get(key) || 0) + 1);
+  }
+
+  return new Map(cats.map(cat => {
+    const sortWarning = (sortPositionCounts.get(sortPositionKey(cat)) || 0) > 1 ? 1 : 0;
+    return [cat, categoryIssueCountWithoutSortPosition(cat) + sortWarning];
+  }));
+}
+
+export function getCategoryIssueCount(cat, cats = []) {
+  return validateCategory(cat, cats).filter(isIssueFinding).length;
 }
 
 function clearDropClasses() {
@@ -83,6 +151,7 @@ export function renderCategoryList({
   list.innerHTML = '';
 
   const entries = filteredCategoryEntries();
+  const issueCounts = computeCategoryIssueCounts(cats);
   const searchActive = isCategorySearchActive();
   entries.forEach(({cat, idx}) => {
     const item = document.createElement('div');
@@ -90,13 +159,15 @@ export function renderCategoryList({
     const subtitle = getCategorySubtitle(cat);
     const subtitleTitle = getCategorySubtitleTitle(cat);
 
+    const issueCount = issueCounts.get(cat) || 0;
+    const issueLabel = `${issueCount} validation ${issueCount === 1 ? 'issue' : 'issues'}`;
     const active = idx === getSelectedIndex();
     item.className = 'cat-item' + (active ? ' active' : '') + (searchActive ? ' reorder-disabled' : '');
     item.draggable = !searchActive;
     item.tabIndex = 0;
     item.role = 'button';
     if (active) item.setAttribute('aria-current', 'true');
-    item.setAttribute('aria-label', `Select category ${displayName}. ${subtitle}`);
+    item.setAttribute('aria-label', `Select category ${displayName}. ${subtitle}${issueCount ? `. ${issueLabel}` : ''}`);
     item.title = `Select ${displayName}`;
     item.dataset.index = String(idx);
     item.style.setProperty('--category-color', rgbaCssWithMinimumAlpha(cat.Color, 0.35));
@@ -158,8 +229,9 @@ export function renderCategoryList({
         <div class="cat-desc" title="${escapeHtml(subtitleTitle)}">${escapeHtml(subtitle)}</div>
       </div>
       <div class="badges">
-        <span class="badge ${cat.Enabled ? 'on' : ''}">${cat.Enabled ? 'on' : 'off'}</span>
-        ${cat.Pinned ? '<span class="badge pin" title="Pinned" aria-label="Pinned"><svg class="badge-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M10.8 1.2 14.8 5.2 13.4 6.6 12.6 5.8 9.8 8.6 10.2 10.6 9.2 11.6 6.7 9.1 3.1 12.7 2.2 11.8 5.8 8.2 3.4 5.8 4.4 4.8 6.4 5.2 9.2 2.4 8.4 1.6 9.8.2 10.8 1.2Z"/></svg></span>' : ''}
+        ${issueCount ? `<span class="ui-badge ui-badge-warning category-issue-badge" title="${escapeHtml(issueLabel)}" aria-label="${escapeHtml(issueLabel)}">${issueCount}</span>` : ''}
+        <span class="ui-badge badge ${cat.Enabled ? 'on ui-badge-success' : 'ui-badge-muted'}">${cat.Enabled ? 'on' : 'off'}</span>
+        ${cat.Pinned ? '<span class="ui-badge ui-badge-pin ui-badge-icon badge pin" title="Pinned" aria-label="Pinned"><svg class="badge-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M10.8 1.2 14.8 5.2 13.4 6.6 12.6 5.8 9.8 8.6 10.2 10.6 9.2 11.6 6.7 9.1 3.1 12.7 2.2 11.8 5.8 8.2 3.4 5.8 4.4 4.8 6.4 5.2 9.2 2.4 8.4 1.6 9.8.2 10.8 1.2Z"/></svg></span>' : ''}
       </div>
     `;
     list.appendChild(item);

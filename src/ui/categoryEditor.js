@@ -79,10 +79,12 @@ function setDetailsSummary(details, parts) {
   const summary = details.querySelector('summary');
   if (!summary) return;
   summary.innerHTML = '';
+  const content = document.createElement('span');
+  content.className = 'details-summary-content';
   const title = document.createElement('span');
   title.className = 'details-summary-title';
   title.textContent = parts.title;
-  summary.appendChild(title);
+  content.appendChild(title);
 
   const badges = Array.isArray(parts.badges) ? parts.badges : [];
   if (badges.length) {
@@ -90,12 +92,13 @@ function setDetailsSummary(details, parts) {
     badgeBox.className = 'details-summary-badges';
     for (const badge of badges) {
       const badgeEl = document.createElement('span');
-      badgeEl.className = `details-summary-badge${badge.tone ? ` ${badge.tone}` : ''}`;
+      badgeEl.className = `ui-badge details-summary-badge${badge.tone ? ` ${badge.tone} ui-badge-${badge.tone}` : ''}`;
       badgeEl.textContent = badge.label;
       badgeBox.appendChild(badgeEl);
     }
-    summary.appendChild(badgeBox);
+    content.appendChild(badgeBox);
   }
+  summary.appendChild(content);
   details.classList.toggle('has-validation-issues', (parts.issueCount || 0) > 0);
 }
 
@@ -327,7 +330,7 @@ export function renderEditor(deps) {
       <div class="category-header-title">
         <div class="category-header-title-row">
           <h2 class="flush-heading">${escapeHtml(cat.Name || '(unnamed)')}</h2>
-          <span class="validation-badge category-validation-summary" hidden></span>
+          <span class="ui-badge ui-badge-warning validation-badge category-validation-summary" hidden></span>
         </div>
       </div>
       <div class="row category-header-actions">
@@ -464,11 +467,11 @@ export function renderEditor(deps) {
     title.innerHTML = `<h3>${escapeHtml(displayFilterName(key))}</h3>`;
     const titleActions = document.createElement('div');
     titleActions.className = 'filter-card-actions';
-    titleActions.appendChild(switchInput('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(); setDetailsSummary(ranges, rangeFiltersSummaryParts(rules)); updateCategoryIssueSummary(); }));
+    titleActions.appendChild(switchInput('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(); setDetailsSummary(ranges, rangeFiltersSummaryParts(rules)); updateCategoryIssueSummary(); renderList(); }));
     title.appendChild(titleActions);
     box.append(
       title,
-      rangeSliderControl(displayFilterName(key), obj, () => { markDirty(); setDetailsSummary(ranges, rangeFiltersSummaryParts(rules)); updateCategoryIssueSummary(); }, defaults)
+      rangeSliderControl(displayFilterName(key), obj, () => { markDirty(); setDetailsSummary(ranges, rangeFiltersSummaryParts(rules)); updateCategoryIssueSummary(); renderList(); }, defaults)
     );
     rangeGrid.appendChild(box);
   }
@@ -495,7 +498,7 @@ export function renderEditor(deps) {
     titleActions.appendChild(segmentedControl(displayFilterName(filterName), obj.State ?? 0, STATE_FILTER_OPTIONS, next => {
       obj.State = next;
       markDirty();
-      setDetailsSummary(bools, stateFiltersSummaryParts(rules)); updateCategoryIssueSummary();
+      setDetailsSummary(bools, stateFiltersSummaryParts(rules)); updateCategoryIssueSummary(); renderList();
     }));
     title.appendChild(titleActions);
     box.appendChild(title);
@@ -513,7 +516,7 @@ export function renderEditor(deps) {
   const advanced = document.createElement('details');
   advanced.className = 'card';
   advanced.innerHTML = `
-    <summary><span class="details-summary-title">Advanced</span></summary>
+    <summary><span class="details-summary-content"><span class="details-summary-title">Advanced</span></span></summary>
     <div class="details-body">
       <p class="hint">Edit the selected category directly. Click “Apply raw category JSON” after changes.</p>
       <textarea class="raw" id="rawCategory">${escapeHtml(JSON.stringify(cat, null, 2))}</textarea>
