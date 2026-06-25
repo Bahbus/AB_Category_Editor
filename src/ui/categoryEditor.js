@@ -36,6 +36,12 @@ export function getBasicSwitchWarnings(cat) {
   return validateCategoryName(cat).filter(item => item.field === 'Pinned' && item.severity === 'warning');
 }
 
+export function renderDetailsSummaryHtml(parts) {
+  const title = escapeHtml(parts?.title ?? '');
+  const badges = Array.isArray(parts?.badges) ? parts.badges : [];
+  return `<span class="details-summary-content"><span class="details-summary-title">${title}</span><span class="details-summary-badges">${badges.map(badge => `<span class="ui-badge details-summary-badge${badge.tone ? ` ${escapeHtml(badge.tone)} ui-badge-${escapeHtml(badge.tone)}` : ''}">${escapeHtml(badge.label)}</span>`).join('')}</span></span>`;
+}
+
 export function rangeFiltersSummaryParts(rules) {
   const activeNames = Object.entries(RANGE_FILTER_NAMES)
     .filter(([key]) => rules?.[key]?.Enabled === true)
@@ -78,27 +84,7 @@ export function stateFiltersSummary(rules) {
 function setDetailsSummary(details, parts) {
   const summary = details.querySelector('summary');
   if (!summary) return;
-  summary.innerHTML = '';
-  const content = document.createElement('span');
-  content.className = 'details-summary-content';
-  const title = document.createElement('span');
-  title.className = 'details-summary-title';
-  title.textContent = parts.title;
-  content.appendChild(title);
-
-  const badges = Array.isArray(parts.badges) ? parts.badges : [];
-  if (badges.length) {
-    const badgeBox = document.createElement('span');
-    badgeBox.className = 'details-summary-badges';
-    for (const badge of badges) {
-      const badgeEl = document.createElement('span');
-      badgeEl.className = `ui-badge details-summary-badge${badge.tone ? ` ${badge.tone} ui-badge-${badge.tone}` : ''}`;
-      badgeEl.textContent = badge.label;
-      badgeBox.appendChild(badgeEl);
-    }
-    content.appendChild(badgeBox);
-  }
-  summary.appendChild(content);
+  summary.innerHTML = renderDetailsSummaryHtml(parts);
   details.classList.toggle('has-validation-issues', (parts.issueCount || 0) > 0);
 }
 

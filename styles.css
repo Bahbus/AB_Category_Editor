@@ -19,6 +19,10 @@
   --badge-warning-color: var(--warn);
   --badge-danger-color: var(--danger);
   --badge-pin-color: var(--accent);
+  --badge-height: 1.35rem;
+}
+:root[data-density="compact"] {
+  --badge-height: 1.25rem;
 }
 @media (prefers-color-scheme: light) {
   :root,
@@ -443,7 +447,7 @@ input.invalid {
   font-size: 11px;
   font-weight: 700;
   line-height: 1;
-  min-height: 1.35rem;
+  min-height: var(--badge-height, 1.35rem);
   padding: 2px 7px;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -478,8 +482,8 @@ input.invalid {
   --badge-bg: color-mix(in srgb, var(--badge-pin-color, var(--accent)), var(--panel3) 90%);
   padding-inline: 5px;
 }
-.ui-badge-icon { min-width: 1.35rem; }
-.category-issue-badge { min-width: 1.35rem; }
+.ui-badge-icon { min-width: var(--badge-height, 1.35rem); }
+.category-issue-badge { min-width: var(--badge-height, 1.35rem); }
 .badge-icon { width: 1.25em; height: 1.25em; display: block; }
 .editor {
   overflow: auto;
@@ -510,9 +514,13 @@ details.card > summary {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  min-height: var(--badge-height, 1.35rem);
   vertical-align: middle;
 }
 .details-summary-title {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--badge-height, 1.35rem);
   font-weight: 700;
   line-height: 1.2;
 }
@@ -521,6 +529,7 @@ details.card > summary {
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
+  min-height: var(--badge-height, 1.35rem);
 }
 .details-summary-badge {
   font-size: 12px;
