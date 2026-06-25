@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   analyzeImportedConfig,
+  getCategoryIssueCount,
   validateCategoryName,
   validateRegexPattern,
   validateRangeFilter,
@@ -23,6 +24,44 @@ function cleanCategory(overrides = {}) {
 }
 
 function fields(analysis) { return analysis.findings.map(item => item.field); }
+
+
+
+test('shared category issue counts include errors and warnings but not notes', () => {
+  assert.equal(getCategoryIssueCount(cleanCategory({ Description: '' })), 0);
+  assert.equal(getCategoryIssueCount(cleanCategory({ Name: '' })), 1);
+  assert.equal(getCategoryIssueCount(cleanCategory({ Order: 'not-finite' })), 1);
+});
+
+test('shared category issue counts handle sort-position duplicates only for matching pairs', () => {
+  const sameOrder = [
+    cleanCategory({ Id: 'a', Order: 1, Priority: 1 }),
+    cleanCategory({ Id: 'b', Order: 1, Priority: 2 })
+  ];
+  assert.equal(getCategoryIssueCount(sameOrder[0], sameOrder), 0);
+
+  const samePriority = [
+    cleanCategory({ Id: 'a', Order: 1, Priority: 1 }),
+    cleanCategory({ Id: 'b', Order: 2, Priority: 1 })
+  ];
+  assert.equal(getCategoryIssueCount(samePriority[0], samePriority), 0);
+
+  const samePair = [
+    cleanCategory({ Id: 'a', Order: 1, Priority: 1 }),
+    cleanCategory({ Id: 'b', Order: 1, Priority: 1 })
+  ];
+  assert.equal(getCategoryIssueCount(samePair[0], samePair), 1);
+  assert.equal(getCategoryIssueCount(samePair[1], samePair), 1);
+});
+
+test('shared category issue counts include duplicate list values and invalid regex patterns', () => {
+  const category = cleanCategory();
+  category.Rules.AllowedItemIds = [1, 1];
+  category.Rules.AllowedUiCategoryIds = [2, 2];
+  category.Rules.AllowedItemNamePatterns = ['foo', 'foo', '['];
+
+  assert.equal(getCategoryIssueCount(category), 4);
+});
 
 test('duplicate category IDs are reported without exposing the ID value', () => {
   const analysis = analyzeImportedConfig({ Categories: [cleanCategory({ Id: 'same-secret' }), cleanCategory({ Id: 'same-secret', Order: 2, Priority: 2 })] });

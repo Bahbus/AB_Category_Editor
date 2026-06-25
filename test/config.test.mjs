@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   defaultCategory,
+  makeId,
   defaultRules,
   ensureShape,
   compareCategoriesForImport,
@@ -33,6 +34,15 @@ test('defaultRules creates fresh arrays and supported rarity defaults', () => {
   assert.deepEqual(first.AllowedRarities, []);
   first.AllowedItemIds.push(123);
   assert.deepEqual(second.AllowedItemIds, []);
+});
+
+test('makeId returns 32 lowercase hex chars and non-trivial values', () => {
+  const first = makeId();
+  const generated = Array.from({ length: 8 }, () => makeId());
+
+  assert.match(first, /^[0-9a-f]{32}$/);
+  assert.ok(generated.every(id => /^[0-9a-f]{32}$/.test(id)));
+  assert.ok(new Set([first, ...generated]).size > 1);
 });
 
 test('defaultCategory uses max order for Order and Priority', () => {

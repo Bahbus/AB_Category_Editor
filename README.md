@@ -41,3 +41,21 @@ Published page: <https://bahbus.github.io/AB_Category_Editor/>
 
 - Run regression tests with `node --test`.
 - Check relative module imports with `node scripts/check-imports.mjs`.
+
+## Manual QA checklist
+
+Use this quick sweep before generated descriptions or other larger feature work:
+
+- Import formatted JSON and confirm category data loads without changing the exported JSON shape.
+- Import gzip+Base64 text, then use **Export/Copy** and **Download** to verify round-trip output paths.
+- Apply edits through **Raw JSON** and confirm validation still runs after applying.
+- Add, duplicate, delete, and drag/drop reorder categories; confirm search disables reorder controls while active.
+- Exercise list editors for duplicate Item IDs, UI Category IDs, and regex patterns.
+- Make Range Min greater than Max, confirm the slider fill switches to the warning color, then correct it.
+- Toggle State segmented controls between Ignored, Required, and Excluded.
+- Check **Appearance** themes (System/Dark, Light, High Contrast, Aetherial, Dalamud) in Comfortable and Compact density.
+- Confirm badge contrast, pinned-vs-warning badge distinction, collapsed issue outlines, focus outlines, and title alignment.
+- Open **About / Help** and confirm the workflow and appearance preference text matches the UI.
+- Start a Regex → Item IDs scan and cancel it before completion.
+- Open Range, State, and Advanced sections; edit local fields and confirm open sections do not collapse.
+- Confirm native disclosure arrows remain visible and Range/State summaries stay compact without issue badges.

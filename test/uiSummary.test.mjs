@@ -2,13 +2,13 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
+import { getBasicSwitchWarnings } from '../src/ui/categoryEditor.js';
 import {
-  getBasicSwitchWarnings,
   rangeFiltersSummary,
   rangeFiltersSummaryParts,
   stateFiltersSummary,
   stateFiltersSummaryParts
-} from '../src/ui/categoryEditor.js';
+} from '../src/ui/filterSummary.js';
 import { renderDetailsSummaryHtml } from '../src/ui/detailsSummary.js';
 
 test('rangeFiltersSummaryParts returns no badges for inactive valid ranges', () => {
@@ -200,6 +200,8 @@ test('shared state filters are imported by validation and editor', () => {
 
   assert.match(validationSource, /import \{ ALLOWED_RARITY_IDS, RANGE_FILTER_KEYS, STATE_FILTER_KEYS \}/);
   assert.doesNotMatch(validationSource, /export const STATE_FILTER_KEYS = \[/);
-  assert.match(editorSource, /STATE_FILTERS, STATE_FILTER_KEYS/);
+  const summarySource = fs.readFileSync(new URL('../src/ui/filterSummary.js', import.meta.url), 'utf8');
+  assert.match(summarySource, /STATE_FILTER_KEYS/);
   assert.doesNotMatch(editorSource, /const STATE_FILTER_KEYS = \[/);
+  assert.doesNotMatch(summarySource, /const STATE_FILTER_KEYS = \[/);
 });
