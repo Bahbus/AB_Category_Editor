@@ -19,11 +19,12 @@ export function showHelpModal() {
       <li><strong>Lookup Cache</strong> shows and clears locally cached lookup names stored in this browser.</li>
       <li><strong>Regex → Item IDs</strong> scans XIVAPI item names for a selected name pattern and can be canceled while it runs.</li>
     </ul>
-    <h3>Appearance preferences</h3>
+    <h3>Editor preferences and descriptions</h3>
     <ul>
-      <li><strong>Appearance</strong> lets you choose editor-only themes and comfortable/compact density.</li>
-      <li>Appearance preferences are stored locally in this browser with <code>localStorage</code>.</li>
-      <li>Themes and density affect only this editor UI and are not included in exported AetherBags config data.</li>
+      <li><strong>Preferences</strong> lets you choose editor-only themes and comfortable/compact density, plus behavior settings like auto-lookup and description generation.</li>
+      <li><strong>Generate</strong> beside Description suggests concise text from the category name and selected rules/filters.</li>
+      <li><strong>Auto-lookup imported IDs</strong> and <strong>Auto-generate descriptions</strong> live on the Behavior tab; generated descriptions only fill blanks and never overwrite existing text.</li>
+      <li>Preferences are stored locally in this browser with <code>localStorage</code> and are not included in exported AetherBags config data.</li>
     </ul>
     <h3>Privacy</h3>
     <ul>

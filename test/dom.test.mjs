@@ -16,14 +16,14 @@ test('el returns matching element or null', () => {
 });
 
 test('requireEl returns matching element', () => {
-  const expected = { id: 'showAppearance' };
+  const expected = { id: 'showPreferences' };
   globalThis.document = {
     getElementById(id) {
-      return id === 'showAppearance' ? expected : null;
+      return id === 'showPreferences' ? expected : null;
     }
   };
 
-  assert.equal(requireEl('showAppearance'), expected);
+  assert.equal(requireEl('showPreferences'), expected);
 });
 
 test('requireEl throws a clear missing-element error', () => {
@@ -34,7 +34,7 @@ test('requireEl throws a clear missing-element error', () => {
   };
 
   assert.throws(
-    () => requireEl('showAppearance'),
-    /Missing required element: #showAppearance/
+    () => requireEl('showPreferences'),
+    /Missing required element: #showPreferences/
   );
 });

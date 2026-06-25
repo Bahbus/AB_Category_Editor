@@ -30,12 +30,12 @@ test('HTML/template source does not contain duplicate class attributes on one ta
 
 test('help and appearance preferences stay source-consistent', () => {
   const help = read('src/ui/helpModal.js');
-  const appearance = read('src/ui/appearanceModal.js');
+  const preferences = read('src/ui/preferencesModal.js');
 
   assert.doesNotMatch(help, /checkbox style/i);
   assert.match(help, /themes? and (?:comfortable\/compact )?density/i);
-  assert.match(appearance, /preferenceSelect\('themePreference', 'Theme'/);
-  assert.match(appearance, /preferenceSelect\('densityPreference', 'Density'/);
+  assert.match(preferences, /preferenceSelect\('themePreference', 'Theme'/);
+  assert.match(preferences, /preferenceSelect\('densityPreference', 'Density'/);
 });
 
 test('key modal, help, pinned, and category issue status controls remain accessible', () => {
@@ -87,7 +87,7 @@ test('allowed rarity checkbox changes refresh validation and category list witho
   const source = read('src/ui/categoryEditor.js');
   assert.match(source, /onValidationChanged = \(\) => \{\}/);
   assert.match(source, /onValidationChanged\(\);/);
-  assert.match(source, /renderAllowedRaritiesEditor\(cat, \{ \.\.\.deps, onValidationChanged: \(\) => \{ updateValidationUi\(\); renderList\(\); \} \}\)/);
+  assert.match(source, /renderAllowedRaritiesEditor\(cat, \{ \.\.\.deps, onValidationChanged: \(\) => \{ updateValidationUi\(\);[\s\S]*?renderList\(\); \} \}\)/);
   const rarityEditorBody = source.match(/function renderAllowedRaritiesEditor\(cat, deps\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
   assert.doesNotMatch(rarityEditorBody, /renderAll\(\)/);
 });
