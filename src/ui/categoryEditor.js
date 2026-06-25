@@ -90,7 +90,7 @@ function setDetailsSummary(details, parts) {
     badgeBox.className = 'details-summary-badges';
     for (const badge of badges) {
       const badgeEl = document.createElement('span');
-      badgeEl.className = `details-summary-badge${badge.tone ? ` ${badge.tone}` : ''}`;
+      badgeEl.className = `ui-badge details-summary-badge${badge.tone ? ` ${badge.tone} ui-badge-${badge.tone}` : ''}`;
       badgeEl.textContent = badge.label;
       badgeBox.appendChild(badgeEl);
     }
@@ -327,7 +327,7 @@ export function renderEditor(deps) {
       <div class="category-header-title">
         <div class="category-header-title-row">
           <h2 class="flush-heading">${escapeHtml(cat.Name || '(unnamed)')}</h2>
-          <span class="validation-badge category-validation-summary" hidden></span>
+          <span class="ui-badge ui-badge-warning validation-badge category-validation-summary" hidden></span>
         </div>
       </div>
       <div class="row category-header-actions">
