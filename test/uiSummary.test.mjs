@@ -99,8 +99,10 @@ test('title and summary CSS use shared alignment tokens', () => {
   const styles = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(styles, /--title-control-height:\s*2rem;/);
   assert.match(styles, /--title-line-height:\s*1;/);
+  assert.match(styles, /--heading-optical-y:\s*-1px;/);
   assert.match(styles, /\.category-header-title-row\s*{[^}]*min-height:\s*var\(--title-control-height\)/s);
-  assert.match(styles, /\.category-header-title-row \.flush-heading\s*{[^}]*min-height:\s*var\(--title-control-height\)/s);
+  assert.match(styles, /\.flush-heading\s*{[^}]*min-height:\s*var\(--title-control-height\)/s);
+  assert.match(styles, /\.category-header-title-row \.flush-heading\s*{[^}]*transform:\s*translateY\(var\(--heading-optical-y\)\)/s);
   assert.match(styles, /\.details-summary-title\s*{[^}]*min-height:\s*var\(--title-control-height\)/s);
 });
 
@@ -108,4 +110,19 @@ test('category list source does not import single-row issue count helper', () =>
   const source = fs.readFileSync(new URL('../src/ui/categoryList.js', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /import\s*{[^}]*getCategoryIssueCount[,\s}]/);
   assert.match(source, /getCategoryIssueCounts/);
+});
+
+test('details summary keeps native disclosure marker display', () => {
+  const styles = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
+  const summaryRule = styles.match(/details\.card > summary\s*{(?<body>[^}]*)}/s)?.groups.body ?? '';
+  assert.doesNotMatch(summaryRule, /display:\s*flex/);
+  assert.match(summaryRule, /display:\s*list-item/);
+});
+
+test('setDetailsSummary updates stable summary parts without replacing summary html', () => {
+  const source = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
+  assert.match(source, /function ensureDetailsSummaryParts\(details\)/);
+  assert.match(source, /summaryParts\.title\.textContent/);
+  assert.match(source, /summaryParts\.badges\.replaceChildren/);
+  assert.doesNotMatch(source, /summary\.innerHTML\s*=\s*renderDetailsSummaryHtml/);
 });
