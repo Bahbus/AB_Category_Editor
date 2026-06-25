@@ -20,9 +20,12 @@
   --badge-danger-color: var(--danger);
   --badge-pin-color: var(--accent);
   --badge-height: 1.35rem;
+  --title-control-height: 2rem;
+  --title-line-height: 1;
 }
 :root[data-density="compact"] {
   --badge-height: 1.25rem;
+  --title-control-height: 1.8rem;
 }
 @media (prefers-color-scheme: light) {
   :root,
@@ -504,9 +507,14 @@ details.card {
   padding: 0;
 }
 details.card > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--title-control-height);
   padding: 14px;
   cursor: pointer;
   color: var(--text);
+  line-height: var(--title-line-height);
   list-style-position: inside;
 }
 .details-summary-content {
@@ -514,15 +522,16 @@ details.card > summary {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  min-height: var(--badge-height, 1.35rem);
+  min-height: var(--title-control-height);
+  line-height: var(--title-line-height);
   vertical-align: middle;
 }
 .details-summary-title {
   display: inline-flex;
   align-items: center;
-  min-height: var(--badge-height, 1.35rem);
+  min-height: var(--title-control-height);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: var(--title-line-height);
 }
 .details-summary-badges {
   display: inline-flex;
@@ -533,7 +542,6 @@ details.card > summary {
 }
 .details-summary-badge {
   font-size: 12px;
-  line-height: 1.1;
 }
 details.card.has-validation-issues:not([open]) {
   border-color: color-mix(in srgb, var(--warn), transparent 20%);
@@ -642,13 +650,19 @@ details.card > .details-body {
   flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
+  min-height: var(--title-control-height);
+  line-height: var(--title-line-height);
+}
+.card h2,
+.card h3 {
   line-height: 1.2;
 }
 .flush-heading,
-.card h2,
-.card h3,
 .category-header-title-row .flush-heading {
-  line-height: 1.2;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--title-control-height);
+  line-height: var(--title-line-height);
 }
 .category-header-actions {
   margin-left: auto;
@@ -658,9 +672,11 @@ details.card > .details-body {
 }
 .basic-switch-area {
   display: grid;
+  align-items: center;
   justify-items: end;
   gap: 4px;
   margin-left: auto;
+  min-height: var(--title-control-height);
 }
 .basic-switch-validation {
   text-align: right;
@@ -1155,16 +1171,25 @@ details.card > .details-body {
   display: grid;
   gap: 8px;
 }
+.title-row,
 .filter-card-title {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
+  min-height: var(--title-control-height);
+  line-height: var(--title-line-height);
+}
+.filter-card-title {
   margin-bottom: 2px;
 }
 .filter-card-title h3 {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--title-control-height);
   margin: 0;
+  line-height: var(--title-line-height);
 }
 .filter-card-actions {
   display: inline-flex;

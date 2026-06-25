@@ -502,7 +502,7 @@ export function renderEditor(deps) {
   const advanced = document.createElement('details');
   advanced.className = 'card';
   advanced.innerHTML = `
-    <summary><span class="details-summary-content"><span class="details-summary-title">Advanced</span></span></summary>
+    <summary>${renderDetailsSummaryHtml({ title: 'Advanced' })}</summary>
     <div class="details-body">
       <p class="hint">Edit the selected category directly. Click “Apply raw category JSON” after changes.</p>
       <textarea class="raw" id="rawCategory">${escapeHtml(JSON.stringify(cat, null, 2))}</textarea>

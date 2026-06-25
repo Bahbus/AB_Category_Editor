@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 
 import {
   getBasicSwitchWarnings,
@@ -91,4 +92,20 @@ test('getBasicSwitchWarnings returns disabled pinned warning', () => {
     'Disabled categories should usually not be pinned.'
   ]);
   assert.deepEqual(getBasicSwitchWarnings({ Enabled: true, Pinned: true }), []);
+});
+
+
+test('title and summary CSS use shared alignment tokens', () => {
+  const styles = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
+  assert.match(styles, /--title-control-height:\s*2rem;/);
+  assert.match(styles, /--title-line-height:\s*1;/);
+  assert.match(styles, /\.category-header-title-row\s*{[^}]*min-height:\s*var\(--title-control-height\)/s);
+  assert.match(styles, /\.category-header-title-row \.flush-heading\s*{[^}]*min-height:\s*var\(--title-control-height\)/s);
+  assert.match(styles, /\.details-summary-title\s*{[^}]*min-height:\s*var\(--title-control-height\)/s);
+});
+
+test('category list source does not import single-row issue count helper', () => {
+  const source = fs.readFileSync(new URL('../src/ui/categoryList.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(source, /import\s*{[^}]*getCategoryIssueCount[,\s}]/);
+  assert.match(source, /getCategoryIssueCounts/);
 });
