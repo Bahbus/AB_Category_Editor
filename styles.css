@@ -500,14 +500,17 @@ details.card {
   padding: 0;
 }
 details.card > summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
   padding: 14px;
   cursor: pointer;
   color: var(--text);
   list-style-position: inside;
+}
+.details-summary-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  vertical-align: middle;
 }
 .details-summary-title {
   font-weight: 700;

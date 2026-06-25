@@ -1,6 +1,6 @@
 import { el, escapeHtml } from '../dom.js';
 import { clamp01, rgbaCssWithMinimumAlpha } from '../color.js';
-import { validateCategory } from '../validation.js';
+import { RANGE_FILTER_KEYS, STATE_FILTER_KEYS, validateCategory, validateCategoryName, validateCategoryOrder, validateCategoryPriority, validateRangeFilter, validateRarities, validateRegexPattern, validateStateFilter } from '../validation.js';
 
 function getCategorySearchText() {
   const search = el('search');
@@ -29,8 +29,71 @@ function getCategorySubtitleTitle(cat) {
   return getCategoryDescriptionText(cat) || 'No description';
 }
 
+function isIssueFinding(item) {
+  return item.severity === 'error' || item.severity === 'warning';
+}
+
+function rulesOf(category) {
+  return category?.Rules && typeof category.Rules === 'object' ? category.Rules : {};
+}
+
+function isFiniteValue(value) {
+  return Number.isFinite(Number(value));
+}
+
+function duplicateValueCount(values) {
+  if (!Array.isArray(values)) return 0;
+  const seen = new Set();
+  const dupes = new Set();
+  for (const value of values) {
+    const key = String(value);
+    if (seen.has(key)) dupes.add(key);
+    seen.add(key);
+  }
+  return dupes.size;
+}
+
+function categoryIssueCountWithoutSortPosition(cat) {
+  const rules = rulesOf(cat);
+  let count = [
+    ...validateCategoryName(cat),
+    ...validateCategoryOrder(cat),
+    ...validateCategoryPriority(cat),
+    ...validateRarities(cat)
+  ].filter(isIssueFinding).length;
+
+  count += duplicateValueCount(rules.AllowedItemIds);
+  count += duplicateValueCount(rules.AllowedUiCategoryIds);
+  count += duplicateValueCount(rules.AllowedItemNamePatterns);
+
+  if (Array.isArray(rules.AllowedItemNamePatterns)) {
+    for (const pattern of rules.AllowedItemNamePatterns) count += validateRegexPattern(pattern).filter(isIssueFinding).length;
+  }
+  for (const key of RANGE_FILTER_KEYS) count += validateRangeFilter(key, rules[key]).filter(isIssueFinding).length;
+  for (const key of STATE_FILTER_KEYS) count += validateStateFilter(key, rules[key]).filter(isIssueFinding).length;
+  return count;
+}
+
+function sortPositionKey(cat) {
+  if (!isFiniteValue(cat?.Order) || !isFiniteValue(cat?.Priority)) return '';
+  return `${Number(cat.Order)}:${Number(cat.Priority)}`;
+}
+
+export function computeCategoryIssueCounts(cats = []) {
+  const sortPositionCounts = new Map();
+  for (const cat of cats) {
+    const key = sortPositionKey(cat);
+    if (key) sortPositionCounts.set(key, (sortPositionCounts.get(key) || 0) + 1);
+  }
+
+  return new Map(cats.map(cat => {
+    const sortWarning = (sortPositionCounts.get(sortPositionKey(cat)) || 0) > 1 ? 1 : 0;
+    return [cat, categoryIssueCountWithoutSortPosition(cat) + sortWarning];
+  }));
+}
+
 export function getCategoryIssueCount(cat, cats = []) {
-  return validateCategory(cat, cats).filter(item => item.severity === 'error' || item.severity === 'warning').length;
+  return validateCategory(cat, cats).filter(isIssueFinding).length;
 }
 
 function clearDropClasses() {
@@ -88,6 +151,7 @@ export function renderCategoryList({
   list.innerHTML = '';
 
   const entries = filteredCategoryEntries();
+  const issueCounts = computeCategoryIssueCounts(cats);
   const searchActive = isCategorySearchActive();
   entries.forEach(({cat, idx}) => {
     const item = document.createElement('div');
@@ -95,7 +159,7 @@ export function renderCategoryList({
     const subtitle = getCategorySubtitle(cat);
     const subtitleTitle = getCategorySubtitleTitle(cat);
 
-    const issueCount = getCategoryIssueCount(cat, cats);
+    const issueCount = issueCounts.get(cat) || 0;
     const issueLabel = `${issueCount} validation ${issueCount === 1 ? 'issue' : 'issues'}`;
     const active = idx === getSelectedIndex();
     item.className = 'cat-item' + (active ? ' active' : '') + (searchActive ? ' reorder-disabled' : '');
