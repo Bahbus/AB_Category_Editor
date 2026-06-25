@@ -5,6 +5,7 @@ import {
   getBasicSwitchWarnings,
   rangeFiltersSummary,
   rangeFiltersSummaryParts,
+  renderDetailsSummaryHtml,
   stateFiltersSummary,
   stateFiltersSummaryParts
 } from '../src/ui/categoryEditor.js';
@@ -16,6 +17,18 @@ test('rangeFiltersSummaryParts returns no badges for inactive valid ranges', () 
     issueCount: 0
   });
   assert.equal(rangeFiltersSummary({}), 'Range Filters');
+});
+
+
+test('renderDetailsSummaryHtml always includes stable empty badge slot', () => {
+  const html = renderDetailsSummaryHtml(rangeFiltersSummaryParts({}));
+  assert.match(html, /details-summary-title">Range Filters<\/span><span class="details-summary-badges"><\/span>/);
+  assert.doesNotMatch(html, /ui-badge/);
+});
+
+test('renderDetailsSummaryHtml renders badges inside stable badge slot', () => {
+  const html = renderDetailsSummaryHtml(rangeFiltersSummaryParts({ Level: { Enabled: true, Min: 10, Max: 1 } }));
+  assert.match(html, /<span class="details-summary-badges"><span class="ui-badge details-summary-badge success ui-badge-success">Level<\/span><span class="ui-badge details-summary-badge warning ui-badge-warning">1 issue<\/span><\/span>/);
 });
 
 test('rangeFiltersSummaryParts returns active range badges', () => {

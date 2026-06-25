@@ -13,6 +13,10 @@ function label(category, index = null) {
 function rulesOf(category) { return category?.Rules && typeof category.Rules === 'object' ? category.Rules : {}; }
 function isFiniteValue(value) { return Number.isFinite(Number(value)); }
 
+export function isIssueFinding(item) {
+  return item?.severity === 'error' || item?.severity === 'warning';
+}
+
 export function validateCategoryName(category) {
   const findings = [];
   if (!String(category?.Name ?? '').trim()) findings.push(finding('warning', 'Name', 'Category name is blank.'));
@@ -80,6 +84,61 @@ function duplicateFindings(values, field, labelText) {
     seen.add(key);
   }
   return [...dupes].map(() => finding('warning', field, `Duplicate ${labelText} in this category.`));
+}
+
+function duplicateValueCount(values) {
+  if (!Array.isArray(values)) return 0;
+  const seen = new Set();
+  const dupes = new Set();
+  for (const value of values) {
+    const key = String(value);
+    if (seen.has(key)) dupes.add(key);
+    seen.add(key);
+  }
+  return dupes.size;
+}
+
+function sortPositionKey(category) {
+  if (!isFiniteValue(category?.Order) || !isFiniteValue(category?.Priority)) return '';
+  return `${Number(category.Order)}:${Number(category.Priority)}`;
+}
+
+function getCategoryIssueCountWithoutSortPosition(category) {
+  const rules = rulesOf(category);
+  let count = [
+    ...validateCategoryName(category),
+    ...validateCategoryOrder(category),
+    ...validateCategoryPriority(category),
+    ...validateRarities(category)
+  ].filter(isIssueFinding).length;
+
+  count += duplicateValueCount(rules.AllowedItemIds);
+  count += duplicateValueCount(rules.AllowedUiCategoryIds);
+  count += duplicateValueCount(rules.AllowedItemNamePatterns);
+
+  if (Array.isArray(rules.AllowedItemNamePatterns)) {
+    for (const pattern of rules.AllowedItemNamePatterns) count += validateRegexPattern(pattern).filter(isIssueFinding).length;
+  }
+  for (const key of RANGE_FILTER_KEYS) count += validateRangeFilter(key, rules[key]).filter(isIssueFinding).length;
+  for (const key of STATE_FILTER_KEYS) count += validateStateFilter(key, rules[key]).filter(isIssueFinding).length;
+  return count;
+}
+
+export function getCategoryIssueCounts(categories = []) {
+  const sortPositionCounts = new Map();
+  for (const category of categories) {
+    const key = sortPositionKey(category);
+    if (key) sortPositionCounts.set(key, (sortPositionCounts.get(key) || 0) + 1);
+  }
+
+  return new Map(categories.map(category => {
+    const sortWarning = (sortPositionCounts.get(sortPositionKey(category)) || 0) > 1 ? 1 : 0;
+    return [category, getCategoryIssueCountWithoutSortPosition(category) + sortWarning];
+  }));
+}
+
+export function getCategoryIssueCount(category, allCategories = []) {
+  return getCategoryIssueCounts(allCategories.includes(category) ? allCategories : [category, ...allCategories]).get(category) || 0;
 }
 
 export function validateCategory(category, allCategories = []) {
