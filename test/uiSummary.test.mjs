@@ -98,12 +98,18 @@ test('getBasicSwitchWarnings returns disabled pinned warning', () => {
 test('title and summary CSS use shared alignment tokens', () => {
   const styles = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(styles, /--title-control-height:\s*2rem;/);
+  assert.match(styles, /--summary-content-height:\s*var\(--badge-height\);/);
+  assert.match(styles, /--summary-padding-block:\s*10px;/);
   assert.match(styles, /--title-line-height:\s*1;/);
   assert.match(styles, /--heading-optical-y:\s*-1px;/);
   assert.match(styles, /\.category-header-title-row\s*{[^}]*min-height:\s*var\(--title-control-height\)/s);
   assert.match(styles, /\.flush-heading\s*{[^}]*min-height:\s*var\(--title-control-height\)/s);
   assert.match(styles, /\.category-header-title-row \.flush-heading\s*{[^}]*transform:\s*translateY\(var\(--heading-optical-y\)\)/s);
-  assert.match(styles, /\.details-summary-title\s*{[^}]*min-height:\s*var\(--title-control-height\)/s);
+  assert.match(styles, /\.details-summary-content\s*{[^}]*min-height:\s*var\(--summary-content-height,\s*var\(--badge-height\)\)/s);
+  assert.match(styles, /\.details-summary-title\s*{[^}]*min-height:\s*var\(--summary-content-height,\s*var\(--badge-height\)\)/s);
+  assert.match(styles, /\.details-summary-badges\s*{[^}]*min-height:\s*var\(--summary-content-height,\s*var\(--badge-height\)\)/s);
+  assert.doesNotMatch(styles, /\.details-summary-(?:content|title|badges)\s*{[^}]*var\(--title-control-height\)/s);
+  assert.match(styles, /:root\[data-density="compact"\]\s*{[^}]*--summary-padding-block:\s*7px;/s);
 });
 
 test('category list source does not import single-row issue count helper', () => {
