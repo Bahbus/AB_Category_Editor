@@ -191,7 +191,7 @@ function renderEditor() {
     getCategories,
     getSelectedIndex: () => selectedIndex,
     setSelectedIndex: value => { selectedIndex = value; },
-    ensureShape, markDirty, markDirtyAndRenderList, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, commitActiveField, getEditorPreferences: () => editorPreferences,
+    ensureShape, markDirty, markDirtyAndRenderList, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, commitActiveField, getEditorPreferences: () => editorPreferences, copyTextToClipboard,
     listEditorDeps: { lookupName, fetchLookupBatch, searchXivapi, lookupCache, saveLookupCache, markDirty }
   });
 }

@@ -1359,15 +1359,15 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] {
 }
 .description-generate-field {
   display: grid;
+  gap: 6px;
+}
+.description-generate-row {
+  display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  column-gap: .75rem;
-  align-items: end;
+  gap: 8px;
+  align-items: start;
 }
-.description-generate-field label,
-.description-generate-field .validation-list {
-  grid-column: 1 / -1;
-}
-.description-generate-field input {
+.description-generate-row input {
   min-width: 0;
 }
 .generate-description-button {
@@ -1376,8 +1376,8 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] {
 .preference-check {
   align-items: flex-start;
 }
-@media (max-width: 560px) {
-  .description-generate-field {
+@media (max-width: 640px) {
+  .description-generate-row {
     grid-template-columns: 1fr;
   }
   .generate-description-button {

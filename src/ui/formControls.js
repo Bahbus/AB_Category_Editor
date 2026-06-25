@@ -96,7 +96,10 @@ export function textInput(label, value, onChange, options = {}) {
     onChange(e.target.value);
     if (options.validateOnInput) setValidation(options.validate ? options.validate(e.target.value) : []);
   };
-  input.onblur = e => setValidation(options.validate ? options.validate(e.target.value) : []);
+  input.onblur = e => {
+    setValidation(options.validate ? options.validate(e.target.value) : []);
+    if (typeof options.onBlur === 'function') options.onBlur(e.target.value);
+  };
   return wrap;
 }
 

@@ -50,6 +50,7 @@ test('text controls can refresh validation during input', () => {
   const formControlsSource = fs.readFileSync(new URL('../src/ui/formControls.js', import.meta.url), 'utf8');
   const categoryEditorSource = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
   assert.match(formControlsSource, /options\.validateOnInput/);
+  assert.match(formControlsSource, /typeof options\.onBlur === 'function'/);
   assert.ok(formControlsSource.includes('onChange(e.target.value);\n    if (options.validateOnInput) setValidation'));
   assert.match(categoryEditorSource, /textInput\('Description',[\s\S]*validateOnInput: true/);
   assert.match(categoryEditorSource, /textInput\('Name',[\s\S]*validateOnInput: true/);
