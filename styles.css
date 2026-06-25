@@ -1357,3 +1357,45 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] {
   border-color: var(--danger);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--danger), transparent 55%);
 }
+.description-generate-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: .75rem;
+  align-items: end;
+}
+.description-generate-field label,
+.description-generate-field .validation-list {
+  grid-column: 1 / -1;
+}
+.description-generate-field input {
+  min-width: 0;
+}
+.generate-description-button {
+  white-space: nowrap;
+}
+.preference-check {
+  align-items: flex-start;
+}
+@media (max-width: 560px) {
+  .description-generate-field {
+    grid-template-columns: 1fr;
+  }
+  .generate-description-button {
+    justify-self: start;
+  }
+}
+.preferences-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin: .75rem 0 1rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: .5rem;
+}
+.preferences-tabs [role="tab"][aria-selected="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.preferences-modal [role="tabpanel"][hidden] {
+  display: none !important;
+}
