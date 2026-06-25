@@ -20,12 +20,15 @@
   --badge-danger-color: var(--danger);
   --badge-pin-color: var(--accent);
   --badge-height: 1.35rem;
+  --summary-content-height: var(--badge-height);
+  --summary-padding-block: 10px;
   --title-control-height: 2rem;
   --title-line-height: 1;
   --heading-optical-y: -1px;
 }
 :root[data-density="compact"] {
   --badge-height: 1.25rem;
+  --summary-padding-block: 7px;
   --title-control-height: 1.8rem;
 }
 @media (prefers-color-scheme: light) {
@@ -509,8 +512,9 @@ details.card {
 }
 details.card > summary {
   display: list-item;
-  min-height: var(--title-control-height);
-  padding: 14px;
+  min-height: 0;
+  padding-block: var(--summary-padding-block);
+  padding-inline: 14px;
   cursor: pointer;
   color: var(--text);
   line-height: var(--title-line-height);
@@ -521,14 +525,14 @@ details.card > summary {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  min-height: var(--title-control-height);
+  min-height: var(--summary-content-height, var(--badge-height));
   line-height: var(--title-line-height);
   vertical-align: middle;
 }
 .details-summary-title {
   display: inline-flex;
   align-items: center;
-  min-height: var(--title-control-height);
+  min-height: var(--summary-content-height, var(--badge-height));
   font-weight: 700;
   line-height: var(--title-line-height);
 }
@@ -537,7 +541,7 @@ details.card > summary {
   align-items: center;
   flex-wrap: wrap;
   gap: 6px;
-  min-height: var(--badge-height, 1.35rem);
+  min-height: var(--summary-content-height, var(--badge-height));
 }
 .details-summary-badge {
   font-size: 12px;
@@ -1001,7 +1005,10 @@ details.card > .details-body {
 :root[data-density="compact"] .editor { padding: 10px; gap: 10px; }
 :root[data-density="compact"] .card { padding: 10px; }
 :root[data-density="compact"] details.card { padding: 0; }
-:root[data-density="compact"] details.card > summary { padding: 10px; }
+:root[data-density="compact"] details.card > summary {
+  padding-block: var(--summary-padding-block);
+  padding-inline: 10px;
+}
 :root[data-density="compact"] details.card > .details-body { padding: 0 10px 10px; }
 :root[data-density="compact"] .nested-card { padding: 8px; }
 :root[data-density="compact"] .grid { gap: 8px; }
