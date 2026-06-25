@@ -396,7 +396,8 @@ export function renderEditor(deps) {
     if (!String(cat.Description || '').trim()) applyGeneratedDescription(generated);
     else showGenerateDescriptionConfirmation(generated);
   };
-  descriptionField.appendChild(generateButton);
+  const descriptionValidation = requireScopedEl(descriptionField, '.validation-list', 'description field validation');
+  descriptionField.insertBefore(generateButton, descriptionValidation);
   grid.append(nameField, descriptionField);
 
   const metaGrid = document.createElement('div');
