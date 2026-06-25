@@ -22,6 +22,7 @@
   --badge-height: 1.35rem;
   --title-control-height: 2rem;
   --title-line-height: 1;
+  --heading-optical-y: -1px;
 }
 :root[data-density="compact"] {
   --badge-height: 1.25rem;
@@ -507,9 +508,7 @@ details.card {
   padding: 0;
 }
 details.card > summary {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: list-item;
   min-height: var(--title-control-height);
   padding: 14px;
   cursor: pointer;
@@ -657,13 +656,17 @@ details.card > .details-body {
 .card h3 {
   line-height: 1.2;
 }
-.flush-heading,
-.category-header-title-row .flush-heading {
+.flush-heading {
   display: inline-flex;
   align-items: center;
   min-height: var(--title-control-height);
   line-height: var(--title-line-height);
 }
+
+.category-header-title-row .flush-heading {
+  transform: translateY(var(--heading-optical-y));
+}
+
 .category-header-actions {
   margin-left: auto;
 }
@@ -672,11 +675,9 @@ details.card > .details-body {
 }
 .basic-switch-area {
   display: grid;
-  align-items: center;
   justify-items: end;
   gap: 4px;
   margin-left: auto;
-  min-height: var(--title-control-height);
 }
 .basic-switch-validation {
   text-align: right;
@@ -1191,9 +1192,20 @@ details.card > .details-body {
   margin: 0;
   line-height: var(--title-line-height);
 }
+
+.filter-card-title.basics-title-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+.filter-card-title.basics-title-row > h3 {
+  align-self: start;
+}
+
 .filter-card-actions {
   display: inline-flex;
   align-items: center;
+  min-height: var(--title-control-height);
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 10px;

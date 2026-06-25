@@ -81,11 +81,58 @@ export function stateFiltersSummary(rules) {
   return [title, ...badges.map(badge => badge.label)].join(' · ');
 }
 
-function setDetailsSummary(details, parts) {
+function ensureDetailsSummaryParts(details) {
   const summary = details.querySelector('summary');
-  if (!summary) return;
-  summary.innerHTML = renderDetailsSummaryHtml(parts);
-  details.classList.toggle('has-validation-issues', (parts.issueCount || 0) > 0);
+  if (!summary) return null;
+
+  let content = summary.querySelector('.details-summary-content');
+  if (!content) {
+    summary.textContent = '';
+
+    content = document.createElement('span');
+    content.className = 'details-summary-content';
+
+    const title = document.createElement('span');
+    title.className = 'details-summary-title';
+
+    const badges = document.createElement('span');
+    badges.className = 'details-summary-badges';
+
+    content.append(title, badges);
+    summary.appendChild(content);
+  }
+
+  let title = content.querySelector('.details-summary-title');
+  if (!title) {
+    title = document.createElement('span');
+    title.className = 'details-summary-title';
+    content.prepend(title);
+  }
+
+  let badges = content.querySelector('.details-summary-badges');
+  if (!badges) {
+    badges = document.createElement('span');
+    badges.className = 'details-summary-badges';
+    content.appendChild(badges);
+  }
+
+  return { summary, content, title, badges };
+}
+
+function setDetailsSummary(details, parts) {
+  const summaryParts = ensureDetailsSummaryParts(details);
+  if (!summaryParts) return;
+
+  const badges = Array.isArray(parts?.badges) ? parts.badges : [];
+  summaryParts.title.textContent = parts?.title ?? '';
+  summaryParts.badges.replaceChildren(...badges.map(badge => {
+    const node = document.createElement('span');
+    node.classList.add('ui-badge', 'details-summary-badge');
+    if (badge.tone) node.classList.add(badge.tone, `ui-badge-${badge.tone}`);
+    node.textContent = badge.label;
+    return node;
+  }));
+  details.classList.toggle('has-validation-issues', (parts?.issueCount || 0) > 0);
 }
 
 function debounce(fn, delay = 160) {
@@ -332,7 +379,7 @@ export function renderEditor(deps) {
   const basics = document.createElement('div');
   basics.className = 'card basics-card';
   const basicsTitle = document.createElement('div');
-  basicsTitle.className = 'filter-card-title';
+  basicsTitle.className = 'filter-card-title basics-title-row';
   basicsTitle.innerHTML = '<h3>Basics</h3>';
   function updateHeaderTitle() {
     const title = requireScopedEl(header, '.flush-heading', 'category header');
