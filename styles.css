@@ -1242,6 +1242,15 @@ details.card > .details-body {
   border: 1px solid color-mix(in srgb, var(--accent), var(--border) 35%);
   z-index: 0;
 }
+.range-slider-control.has-range-issue .range-slider-fill,
+.range-slider-control.has-range-warning .range-slider-fill {
+  background: color-mix(in srgb, var(--warn), var(--panel2) 25%);
+  border-color: color-mix(in srgb, var(--warn), var(--border) 35%);
+}
+.range-slider-control.has-range-error .range-slider-fill {
+  background: color-mix(in srgb, var(--danger), var(--panel2) 25%);
+  border-color: color-mix(in srgb, var(--danger), var(--border) 35%);
+}
 .range-slider-stack input[type="range"] {
   grid-area: 1 / 1;
   padding: 0;
