@@ -16,3 +16,26 @@ export const RARITIES = [
 ];
 
 export const ALLOWED_RARITY_IDS = new Set(RARITIES.map(rarity => rarity.id));
+
+
+export const RANGE_FILTERS = [
+  { key: 'Level', label: 'Level', defaults: { Enabled: false, Min: 0, Max: 200 } },
+  { key: 'ItemLevel', label: 'Item Level', defaults: { Enabled: false, Min: 0, Max: 2000 } },
+  { key: 'VendorPrice', label: 'Vendor Price', defaults: { Enabled: false, Min: 0, Max: 9999999 } }
+];
+
+export const RANGE_FILTER_KEYS = RANGE_FILTERS.map(filter => filter.key);
+
+export const STATE_FILTERS = [
+  { key: 'Untradable', label: 'Untradable' },
+  { key: 'Unique', label: 'Unique' },
+  { key: 'Collectable', label: 'Collectable' },
+  { key: 'Dyeable', label: 'Dyeable' },
+  { key: 'Repairable', label: 'Repairable' },
+  { key: 'HighQuality', label: 'High Quality' },
+  { key: 'Desynthesizable', label: 'Desynthesizable' },
+  { key: 'Glamourable', label: 'Glamourable' },
+  { key: 'FullySpiritbonded', label: 'Fully Spiritbonded' }
+];
+
+export const STATE_FILTER_KEYS = STATE_FILTERS.map(filter => filter.key);

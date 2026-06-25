@@ -10,10 +10,21 @@ import {
   normalizeAllowedRarities,
   normalizeAllowedRaritiesWithReport,
   sortImportedCategories,
-  validateConfig
+  validateConfig,
+  buildImportSummary
 } from '../src/config.js';
+import { RANGE_FILTERS, STATE_FILTER_KEYS } from '../src/constants.js';
 
 const allowedRarities = [1, 2, 3, 4, 7];
+
+test('shared range defaults match defaultRules', () => {
+  const rules = defaultRules();
+  for (const filter of RANGE_FILTERS) {
+    assert.deepEqual(rules[filter.key], filter.defaults);
+    assert.notEqual(rules[filter.key], filter.defaults);
+  }
+  assert.deepEqual(STATE_FILTER_KEYS.map(key => rules[key]), STATE_FILTER_KEYS.map(() => ({ State: 0, Filter: 0 })));
+});
 
 test('defaultRules creates fresh arrays and supported rarity defaults', () => {
   const first = defaultRules();
@@ -238,4 +249,18 @@ test('validateConfig does not crash on malformed but repairable nested rules', (
   assert.deepEqual(config.Categories[0].Rules.ItemLevel, { Enabled: false, Min: 0, Max: 2000 });
   assert.deepEqual(config.Categories[0].Rules.VendorPrice, { Enabled: false, Min: 0, Max: 9999999 });
   assert.deepEqual(config.Categories[0].Rules.Dyeable, { State: 0, Filter: 0 });
+});
+
+
+test('buildImportSummary mentions Order, Priority, and Name sorting', () => {
+  const summary = buildImportSummary(2, 0);
+
+  assert.match(summary, /Order, Priority, and Name/);
+  assert.doesNotMatch(summary, /sorted them by Order\./);
+});
+
+test('makeId returns 32 lowercase hex characters', async () => {
+  const { makeId } = await import('../src/config.js');
+
+  assert.match(makeId(), /^[0-9a-f]{32}$/);
 });

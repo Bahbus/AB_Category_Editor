@@ -36,3 +36,8 @@ test('makeBase64Export round-trips through parseImportedText when compression st
 
   assert.deepEqual(parsed, data);
 });
+
+
+test('parseImportedText reports empty import text clearly', async () => {
+  await assert.rejects(() => parseImportedText('   \n\t  '), /Import text is empty\./);
+});

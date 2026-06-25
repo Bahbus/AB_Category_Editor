@@ -1,4 +1,4 @@
-import { RARITIES, ALLOWED_RARITY_IDS } from '../constants.js';
+import { RARITIES, ALLOWED_RARITY_IDS, RANGE_FILTERS, STATE_FILTERS, STATE_FILTER_KEYS } from '../constants.js';
 import { el, escapeHtml, requireEl, requireScopedEl, setStatus } from '../dom.js';
 import { colorToHex, colorToHexRGBA, hexToRgb01, hexToRgba01, rgbaCss, componentTo255 } from '../color.js';
 import { clone, makeId, getNormalizedAllowedRarities } from '../config.js';
@@ -8,13 +8,8 @@ import { validateCategoryName, validateCategoryOrder, validateCategoryPriority, 
 import { listEditor } from './listEditor.js';
 
 
-const RANGE_FILTER_NAMES = {
-  Level: 'Level',
-  ItemLevel: 'Item Level',
-  VendorPrice: 'Vendor Price'
-};
-
-const STATE_FILTER_KEYS = ['Untradable', 'Unique', 'Collectable', 'Dyeable', 'Repairable', 'HighQuality', 'Desynthesizable', 'Glamourable', 'FullySpiritbonded'];
+const RANGE_FILTER_NAMES = Object.fromEntries(RANGE_FILTERS.map(filter => [filter.key, filter.label]));
+const STATE_FILTER_NAMES = Object.fromEntries(STATE_FILTERS.map(filter => [filter.key, filter.label]));
 
 
 export function countRangeFilterIssues(rules) {
@@ -139,7 +134,7 @@ function debounce(fn, delay = 160) {
 }
 
 function displayFilterName(value) {
-  return String(value).replace(/([a-z0-9])([A-Z])/g, '$1 $2');
+  return RANGE_FILTER_NAMES[value] || STATE_FILTER_NAMES[value] || String(value).replace(/([a-z0-9])([A-Z])/g, '$1 $2');
 }
 
 function renderAllowedRaritiesEditor(cat, deps) {
@@ -457,12 +452,12 @@ export function renderEditor(deps) {
     listEditor('Allowed UI Category IDs', rules.AllowedUiCategoryIds, x => {
       if (!/^-?\d+$/.test(x)) throw new Error('UI category IDs must be integers.');
       return Number(x);
-    }, x => x, { hint: 'Game ItemUICategory row IDs accepted by this category.', lookupSheet: 'ItemUICategory', validateList: () => validateCategory(cat, cats).filter(item => item.field === 'AllowedUiCategoryIds'), ...listEditorDeps }),
+    }, x => x, { hint: 'Game ItemUICategory row IDs accepted by this category.', lookupSheet: 'ItemUICategory', validateList: () => validateCategory(cat, cats).filter(item => item.field === 'AllowedUiCategoryIds'), onItemsChanged: () => { updateValidationUi(); renderList(); }, ...listEditorDeps }),
     listEditor('Allowed Item IDs', rules.AllowedItemIds, x => {
       if (!/^-?\d+$/.test(x)) throw new Error('Item IDs must be integers.');
       return Number(x);
-    }, x => x, { hint: 'Specific Item row IDs accepted by this category.', lookupSheet: 'Item', validateList: () => validateCategory(cat, cats).filter(item => item.field === 'AllowedItemIds'), ...listEditorDeps }),
-    listEditor('Allowed Item Name Patterns', rules.AllowedItemNamePatterns, x => x, x => x, { hint: 'Regex/name patterns matched against item names.', markDirty, validateValue: validateRegexPattern, validateList: () => validateCategory(cat, cats).filter(item => item.field === 'AllowedItemNamePatterns') }),
+    }, x => x, { hint: 'Specific Item row IDs accepted by this category.', lookupSheet: 'Item', validateList: () => validateCategory(cat, cats).filter(item => item.field === 'AllowedItemIds'), onItemsChanged: () => { updateValidationUi(); renderList(); }, ...listEditorDeps }),
+    listEditor('Allowed Item Name Patterns', rules.AllowedItemNamePatterns, x => x, x => x, { hint: 'Regex/name patterns matched against item names.', markDirty, validateValue: validateRegexPattern, validateList: () => validateCategory(cat, cats).filter(item => item.field === 'AllowedItemNamePatterns'), onItemsChanged: () => { updateValidationUi(); renderList(); } }),
     renderAllowedRaritiesEditor(cat, deps)
   );
   root.appendChild(ruleGrid);
@@ -485,21 +480,22 @@ export function renderEditor(deps) {
   setDetailsSummary(ranges, rangeFiltersSummaryParts(rules));
   const rangeGrid = document.createElement('div');
   rangeGrid.className = 'grid cols-3 range-filter-grid';
-  for (const key of ['Level','ItemLevel','VendorPrice']) {
+  for (const filter of RANGE_FILTERS) {
+    const { key } = filter;
     const obj = rules[key];
     const box = document.createElement('div');
     box.className = 'nested-card';
-    const defaults = key === 'VendorPrice' ? { min: 0, max: 100000 } : { min: 0, max: key === 'Level' ? 100 : 800 };
+    const defaults = { min: filter.defaults.Min, max: filter.defaults.Max };
     const title = document.createElement('div');
     title.className = 'filter-card-title';
-    title.innerHTML = `<h3>${escapeHtml(displayFilterName(key))}</h3>`;
+    title.innerHTML = `<h3>${escapeHtml(filter.label)}</h3>`;
     const titleActions = document.createElement('div');
     titleActions.className = 'filter-card-actions';
     titleActions.appendChild(switchInput('Enabled', obj.Enabled, v => { obj.Enabled = v; markDirty(); setDetailsSummary(ranges, rangeFiltersSummaryParts(rules)); updateCategoryIssueSummary(); renderList(); }));
     title.appendChild(titleActions);
     box.append(
       title,
-      rangeSliderControl(displayFilterName(key), obj, () => { markDirty(); setDetailsSummary(ranges, rangeFiltersSummaryParts(rules)); updateCategoryIssueSummary(); renderList(); }, defaults)
+      rangeSliderControl(filter.label, obj, () => { markDirty(); setDetailsSummary(ranges, rangeFiltersSummaryParts(rules)); updateCategoryIssueSummary(); renderList(); }, defaults)
     );
     rangeGrid.appendChild(box);
   }
@@ -544,7 +540,7 @@ export function renderEditor(deps) {
   const advanced = document.createElement('details');
   advanced.className = 'card';
   advanced.innerHTML = `
-    <summary>${renderDetailsSummaryHtml({ title: 'Advanced' })}</summary>
+    <summary></summary>
     <div class="details-body">
       <p class="hint">Edit the selected category directly. Click “Apply raw category JSON” after changes.</p>
       <textarea class="raw" id="rawCategory">${escapeHtml(JSON.stringify(cat, null, 2))}</textarea>
@@ -553,6 +549,7 @@ export function renderEditor(deps) {
       </div>
     </div>
   `;
+  setDetailsSummary(advanced, { title: 'Advanced', badges: [], issueCount: 0 });
   root.appendChild(advanced);
 
   el('moveUp').disabled = selectedIndex <= 0;

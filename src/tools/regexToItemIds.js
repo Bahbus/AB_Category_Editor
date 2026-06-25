@@ -40,7 +40,7 @@ export function openRegexToItemIdsTool(deps) {
       <label for="regexPatternInput">Regex</label>
       <input id="regexPatternInput" value="${escapeHtml(patterns[0] || '')}" placeholder="Example: ^Augmented .*">
     </div>
-    <div class="grid cols-3" class="modal-action-row">
+    <div class="grid cols-3 modal-action-row">
       <div>
         <label for="regexMaxMatches">Max matches to collect</label>
         <input id="regexMaxMatches" type="number" min="1" step="1" value="5000">

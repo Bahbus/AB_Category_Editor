@@ -79,6 +79,7 @@ export function base64ToBytes(b64) {
 
 export async function parseImportedText(text) {
   const trimmed = text.trim();
+  if (!trimmed) throw new Error('Import text is empty.');
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) return JSON.parse(trimmed);
   const bytes = base64ToBytes(trimmed);
   const decoded = await gunzipBytes(bytes);

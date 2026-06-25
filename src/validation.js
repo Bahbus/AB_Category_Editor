@@ -1,7 +1,5 @@
-import { ALLOWED_RARITY_IDS } from './constants.js';
+import { ALLOWED_RARITY_IDS, RANGE_FILTER_KEYS, STATE_FILTER_KEYS } from './constants.js';
 
-export const RANGE_FILTER_KEYS = ['Level', 'ItemLevel', 'VendorPrice'];
-export const STATE_FILTER_KEYS = ['Untradable', 'Unique', 'Collectable', 'Dyeable', 'Repairable', 'HighQuality', 'Desynthesizable', 'Glamourable', 'FullySpiritbonded'];
 const VALID_STATE_VALUES = new Set([0, 1, 2]);
 
 function finding(severity, field, message) { return { severity, field, message }; }

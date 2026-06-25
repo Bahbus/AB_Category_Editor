@@ -12,7 +12,8 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     saveLookupCache,
     markDirty,
     validateValue = null,
-    validateList = null
+    validateList = null,
+    onItemsChanged = null
   } = options;
 
   const card = document.createElement('div');
@@ -42,6 +43,10 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
   const pills = document.createElement('div');
   pills.className = 'pill-list';
 
+  function notifyItemsChanged() {
+    if (typeof onItemsChanged === 'function') onItemsChanged(arr);
+  }
+
   function renderPills() {
     pills.innerHTML = '';
 
@@ -60,6 +65,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         arr.splice(i, 1);
         markDirty();
         renderPills();
+        notifyItemsChanged();
       };
       pills.appendChild(pill);
     });
@@ -112,6 +118,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       input.value = '';
       markDirty();
       renderPills();
+      notifyItemsChanged();
     } catch (err) {
       setStatus(err.message, 'err');
     }
@@ -206,6 +213,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
               arr.push(id);
               markDirty();
               renderPills();
+              notifyItemsChanged();
             }
           };
           resultsBox.appendChild(r);
