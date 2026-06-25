@@ -27,9 +27,10 @@ test('renderDetailsSummaryHtml always includes stable empty badge slot', () => {
   assert.doesNotMatch(html, /ui-badge/);
 });
 
-test('renderDetailsSummaryHtml renders badges inside stable badge slot', () => {
+test('renderDetailsSummaryHtml renders active badges inside stable badge slot without issue badges', () => {
   const html = renderDetailsSummaryHtml(rangeFiltersSummaryParts({ Level: { Enabled: true, Min: 10, Max: 1 } }));
-  assert.match(html, /<span class="details-summary-badges"><span class="ui-badge details-summary-badge success ui-badge-success">Level<\/span><span class="ui-badge details-summary-badge warning ui-badge-warning">1 issue<\/span><\/span>/);
+  assert.match(html, /<span class="details-summary-badges"><span class="ui-badge details-summary-badge success ui-badge-success">Level<\/span><\/span>/);
+  assert.doesNotMatch(html, /ui-badge-warning|1 issue/);
 });
 
 test('rangeFiltersSummaryParts returns active range badges', () => {
@@ -45,10 +46,15 @@ test('rangeFiltersSummaryParts returns active range badges', () => {
   ]);
 });
 
-test('rangeFiltersSummaryParts includes issue badge for invalid ranges', () => {
+test('rangeFiltersSummaryParts preserves issue count without adding issue badges for invalid ranges', () => {
   assert.deepEqual(rangeFiltersSummaryParts({ Level: { Enabled: false, Min: 20, Max: 10 } }), {
     title: 'Range Filters',
-    badges: [{ label: '1 issue', tone: 'warning' }],
+    badges: [],
+    issueCount: 1
+  });
+  assert.deepEqual(rangeFiltersSummaryParts({ Level: { Enabled: true, Min: 20, Max: 10 } }), {
+    title: 'Range Filters',
+    badges: [{ label: 'Level', tone: 'success' }],
     issueCount: 1
   });
 });
@@ -75,14 +81,18 @@ test('stateFiltersSummaryParts returns required and excluded badges', () => {
   ]);
 });
 
-test('stateFiltersSummaryParts preserves state counts and includes issue badge', () => {
+test('stateFiltersSummaryParts preserves state counts and issue count without adding issue badges', () => {
   assert.deepEqual(stateFiltersSummaryParts({ Unique: { State: 1 }, Dyeable: { State: 7 }, Repairable: { State: 2 } }), {
     title: 'State Filters',
     badges: [
       { label: '1 required', tone: 'required' },
-      { label: '1 excluded', tone: 'excluded' },
-      { label: '1 issue', tone: 'warning' }
+      { label: '1 excluded', tone: 'excluded' }
     ],
+    issueCount: 1
+  });
+  assert.deepEqual(stateFiltersSummaryParts({ Dyeable: { State: 7 } }), {
+    title: 'State Filters',
+    badges: [],
     issueCount: 1
   });
 });
@@ -110,6 +120,17 @@ test('title and summary CSS use shared alignment tokens', () => {
   assert.match(styles, /\.details-summary-badges\s*{[^}]*min-height:\s*var\(--summary-content-height,\s*var\(--badge-height\)\)/s);
   assert.doesNotMatch(styles, /\.details-summary-(?:content|title|badges)\s*{[^}]*var\(--title-control-height\)/s);
   assert.match(styles, /:root\[data-density="compact"\]\s*{[^}]*--summary-padding-block:\s*7px;/s);
+});
+
+test('range issue slider source and styles expose invalid fill state', () => {
+  const source = fs.readFileSync(new URL('../src/ui/formControls.js', import.meta.url), 'utf8');
+  const styles = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
+  assert.match(source, /wrap\.classList\.toggle\('has-range-issue',\s*reversed \|\| nonFinite\)/);
+  assert.match(source, /wrap\.classList\.toggle\('has-range-warning',\s*!nonFinite && reversed\)/);
+  assert.match(source, /wrap\.classList\.toggle\('has-range-error',\s*nonFinite\)/);
+  assert.match(styles, /\.range-slider-control\.has-range-issue \.range-slider-fill/);
+  assert.match(styles, /\.range-slider-control\.has-range-warning \.range-slider-fill\s*{[^}]*var\(--warn\)/s);
+  assert.match(styles, /\.range-slider-control\.has-range-error \.range-slider-fill\s*{[^}]*var\(--danger\)/s);
 });
 
 test('category list source does not import single-row issue count helper', () => {

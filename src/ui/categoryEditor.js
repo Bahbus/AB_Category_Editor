@@ -16,9 +16,6 @@ const RANGE_FILTER_NAMES = {
 
 const STATE_FILTER_KEYS = ['Untradable', 'Unique', 'Collectable', 'Dyeable', 'Repairable', 'HighQuality', 'Desynthesizable', 'Glamourable', 'FullySpiritbonded'];
 
-function issueCountLabel(count) {
-  return `${count} ${count === 1 ? 'issue' : 'issues'}`;
-}
 
 export function countRangeFilterIssues(rules) {
   return Object.keys(RANGE_FILTER_NAMES).reduce((count, key) => (
@@ -51,7 +48,6 @@ export function rangeFiltersSummaryParts(rules) {
   if (activeNames.length === 1) badges.push({ label: activeNames[0], tone: 'success' });
   else if (activeNames.length === 2) activeNames.forEach(name => badges.push({ label: name, tone: 'success' }));
   else if (activeNames.length > 2) badges.push({ label: `${activeNames.length} active`, tone: 'success' });
-  if (issueCount) badges.push({ label: issueCountLabel(issueCount), tone: 'warning' });
   return { title: 'Range Filters', badges, issueCount };
 }
 
@@ -72,7 +68,6 @@ export function stateFiltersSummaryParts(rules) {
   const badges = [];
   if (required) badges.push({ label: `${required} required`, tone: 'required' });
   if (excluded) badges.push({ label: `${excluded} excluded`, tone: 'excluded' });
-  if (issueCount) badges.push({ label: issueCountLabel(issueCount), tone: 'warning' });
   return { title: 'State Filters', badges, issueCount };
 }
 

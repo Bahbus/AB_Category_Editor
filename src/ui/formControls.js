@@ -178,6 +178,9 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
     const end = Math.max(0, Math.min(100, ((Math.max(visualMin, visualMax) - lowerBound) / span) * 100));
     wrap.style.setProperty('--range-start', `${start}%`);
     wrap.style.setProperty('--range-end', `${end}%`);
+    wrap.classList.toggle('has-range-issue', reversed || nonFinite);
+    wrap.classList.toggle('has-range-error', nonFinite);
+    wrap.classList.toggle('has-range-warning', !nonFinite && reversed);
     minSlider.classList.toggle('range-active-slider', reversed || minValue >= maxValue);
     minNumber.classList.toggle('invalid', reversed || !Number.isFinite(minValue));
     maxNumber.classList.toggle('invalid', reversed || !Number.isFinite(maxValue));
