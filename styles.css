@@ -437,10 +437,11 @@ input.invalid {
   flex: 0 0 auto;
   min-width: max-content;
 }
+/* .ui-badge is the badge base; legacy selectors remain compatibility hooks while markup migrates. */
+.ui-badge,
 .badge,
 .validation-badge,
-.details-summary-badge,
-.ui-badge {
+.details-summary-badge {
   --badge-color: var(--badge-muted-color, var(--muted));
   --badge-border: var(--badge-muted-border, var(--border));
   --badge-bg: color-mix(in srgb, var(--panel2), transparent 35%);
@@ -566,10 +567,11 @@ details.card > .details-body {
   border-radius: 12px;
   padding: 12px;
 }
-.nested-card h3 {
+.nested-card > h3 {
   margin: 0 0 10px;
 }
-.card h2, .card h3 {
+.card > h2,
+.card > h3 {
   margin: 0 0 12px;
 }
 .grid {
@@ -656,11 +658,18 @@ details.card > .details-body {
   min-height: var(--title-control-height);
   line-height: var(--title-line-height);
 }
-.card h2,
-.card h3 {
+.card > h2,
+.card > h3,
+.title-row-heading {
   line-height: 1.2;
 }
 .flush-heading {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--title-control-height);
+  line-height: var(--title-line-height);
+}
+.title-row-heading {
   display: inline-flex;
   align-items: center;
   min-height: var(--title-control-height);
@@ -697,6 +706,7 @@ details.card > .details-body {
   margin-top: 12px;
 }
 .flush-heading,
+.title-row-heading,
 .card h2.flush-heading {
   margin: 0;
 }
@@ -1192,7 +1202,7 @@ details.card > .details-body {
 .filter-card-title {
   margin-bottom: 2px;
 }
-.filter-card-title h3 {
+.filter-card-title > h3 {
   display: inline-flex;
   align-items: center;
   min-height: var(--title-control-height);

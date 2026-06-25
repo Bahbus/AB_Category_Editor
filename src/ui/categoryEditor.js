@@ -1,5 +1,7 @@
 import { RARITIES, ALLOWED_RARITY_IDS, RANGE_FILTERS, STATE_FILTERS, STATE_FILTER_KEYS } from '../constants.js';
 import { el, escapeHtml, requireEl, requireScopedEl, setStatus } from '../dom.js';
+import { setDetailsSummary } from './detailsSummary.js';
+export { renderDetailsSummaryHtml } from './detailsSummary.js';
 import { colorToHex, colorToHexRGBA, hexToRgb01, hexToRgba01, rgbaCss, componentTo255 } from '../color.js';
 import { clone, makeId, getNormalizedAllowedRarities } from '../config.js';
 import { openModal, closeModal } from '../modals.js';
@@ -26,12 +28,6 @@ export function countStateFilterIssues(rules) {
 
 export function getBasicSwitchWarnings(cat) {
   return validateCategoryName(cat).filter(item => item.field === 'Pinned' && item.severity === 'warning');
-}
-
-export function renderDetailsSummaryHtml(parts) {
-  const title = escapeHtml(parts?.title ?? '');
-  const badges = Array.isArray(parts?.badges) ? parts.badges : [];
-  return `<span class="details-summary-content"><span class="details-summary-title">${title}</span><span class="details-summary-badges">${badges.map(badge => `<span class="ui-badge details-summary-badge${badge.tone ? ` ${escapeHtml(badge.tone)} ui-badge-${escapeHtml(badge.tone)}` : ''}">${escapeHtml(badge.label)}</span>`).join('')}</span></span>`;
 }
 
 export function rangeFiltersSummaryParts(rules) {
@@ -71,65 +67,28 @@ export function stateFiltersSummary(rules) {
   return [title, ...badges.map(badge => badge.label)].join(' · ');
 }
 
-function ensureDetailsSummaryParts(details) {
-  const summary = details.querySelector('summary');
-  if (!summary) return null;
-
-  let content = summary.querySelector('.details-summary-content');
-  if (!content) {
-    summary.textContent = '';
-
-    content = document.createElement('span');
-    content.className = 'details-summary-content';
-
-    const title = document.createElement('span');
-    title.className = 'details-summary-title';
-
-    const badges = document.createElement('span');
-    badges.className = 'details-summary-badges';
-
-    content.append(title, badges);
-    summary.appendChild(content);
-  }
-
-  let title = content.querySelector('.details-summary-title');
-  if (!title) {
-    title = document.createElement('span');
-    title.className = 'details-summary-title';
-    content.prepend(title);
-  }
-
-  let badges = content.querySelector('.details-summary-badges');
-  if (!badges) {
-    badges = document.createElement('span');
-    badges.className = 'details-summary-badges';
-    content.appendChild(badges);
-  }
-
-  return { summary, content, title, badges };
-}
-
-function setDetailsSummary(details, parts) {
-  const summaryParts = ensureDetailsSummaryParts(details);
-  if (!summaryParts) return;
-
-  const badges = Array.isArray(parts?.badges) ? parts.badges : [];
-  summaryParts.title.textContent = parts?.title ?? '';
-  summaryParts.badges.replaceChildren(...badges.map(badge => {
-    const node = document.createElement('span');
-    node.classList.add('ui-badge', 'details-summary-badge');
-    if (badge.tone) node.classList.add(badge.tone, `ui-badge-${badge.tone}`);
-    node.textContent = badge.label;
-    return node;
-  }));
-  details.classList.toggle('has-validation-issues', (parts?.issueCount || 0) > 0);
-}
-
 function debounce(fn, delay = 160) {
   let timer = null;
   return (...args) => {
     clearTimeout(timer);
     timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+function createScheduledRenderList(renderList) {
+  let scheduled = false;
+  return () => {
+    if (scheduled) return;
+    scheduled = true;
+    const flush = () => {
+      scheduled = false;
+      renderList();
+    };
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(flush);
+    } else {
+      setTimeout(flush, 16);
+    }
   };
 }
 
@@ -172,7 +131,8 @@ function renderAllowedRaritiesEditor(cat, deps) {
 }
 
 function renderColorSection(cat, deps) {
-  const { markDirty, markDirtyAndRenderList = () => markDirty({ renderList: true }) } = deps;
+  const { markDirty, markDirtyAndRenderList = () => markDirty({ renderList: true }), renderList = () => {} } = deps;
+  const scheduleRenderList = createScheduledRenderList(renderList);
   const color = document.createElement('div');
   color.className = 'card color-card';
   color.innerHTML = '<h3>Color</h3>';
@@ -212,7 +172,8 @@ function renderColorSection(cat, deps) {
       if (options.writeBack) input.value = String(n);
       setValue(n);
       updateColorVisuals();
-      markDirtyAndRenderList();
+      markDirty();
+      scheduleRenderList();
       return true;
     }
     input.oninput = e => {
@@ -276,7 +237,8 @@ function renderColorSection(cat, deps) {
     cat.Color.Y = rgb.Y;
     cat.Color.Z = rgb.Z;
     updateColorVisuals();
-    markDirtyAndRenderList();
+    markDirty();
+    scheduleRenderList();
   };
 
   function setHexValidity(value) {
@@ -320,7 +282,8 @@ function renderColorSection(cat, deps) {
     cat.Color.W = n / 255;
     alphaValue.textContent = String(n);
     updateColorVisuals();
-    markDirtyAndRenderList();
+    markDirty();
+    scheduleRenderList();
   };
 
   updateColorVisuals();
@@ -551,6 +514,18 @@ export function renderEditor(deps) {
   `;
   setDetailsSummary(advanced, { title: 'Advanced', badges: [], issueCount: 0 });
   root.appendChild(advanced);
+
+  const actionName = cat.Name || '(unnamed)';
+  const actionLabels = {
+    moveUp: `Move ${actionName} up`,
+    moveDown: `Move ${actionName} down`,
+    duplicateCat: `Duplicate ${actionName}`,
+    deleteCat: `Delete ${actionName}`
+  };
+  for (const [id, label] of Object.entries(actionLabels)) {
+    el(id).setAttribute('aria-label', label);
+    el(id).title = label;
+  }
 
   el('moveUp').disabled = selectedIndex <= 0;
   el('moveDown').disabled = selectedIndex >= cats.length - 1;

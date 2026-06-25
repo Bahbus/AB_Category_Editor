@@ -6,10 +6,10 @@ import {
   getBasicSwitchWarnings,
   rangeFiltersSummary,
   rangeFiltersSummaryParts,
-  renderDetailsSummaryHtml,
   stateFiltersSummary,
   stateFiltersSummaryParts
 } from '../src/ui/categoryEditor.js';
+import { renderDetailsSummaryHtml } from '../src/ui/detailsSummary.js';
 
 test('rangeFiltersSummaryParts returns no badges for inactive valid ranges', () => {
   assert.deepEqual(rangeFiltersSummaryParts({}), {
@@ -147,7 +147,7 @@ test('details summary keeps native disclosure marker display', () => {
 });
 
 test('setDetailsSummary updates stable summary parts without replacing summary html', () => {
-  const source = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
+  const source = fs.readFileSync(new URL('../src/ui/detailsSummary.js', import.meta.url), 'utf8');
   assert.match(source, /function ensureDetailsSummaryParts\(details\)/);
   assert.match(source, /summaryParts\.title\.textContent/);
   assert.match(source, /summaryParts\.badges\.replaceChildren/);
@@ -163,6 +163,25 @@ test('category editor uses shared range defaults and advanced stable summary pat
   assert.doesNotMatch(source, /max:\s*100000/);
   assert.doesNotMatch(source, /max:\s*key === 'Level' \? 100 : 800/);
   assert.match(source, /setDetailsSummary\(advanced, \{ title: 'Advanced', badges: \[\], issueCount: 0 \}\)/);
+});
+
+test('color editor schedules high-frequency sidebar renders and keeps immediate hex commits', () => {
+  const source = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
+  assert.match(source, /function createScheduledRenderList\(renderList\)/);
+  assert.match(source, /const scheduleRenderList = createScheduledRenderList\(renderList\)/);
+  assert.match(source, /picker\.oninput = e => \{[\s\S]*?markDirty\(\);[\s\S]*?scheduleRenderList\(\);[\s\S]*?\};/);
+  assert.match(source, /alphaSlider\.oninput = e => \{[\s\S]*?markDirty\(\);[\s\S]*?scheduleRenderList\(\);[\s\S]*?\};/);
+  assert.match(source, /function applyHexInput\(\) \{[\s\S]*?markDirtyAndRenderList\(\);[\s\S]*?return true;/);
+});
+
+test('icon and action controls have accessible labels', () => {
+  const listSource = fs.readFileSync(new URL('../src/ui/categoryList.js', import.meta.url), 'utf8');
+  const editorSource = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
+  const indexSource = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  assert.match(listSource, /aria-label="Pinned"/);
+  assert.match(listSource, /aria-hidden="true" focusable="false"/);
+  assert.match(indexSource, /id="showHelp"[^>]*aria-label="About \/ Help"/);
+  assert.match(editorSource, /setAttribute\('aria-label', label\)/);
 });
 
 test('regex tool and help modal source text stay current', () => {
