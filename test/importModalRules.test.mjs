@@ -13,7 +13,8 @@ const {
   shouldShowImportValidationModal,
   isMaterialImportRepair,
   reviewableImportRepairs,
-  validationSummaryText
+  validationSummaryText,
+  nonMaterialRepairSummary
 } = await import('../src/app.js');
 
 const note = { severity: 'note', field: 'Description', message: 'Description is blank.' };
@@ -62,12 +63,43 @@ function analysis(counts = {}) {
   return { counts, findings: [] };
 }
 
+
+test('nonMaterialRepairSummary returns empty text when there are no repairs', () => {
+  assert.equal(nonMaterialRepairSummary([]), '');
+});
+
+test('nonMaterialRepairSummary reports sorting-only cleanup', () => {
+  assert.equal(nonMaterialRepairSummary([{ field: 'Categories', material: false }]), 'normalized display order');
+});
+
+test('nonMaterialRepairSummary reports rarity-order-only cleanup', () => {
+  assert.equal(nonMaterialRepairSummary([{ field: 'AllowedRarities', material: false }]), 'normalized rarity order');
+});
+
+test('nonMaterialRepairSummary reports combined sorting and rarity cleanup', () => {
+  assert.equal(nonMaterialRepairSummary([
+    { field: 'Categories', material: false },
+    { field: 'AllowedRarities', material: false }
+  ]), 'normalized display and rarity order');
+});
+
+test('nonMaterialRepairSummary reports miscellaneous non-material cleanup as note-only', () => {
+  assert.equal(nonMaterialRepairSummary([{ field: 'SomethingElse', material: false }]), 'note-only cleanup');
+});
+
+test('nonMaterialRepairSummary ignores material repairs', () => {
+  assert.equal(nonMaterialRepairSummary([{ field: 'AllowedRarities', material: true, severity: 'warning' }]), '');
+});
+
 test('validation summary reports clean imports without validation issues', () => {
   assert.equal(validationSummaryText(2, analysis(), []), 'Imported 2 categories · no validation issues');
 });
 
 test('validation summary reports note-only cleanup for note findings', () => {
-  assert.match(validationSummaryText(1, analysis({ note: 1 }), []), /note-only cleanup/);
+  const summary = validationSummaryText(1, analysis({ note: 1 }), []);
+  assert.match(summary, /Imported 1 category/);
+  assert.match(summary, /1 note/);
+  assert.match(summary, /note-only cleanup/);
 });
 
 test('validation summary reports display order cleanup for category sorting repairs', () => {
@@ -80,6 +112,12 @@ test('validation summary reports rarity order cleanup for rarity reorder-only re
 
 test('validation summary reports combined display and rarity order cleanup', () => {
   assert.match(validationSummaryText(2, analysis(), [sortRepair, rarityReorderRepair]), /normalized display and rarity order/);
+});
+
+test('validation summary reports warning counts', () => {
+  const summary = validationSummaryText(2, analysis({ warning: 1 }), []);
+  assert.match(summary, /Imported 2 categories/);
+  assert.match(summary, /1 warning/);
 });
 
 test('validation summary does not describe material repairs as order-only cleanup', () => {
