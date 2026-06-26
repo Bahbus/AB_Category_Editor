@@ -160,7 +160,7 @@ export function renderCategoryList({
     };
 
     item.innerHTML = `
-      <div class="drag-handle" title="${searchActive ? 'Clear search to reorder' : 'Drag to reorder'}">☰</div>
+      <div class="drag-handle" title="${searchActive ? 'Clear search to reorder' : 'Drag to reorder'}" aria-hidden="true">☰</div>
       <div class="cat-text">
         <div class="cat-name" title="${escapeHtml(displayName)}">${escapeHtml(displayName)}</div>
         <div class="cat-desc" title="${escapeHtml(subtitleTitle)}">${escapeHtml(subtitle)}</div>

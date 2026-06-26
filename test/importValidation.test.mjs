@@ -7,7 +7,8 @@ import {
   reviewableImportFindings,
   shouldShowImportValidationModal,
   validationSummaryText,
-  nonMaterialRepairSummary
+  nonMaterialRepairSummary,
+  importStatusSeverity
 } from '../src/importValidationSummary.js';
 
 test('isMaterialImportRepair identifies repairs that should be reviewed', () => {
@@ -109,6 +110,44 @@ test('validationSummaryText includes finding and quiet repair status', () => {
   );
 
   assert.match(validationSummaryText(2, warning), /1 warning/);
+});
+
+
+test('validationSummaryText reports material import repairs', () => {
+  const none = { counts: {} };
+  const warning = { counts: { warning: 1 } };
+  const materialRepair = { field: 'AllowedItemIds', material: true, severity: 'warning' };
+  const secondMaterialRepair = { field: 'Rules', material: true, severity: 'warning' };
+  const sortingRepair = { field: 'Categories', material: false };
+  const rarityRepair = { field: 'AllowedRarities', material: false };
+
+  const materialOnly = validationSummaryText(2, none, [materialRepair]);
+  assert.match(materialOnly, /import repair/);
+  assert.doesNotMatch(materialOnly, /no validation issues/);
+  assert.match(validationSummaryText(1, none, [materialRepair]), /1 import repair/);
+  assert.match(validationSummaryText(2, none, [materialRepair, secondMaterialRepair]), /2 import repairs/);
+
+  const sortingOnly = validationSummaryText(2, none, [sortingRepair]);
+  assert.match(sortingOnly, /normalized display order/);
+  assert.doesNotMatch(sortingOnly, /import repair/);
+
+  const rarityOnly = validationSummaryText(2, none, [rarityRepair]);
+  assert.match(rarityOnly, /normalized rarity order/);
+  assert.doesNotMatch(rarityOnly, /import repair/);
+
+  const warningAndRepair = validationSummaryText(2, warning, [materialRepair]);
+  assert.match(warningAndRepair, /1 warning/);
+  assert.match(warningAndRepair, /1 import repair/);
+});
+
+test('importStatusSeverity is warn only for reviewable findings or material repairs', () => {
+  assert.equal(importStatusSeverity({ counts: {} }, []), 'ok');
+  assert.equal(importStatusSeverity({ counts: { note: 1 } }, []), 'ok');
+  assert.equal(importStatusSeverity({ counts: {} }, [{ field: 'Categories', material: false }]), 'ok');
+  assert.equal(importStatusSeverity({ counts: {} }, [{ field: 'AllowedRarities', material: false }]), 'ok');
+  assert.equal(importStatusSeverity({ counts: { warning: 1 } }, []), 'warn');
+  assert.equal(importStatusSeverity({ counts: { error: 1 } }, []), 'warn');
+  assert.equal(importStatusSeverity({ counts: {} }, [{ field: 'AllowedItemIds', material: true, severity: 'warning' }]), 'warn');
 });
 
 test('shouldShowImportValidationModal gates quiet cleanup and material issues', () => {
