@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { defaultCategory } from '../src/config.js';
-import { analyzeCategoryIntent, generateCategoryDescription, isUsefulGeneratedDescription } from '../src/descriptionGenerator.js';
+import { analyzeCategoryIntent, analyzeExplicitSources, generateCategoryDescription, isUsefulGeneratedDescription } from '../src/descriptionGenerator.js';
 
 function category(overrides = {}) {
   const cat = defaultCategory(0);
@@ -11,6 +11,7 @@ function category(overrides = {}) {
 
 function assertClean(text) {
   assert.doesNotMatch(text, /specific game item categories|ItemLevel|AllowedItemIds|AllowedUiCategoryIds|HighQuality/);
+  assert.doesNotMatch(text, /from manually selected items|from items from|items from selected in-game item categories/i);
   assert.doesNotMatch(text, /\b(items items|gear gear)\b/i);
   assert.doesNotMatch(text, /that are within/i);
   assert.ok(text.length < 180, `${text.length}: ${text}`);
@@ -154,20 +155,99 @@ test('state filters produce natural phrasing without raw keys', () => {
 test('generic explicit rules use useful fallback phrases', () => {
   const itemIds = category({ Name: 'Manual Picks' });
   itemIds.Rules.AllowedItemIds = [1, 2, 3];
-  assert.equal(generateCategoryDescription(itemIds), 'Groups manually selected items.');
+  assert.equal(generateCategoryDescription(itemIds), 'Groups selected item entries.');
 
   const uiCats = category({ Name: 'Manual Picks' });
   uiCats.Rules.AllowedUiCategoryIds = [5];
-  assert.equal(generateCategoryDescription(uiCats), 'Groups items from selected in-game item categories.');
+  assert.equal(generateCategoryDescription(uiCats), 'Groups selected item categories.');
 
   const regex = category({ Name: 'Manual Picks' });
   regex.Rules.AllowedItemNamePatterns = ['foo'];
-  assert.equal(generateCategoryDescription(regex), 'Groups name-pattern matches.');
+  assert.equal(generateCategoryDescription(regex), 'Groups items matched by selected name patterns.');
 
   const mixed = category({ Name: 'Manual Picks' });
   mixed.Rules.AllowedItemIds = [1];
   mixed.Rules.AllowedItemNamePatterns = ['foo'];
-  assert.equal(generateCategoryDescription(mixed), 'Groups manually selected items and name-pattern matches.');
+  assert.equal(generateCategoryDescription(mixed), 'Groups selected item entries and name-pattern matches.');
+});
+
+test('explicit source combinations use clean deterministic fallback phrases', () => {
+  const cases = [
+    [['AllowedItemIds'], 'Groups selected item entries.'],
+    [['AllowedUiCategoryIds'], 'Groups selected item categories.'],
+    [['AllowedItemNamePatterns'], 'Groups items matched by selected name patterns.'],
+    [['AllowedItemIds', 'AllowedUiCategoryIds'], 'Groups selected item entries and item categories.'],
+    [['AllowedItemIds', 'AllowedItemNamePatterns'], 'Groups selected item entries and name-pattern matches.'],
+    [['AllowedUiCategoryIds', 'AllowedItemNamePatterns'], 'Groups item categories and name-pattern matches.'],
+    [['AllowedItemIds', 'AllowedUiCategoryIds', 'AllowedItemNamePatterns'], 'Groups selected item entries, item categories, and name-pattern matches.']
+  ];
+  for (const [keys, expected] of cases) {
+    const cat = category({ Name: 'Manual Picks' });
+    if (keys.includes('AllowedItemIds')) cat.Rules.AllowedItemIds = [1];
+    if (keys.includes('AllowedUiCategoryIds')) cat.Rules.AllowedUiCategoryIds = [2];
+    if (keys.includes('AllowedItemNamePatterns')) cat.Rules.AllowedItemNamePatterns = ['foo'];
+    const text = generateCategoryDescription(cat);
+    assert.equal(text, expected);
+    assertClean(text);
+  }
+});
+
+test('cache-aware UI category descriptions prefer cached category names', () => {
+  const lookupName = (sheet, id) => sheet === 'ItemUICategory' ? ({ 1: 'Materia', 2: 'Medicine', 3: 'Minion' }[id] || '') : '';
+  const one = category({ Name: 'Favorites' });
+  one.Rules.AllowedUiCategoryIds = [1];
+  assert.match(generateCategoryDescription(one, { lookupName }), /Materia/i);
+
+  const two = category({ Name: 'Favorites' });
+  two.Rules.AllowedUiCategoryIds = [1, 2];
+  assert.match(generateCategoryDescription(two, { lookupName }), /Materia.*Medicine|Medicine.*Materia/i);
+
+  const mixed = category({ Name: 'Favorites' });
+  mixed.Rules.AllowedUiCategoryIds = [3, 99];
+  assert.match(generateCategoryDescription(mixed, { lookupName }), /Minion/i);
+
+  const none = category({ Name: 'Favorites' });
+  none.Rules.AllowedUiCategoryIds = [99];
+  assert.equal(generateCategoryDescription(none, { lookupName }), 'Groups selected item categories.');
+  for (const cat of [one, two, mixed, none]) assertClean(generateCategoryDescription(cat, { lookupName }));
+});
+
+test('cache-aware item descriptions prefer cached item names and summaries', () => {
+  const names = { 10: 'Grade IX Strength Tincture', 11: 'Grade IX Dexterity Tincture', 12: 'Grade IX Intelligence Tincture', 13: 'Legendary Kamuy Fife' };
+  const lookupName = (sheet, id) => sheet === 'Item' ? (names[id] || '') : '';
+  const one = category({ Name: 'Favorites' });
+  one.Rules.AllowedItemIds = [10];
+  assert.match(generateCategoryDescription(one, { lookupName }), /Grade IX Strength Tincture/i);
+
+  const several = category({ Name: 'Favorites' });
+  several.Rules.AllowedItemIds = [10, 11, 12];
+  assert.match(generateCategoryDescription(several, { lookupName }), /Tincture|potion/i);
+
+  const mixed = category({ Name: 'Favorites' });
+  mixed.Rules.AllowedItemIds = [13, 99];
+  assert.match(generateCategoryDescription(mixed, { lookupName }), /Legendary Kamuy Fife|mount unlock/i);
+
+  const none = category({ Name: 'Favorites' });
+  none.Rules.AllowedItemIds = [99];
+  assert.equal(generateCategoryDescription(none, { lookupName }), 'Groups selected item entries.');
+  for (const cat of [one, several, mixed, none]) assertClean(generateCategoryDescription(cat, { lookupName }));
+});
+
+test('structured explicit analysis reports cached names without mutating lookup state', () => {
+  const cat = category({ Name: 'Manual Picks' });
+  cat.Rules.AllowedItemIds = [10, 99];
+  cat.Rules.AllowedUiCategoryIds = [1];
+  cat.Rules.AllowedItemNamePatterns = ['foo'];
+  const calls = [];
+  const analysis = analyzeExplicitSources(cat.Rules, { lookupName: (sheet, id) => {
+    calls.push([sheet, id]);
+    return sheet === 'Item' && id === 10 ? 'Grade IX Strength Tincture' : sheet === 'ItemUICategory' && id === 1 ? 'Materia' : '';
+  } });
+  assert.deepEqual(analysis.itemIds.names, ['Grade IX Strength Tincture']);
+  assert.deepEqual(analysis.uiCategoryIds.names, ['Materia']);
+  assert.equal(analysis.itemIds.uncachedCount, 1);
+  assert.ok(calls.some(([sheet]) => sheet === 'Item'));
+  assert.ok(calls.some(([sheet]) => sheet === 'ItemUICategory'));
 });
 
 test('quality guards avoid raw keys and awkward prose for clear intents', () => {
