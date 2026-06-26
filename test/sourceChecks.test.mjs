@@ -175,3 +175,34 @@ test('app owns bundled preset import through normal import path', () => {
   assert.match(presets, /sourceLabel: 'Basic presets'/);
   assert.match(presets, /sourceLabel: 'Advanced presets'/);
 });
+
+test('static fallback empty state matches startup guidance', () => {
+  const index = read('index.html');
+  assert.doesNotMatch(index, /Start with Import\/Paste or Upload to load an existing AetherBags export, or add a category manually\./);
+  assert.match(index, /Load basic presets/);
+  assert.match(index, /Load advanced presets/);
+  assert.match(index, /Change appearance and other settings in Preferences\./);
+  assert.match(index, /Click \? for more information about this app\./);
+});
+
+test('range filter live edits use scheduled list rendering without full rerender', () => {
+  const source = read('src/ui/categoryEditor.js');
+  assert.match(source, /function createScheduledRenderList\(renderList\)/);
+  assert.match(source, /const scheduleRenderList = createScheduledRenderList\(renderList\)/);
+  assert.match(source, /rangeSliderControl\(filter\.label, obj, \(\) => \{[\s\S]*?scheduleRenderList\(\);[\s\S]*?\}, defaults\)/);
+  const rangeBlock = source.match(/for \(const filter of RANGE_FILTERS\) \{(?<body>[\s\S]*?)\n  \}/)?.groups.body ?? '';
+  assert.doesNotMatch(rangeBlock, /renderAll\(\)/);
+});
+
+test('accessibility polish remains wired in source', () => {
+  assert.match(read('src/ui/categoryList.js'), /class="drag-handle"[^>]*aria-hidden="true"/);
+  assert.match(read('src/ui/listEditor.js'), /setAttribute\('aria-label'/);
+});
+
+test('link buttons use concrete theme tokens', () => {
+  const styles = read('styles.css');
+  assert.match(styles, /\.link-button\s*\{[\s\S]*?color:\s*var\(--accent\)/);
+  assert.match(styles, /\.link-button:focus-visible\s*\{[\s\S]*?outline:\s*2px solid var\(--accent\)/);
+  assert.match(styles, /:root\[data-theme="high-contrast"\] \.link-button:focus-visible/);
+  assert.doesNotMatch(styles, /\.link-button[\s\S]*?var\(--(?:link|focus),/);
+});

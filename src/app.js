@@ -20,10 +20,11 @@ import {
   reviewableImportFindings,
   shouldShowImportValidationModal,
   validationSummaryText,
-  nonMaterialRepairSummary
+  nonMaterialRepairSummary,
+  importStatusSeverity
 } from './importValidationSummary.js';
 
-export { isMaterialImportRepair, reviewableImportRepairs, reviewableImportFindings, shouldShowImportValidationModal, validationSummaryText, nonMaterialRepairSummary };
+export { isMaterialImportRepair, reviewableImportRepairs, reviewableImportFindings, shouldShowImportValidationModal, validationSummaryText, nonMaterialRepairSummary, importStatusSeverity };
 
 let data = JSON.parse(JSON.stringify(INITIAL_DATA));
 let selectedIndex = -1;
@@ -121,7 +122,7 @@ function showValidationSummary(title, analysis, repairs = []) {
   const repairRows = reviewRepairs.slice(0, 80).map(repair => `<li>${escapeHtml(formatRepairMessage(repair))}</li>`).join('');
   const repairMore = reviewRepairs.length > 80 ? `<p class="hint">Showing first 80 of ${reviewRepairs.length} import changes.</p>` : '';
   const repairSection = reviewRepairs.length ? `<h3>Changes made during import</h3><ul class="validation-list">${repairRows}</ul>${repairMore}` : '';
-  wrap.innerHTML = `<p class="hint">Warnings and notes do not block import; they are guardrails for cleanup while editing.</p>${findingsSection}${repairSection}<div class="row modal-action-row"><button id="closeValidationSummary" class="primary">Continue editing</button></div>`;
+  wrap.innerHTML = `<p class="hint">Warnings and import repairs do not block import; they are shown so you can review meaningful cleanup.</p>${findingsSection}${repairSection}<div class="row modal-action-row"><button id="closeValidationSummary" class="primary">Continue editing</button></div>`;
   openModal(title, wrap);
   try { requireScopedEl(wrap, '#closeValidationSummary', 'validation summary').addEventListener('click', closeModal); } catch (err) { reportModalBindingError('Validation summary unavailable', err); }
 }
@@ -259,7 +260,7 @@ async function importText(text, sourceLabel='Import') {
   selectedIndex = getCategories().length ? 0 : -1;
   markSaved('No changes');
   const guardrailSummary = validationSummaryText(getCategories().length, importAnalysis, validation.repairs || []);
-  setStatus(sourceLabel ? `${sourceLabel}: ${guardrailSummary}` : guardrailSummary, importAnalysis.counts.error || importAnalysis.counts.warning ? 'warn' : 'ok');
+  setStatus(sourceLabel ? `${sourceLabel}: ${guardrailSummary}` : guardrailSummary, importStatusSeverity(importAnalysis, validation.repairs || []));
   commitActiveField();
   renderAll();
   if (shouldShowImportValidationModal({ analysis: importAnalysis, repairs: validation.repairs || [] })) setTimeout(() => showValidationSummary('Import validation summary', importAnalysis, validation.repairs || []), 0);
@@ -314,7 +315,7 @@ function showRawModal(initialText = JSON.stringify(data, null, 2), initialError 
       commitActiveField();
       renderAll();
       const rawSummary = validationSummaryText(getCategories().length, rawAnalysis, validation.repairs || []);
-      setStatus(rawSummary, rawAnalysis.counts.error || rawAnalysis.counts.warning ? 'warn' : 'ok');
+      setStatus(rawSummary, importStatusSeverity(rawAnalysis, validation.repairs || []));
       if (shouldShowImportValidationModal({ analysis: rawAnalysis, repairs: validation.repairs || [] })) setTimeout(() => showValidationSummary('Raw JSON validation summary', rawAnalysis, validation.repairs || []), 0);
       maybeAutoLookupImportedIds();
     });

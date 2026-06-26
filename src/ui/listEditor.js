@@ -60,13 +60,20 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         extra = name ? ` <span class="pill-name">— ${escapeHtml(name)}</span>` : ' <span class="pill-name">— not looked up</span>';
       }
 
-      pill.innerHTML = `<span>${escapeHtml(formatter(v))}</span>${extra}<button title="Remove">×</button>`;
-      pill.querySelector('button').onclick = () => {
+      const valueLabel = formatter(v);
+      pill.innerHTML = `<span>${escapeHtml(valueLabel)}</span>${extra}`;
+      const removeButton = document.createElement('button');
+      removeButton.type = 'button';
+      removeButton.title = `Remove ${valueLabel}`;
+      removeButton.setAttribute('aria-label', `Remove ${valueLabel} from ${title}`);
+      removeButton.textContent = '×';
+      removeButton.onclick = () => {
         arr.splice(i, 1);
         markDirty();
         renderPills();
         notifyItemsChanged();
       };
+      pill.appendChild(removeButton);
       pills.appendChild(pill);
     });
 

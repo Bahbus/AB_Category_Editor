@@ -20,16 +20,29 @@ export function shouldShowImportValidationModal(validation) {
   return reviewableImportRepairs(validation?.repairs || []).length > 0;
 }
 
+export function importStatusSeverity(analysis = {}, repairs = []) {
+  const counts = analysis.counts || {};
+  return counts.error || counts.warning || reviewableImportRepairs(repairs).length ? 'warn' : 'ok';
+}
+
+function materialRepairSummary(repairs = []) {
+  const count = reviewableImportRepairs(repairs).length;
+  if (!count) return '';
+  return `${count} import ${count === 1 ? 'repair' : 'repairs'}`;
+}
+
 export function validationSummaryText(categoryCount, analysis, repairs = []) {
   const counts = analysis.counts || {};
   const parts = [`Imported ${categoryCount.toLocaleString()} ${categoryCount === 1 ? 'category' : 'categories'}`];
+  const repairSummary = materialRepairSummary(repairs);
   if (counts.error) parts.push(`${counts.error} ${counts.error === 1 ? 'error' : 'errors'}`);
   if (counts.warning) parts.push(`${counts.warning} ${counts.warning === 1 ? 'warning' : 'warnings'}`);
-  if (counts.note) parts.push(`${counts.note} ${counts.note === 1 ? 'note' : 'notes'}`);
-  if (!counts.error && !counts.warning && !counts.note) parts.push('no validation issues');
-  if (!counts.error && !counts.warning && counts.note) parts.push('note-only cleanup');
-  const repairSummary = nonMaterialRepairSummary(repairs);
   if (repairSummary) parts.push(repairSummary);
+  if (counts.note) parts.push(`${counts.note} ${counts.note === 1 ? 'note' : 'notes'}`);
+  if (!counts.error && !counts.warning && !counts.note && !repairSummary) parts.push('no validation issues');
+  if (!counts.error && !counts.warning && counts.note && !repairSummary) parts.push('note-only cleanup');
+  const nonMaterialSummary = nonMaterialRepairSummary(repairs);
+  if (nonMaterialSummary) parts.push(nonMaterialSummary);
   return parts.join(' · ');
 }
 
