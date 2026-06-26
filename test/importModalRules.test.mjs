@@ -12,7 +12,8 @@ globalThis.window = { addEventListener() {} };
 const {
   shouldShowImportValidationModal,
   isMaterialImportRepair,
-  reviewableImportRepairs
+  reviewableImportRepairs,
+  validationSummaryText
 } = await import('../src/app.js');
 
 const note = { severity: 'note', field: 'Description', message: 'Description is blank.' };
@@ -54,4 +55,34 @@ test('reviewableImportRepairs filters mixed repair lists to modal-worthy rows', 
 
   assert.equal(modal([], repairs), true);
   assert.deepEqual(reviewableImportRepairs(repairs), [rangeRepair]);
+});
+
+
+function analysis(counts = {}) {
+  return { counts, findings: [] };
+}
+
+test('validation summary reports clean imports without validation issues', () => {
+  assert.equal(validationSummaryText(2, analysis(), []), 'Imported 2 categories · no validation issues');
+});
+
+test('validation summary reports note-only cleanup for note findings', () => {
+  assert.match(validationSummaryText(1, analysis({ note: 1 }), []), /note-only cleanup/);
+});
+
+test('validation summary reports display order cleanup for category sorting repairs', () => {
+  assert.match(validationSummaryText(2, analysis(), [sortRepair]), /normalized display order/);
+});
+
+test('validation summary reports rarity order cleanup for rarity reorder-only repairs', () => {
+  assert.match(validationSummaryText(2, analysis(), [rarityReorderRepair]), /normalized rarity order/);
+});
+
+test('validation summary reports combined display and rarity order cleanup', () => {
+  assert.match(validationSummaryText(2, analysis(), [sortRepair, rarityReorderRepair]), /normalized display and rarity order/);
+});
+
+test('validation summary does not describe material repairs as order-only cleanup', () => {
+  const summary = validationSummaryText(2, analysis(), [invalidRarityRepair]);
+  assert.doesNotMatch(summary, /normalized (?:display|rarity|display and rarity) order/);
 });

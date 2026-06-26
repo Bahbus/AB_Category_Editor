@@ -13,7 +13,7 @@ import { EXPORT_FILENAME, copyTextToClipboard, downloadText, makeBase64Export, p
 import { sheetLabel, collectReferencedIds, countReferencedIds, countUncachedReferencedIds, fetchLookupBatch as xivapiFetchLookupBatch, searchXivapi } from './xivapi.js';
 import { generateCategoryDescription, isUsefulGeneratedDescription } from './descriptionGenerator.js';
 import { analyzeImportedConfig, countFindings } from './validation.js';
-import { SORTAKINDA_PRESET_BASE64 } from './presets.js';
+import { PRESETS } from './presets.js';
 
 let data = JSON.parse(JSON.stringify(INITIAL_DATA));
 let selectedIndex = -1;
@@ -91,7 +91,7 @@ export function shouldShowImportValidationModal(validation) {
   return reviewableImportRepairs(validation?.repairs || []).length > 0;
 }
 
-function validationSummaryText(categoryCount, analysis, repairs = []) {
+export function validationSummaryText(categoryCount, analysis, repairs = []) {
   const counts = analysis.counts || {};
   const parts = [`Imported ${categoryCount.toLocaleString()} ${categoryCount === 1 ? 'category' : 'categories'}`];
   if (counts.error) parts.push(`${counts.error} ${counts.error === 1 ? 'error' : 'errors'}`);
@@ -99,8 +99,20 @@ function validationSummaryText(categoryCount, analysis, repairs = []) {
   if (counts.note) parts.push(`${counts.note} ${counts.note === 1 ? 'note' : 'notes'}`);
   if (!counts.error && !counts.warning && !counts.note) parts.push('no validation issues');
   if (!counts.error && !counts.warning && counts.note) parts.push('note-only cleanup');
-  if (repairs.length && !repairs.some(isMaterialImportRepair)) parts.push('normalized display order');
+  const repairSummary = nonMaterialRepairSummary(repairs);
+  if (repairSummary) parts.push(repairSummary);
   return parts.join(' · ');
+}
+
+export function nonMaterialRepairSummary(repairs = []) {
+  const nonMaterialRepairs = repairs.filter(repair => !isMaterialImportRepair(repair));
+  if (!nonMaterialRepairs.length) return '';
+  const hasDisplayOrder = nonMaterialRepairs.some(repair => repair.field === 'Categories');
+  const hasRarityOrder = nonMaterialRepairs.some(repair => repair.field === 'AllowedRarities');
+  if (hasDisplayOrder && hasRarityOrder) return 'normalized display and rarity order';
+  if (hasDisplayOrder) return 'normalized display order';
+  if (hasRarityOrder) return 'normalized rarity order';
+  return 'note-only cleanup';
 }
 
 function shortRepairValue(value) {
@@ -213,8 +225,16 @@ function renderList() {
   });
 }
 
-function loadSortaKindaPreset() {
-  return importText(SORTAKINDA_PRESET_BASE64, 'SortaKinda preset');
+function loadPreset(preset) {
+  return importText(preset.data, preset.sourceLabel);
+}
+
+function loadBasicPresets() {
+  return loadPreset(PRESETS.find(preset => preset.id === 'basic'));
+}
+
+function loadAdvancedPresets() {
+  return loadPreset(PRESETS.find(preset => preset.id === 'advanced'));
 }
 
 function renderEditor() {
@@ -222,7 +242,7 @@ function renderEditor() {
     getCategories,
     getSelectedIndex: () => selectedIndex,
     setSelectedIndex: value => { selectedIndex = value; },
-    ensureShape, markDirty, markDirtyAndRenderList, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, lookupName, commitActiveField, getEditorPreferences: () => editorPreferences, copyTextToClipboard, loadSortaKindaPreset,
+    ensureShape, markDirty, markDirtyAndRenderList, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, lookupName, commitActiveField, getEditorPreferences: () => editorPreferences, copyTextToClipboard, loadBasicPresets, loadAdvancedPresets,
     listEditorDeps: { lookupName, fetchLookupBatch, searchXivapi, lookupCache, saveLookupCache, markDirty }
   });
 }
