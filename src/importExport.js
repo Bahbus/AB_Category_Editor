@@ -44,7 +44,7 @@ export async function makeBase64Export(data) {
 }
 
 export async function gzipString(str) {
-  if (!('CompressionStream' in window)) {
+  if (!('CompressionStream' in globalThis)) {
     throw new Error('This browser does not support CompressionStream, which is needed for gzip+Base64 export. Use a newer Firefox/Chromium.');
   }
   const stream = new Blob([str], {type: 'application/json'}).stream().pipeThrough(new CompressionStream('gzip'));
@@ -53,7 +53,7 @@ export async function gzipString(str) {
 }
 
 export async function gunzipBytes(bytes) {
-  if (!('DecompressionStream' in window)) {
+  if (!('DecompressionStream' in globalThis)) {
     throw new Error('This browser does not support DecompressionStream. Try importing JSON instead.');
   }
   const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
