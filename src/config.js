@@ -245,6 +245,8 @@ export function validateConfig(obj) {
       before: originalOrder,
       after: sortedOrder,
       showBeforeAfter: false,
+      severity: 'note',
+      material: false,
       message: 'Categories were sorted by Order, Priority, Name, and internal fallback.'
     });
   }

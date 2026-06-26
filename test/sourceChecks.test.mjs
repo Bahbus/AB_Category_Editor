@@ -126,3 +126,23 @@ test('import and raw JSON paths do not auto-generate descriptions', () => {
   assert.doesNotMatch(config, /generateCategoryDescription/);
   assert.doesNotMatch(validation, /generateCategoryDescription/);
 });
+
+
+test('empty state startup actions use preset callback without owning import parsing', () => {
+  const editor = read('src/ui/categoryEditor.js');
+  assert.doesNotMatch(editor, /Start with <strong>Import\/Paste<\/strong> or <strong>Upload<\/strong>/);
+  assert.match(editor, /Start with:/);
+  assert.match(editor, /Load presets based on SortaKinda/);
+  assert.match(editor, /Change appearance and other settings in Preferences\./);
+  assert.match(editor, /Click \? for more information about this app\./);
+  assert.match(editor, /loadSortaKindaPreset/);
+  assert.doesNotMatch(editor, /SORTAKINDA_PRESET_BASE64|parseImportedText|validateConfig|importText/);
+});
+
+test('app owns SortaKinda preset import through normal import path', () => {
+  const app = read('src/app.js');
+  assert.match(app, /SORTAKINDA_PRESET_BASE64/);
+  assert.match(app, /function loadSortaKindaPreset\(\)/);
+  assert.match(app, /return importText\(SORTAKINDA_PRESET_BASE64, 'SortaKinda preset'\);/);
+  assert.match(app, /loadSortaKindaPreset,/);
+});
