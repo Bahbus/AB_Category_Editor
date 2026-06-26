@@ -2,21 +2,41 @@ import { ALLOWED_RARITY_IDS } from './constants.js';
 
 const FALLBACK_DESCRIPTION = "Groups items matching this category's selected rules.";
 
+const STAT_PHRASES = {
+  'critical hit': 'Critical Hit',
+  'direct hit': 'Direct Hit',
+  determination: 'Determination',
+  'skill speed': 'Skill Speed',
+  'spell speed': 'Spell Speed',
+  tenacity: 'Tenacity',
+  piety: 'Piety',
+  craftsmanship: 'Craftsmanship',
+  control: 'Control',
+  cp: 'CP',
+  gathering: 'Gathering',
+  perception: 'Perception',
+  gp: 'GP',
+  strength: 'Strength',
+  dexterity: 'Dexterity',
+  intelligence: 'Intelligence',
+  mind: 'Mind'
+};
+
 const INTENTS = [
-  { intent: 'materia', subject: 'materia', terms: ['materia','critical hit','direct hit','determination','skill speed','spell speed','tenacity','piety','craftsmanship','control','gathering','perception','gp'] },
-  { intent: 'meals', subject: 'meal consumables', terms: ['food','meal','meals'] },
-  { intent: 'potions', subject: 'stat potions', terms: ['potion','potions','strength potion','dexterity potion','intelligence potion','mind potion','craftsmanship potion','control potion','cp potion'] },
-  { intent: 'gear', subject: 'equippable gear', terms: ['gear','equipment','weapon','weapons','armor','armour','accessory','accessories'] },
-  { intent: 'unlockables', subject: 'collectible unlock items', terms: ['mount','mounts','minion','minions','orchestrion','triple triad','card','cards','emote','emotes','hairstyle','hairstyles','fashion accessory','fashion accessories'] },
-  { intent: 'tokens', subject: 'exchange tokens and reward items', terms: ['token','tokens','totem','totems','book','books','tome','tomes','scrip','scrips','currency','currencies','voucher','vouchers','coin','coins','certificate','certificates'] },
-  { intent: 'materials', subject: 'crafting materials', terms: ['material','materials','ingredient','ingredients','reagent','reagents','ore','ores','log','logs','cloth','leather','lumber','ingot','ingots','nugget','nuggets','gem','gems','sand','crystal','crystals','cluster','clusters','shard','shards'] },
-  { intent: 'appearance', subject: 'appearance customization items', terms: ['dye','dyes','glamour','prism','prisms','dresser'] }
+  { intent: 'materia', subject: 'materia', priority: 90, identityTerms: ['materia'], contextTerms: Object.keys(STAT_PHRASES) },
+  { intent: 'meals', subject: 'meal consumables', priority: 80, identityTerms: ['food', 'meal', 'meals'], contextTerms: Object.keys(STAT_PHRASES) },
+  { intent: 'potions', subject: 'potions', priority: 80, identityTerms: ['potion', 'potions'], contextTerms: Object.keys(STAT_PHRASES) },
+  { intent: 'gear', subject: 'equippable gear', priority: 70, identityTerms: ['gear', 'equipment', 'weapon', 'weapons', 'armor', 'armour', 'accessory', 'accessories'], contextTerms: ['battle', 'combat', 'crafting', 'gathering'] },
+  { intent: 'unlockables', subject: 'unlock items', priority: 75, identityTerms: ['mount', 'mounts', 'minion', 'minions', 'orchestrion roll', 'orchestrion rolls', 'orchestrion', 'triple triad card', 'triple triad cards', 'triple triad', 'card', 'cards', 'emote', 'emotes', 'hairstyle', 'hairstyles', 'fashion accessory', 'fashion accessories'], contextTerms: ['collection', 'cosmetic'] },
+  { intent: 'tokens', subject: 'exchange items', priority: 65, identityTerms: ['token', 'tokens', 'totem', 'totems', 'book', 'books', 'tome', 'tomes', 'tomestone', 'tomestones', 'scrip', 'scrips', 'currency', 'currencies', 'voucher', 'vouchers', 'coin', 'coins', 'certificate', 'certificates'], contextTerms: ['extreme', 'savage', 'raid', 'trial', 'vendor', 'exchange'] },
+  { intent: 'materials', subject: 'materials', priority: 60, identityTerms: ['material', 'materials', 'ingredient', 'ingredients', 'reagent', 'reagents', 'ore', 'ores', 'log', 'logs', 'cloth', 'leather', 'lumber', 'ingot', 'ingots', 'nugget', 'nuggets', 'gem', 'gems', 'sand', 'crystal', 'crystals', 'cluster', 'clusters', 'shard', 'shards'], contextTerms: ['crafting', 'gathering', 'gathered', ...Object.keys(STAT_PHRASES)] },
+  { intent: 'appearance', subject: 'appearance customization items', priority: 55, identityTerms: ['dye', 'dyes', 'glamour', 'prism', 'prisms', 'dresser'], contextTerms: ['color', 'colour', 'cosmetic'] }
 ];
 
 const ROLE_TERMS = {
-  combat: ['strength','dexterity','intelligence','mind','vitality','critical hit','direct hit','determination','skill speed','spell speed','tenacity','piety'],
-  crafting: ['craftsmanship','control','cp','crafting','synthesis'],
-  gathering: ['gathering','perception','gp']
+  combat: ['strength', 'dexterity', 'intelligence', 'mind', 'vitality', 'critical hit', 'direct hit', 'determination', 'skill speed', 'spell speed', 'tenacity', 'piety'],
+  crafting: ['craftsmanship', 'control', 'cp', 'crafting', 'synthesis'],
+  gathering: ['gathering', 'perception', 'gp']
 };
 
 function rulesOf(category) { return category?.Rules || {}; }
@@ -33,15 +53,34 @@ function readableJoin(parts) {
 }
 
 function normalizeText(text = '') {
-  return String(text).toLowerCase().replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+  return String(text).toLowerCase().replace(/[_-]+/g, ' ').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function singularize(term) {
+  return term.replace(/ies$/, 'y').replace(/s$/, '');
+}
+
+function escapeRegExp(text) { return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+function pluralize(term) {
+  return /y$/.test(term) ? term.replace(/y$/, 'ies') : `${term}s`;
 }
 
 function termMatches(text, term) {
-  return new RegExp(`(^|\\b)${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(s)?(\\b|$)`, 'i').test(text);
+  const normalized = normalizeText(text);
+  const singular = singularize(normalizeText(term));
+  const variants = uniq([normalizeText(term), singular, pluralize(singular)]);
+  return variants.some(value => new RegExp(`(^|\\b)${escapeRegExp(value)}(\\b|$)`, 'i').test(normalized));
 }
 
 function matchedTermsFor(text, terms) {
-  return terms.filter(term => termMatches(text, term));
+  const matches = [];
+  for (const term of terms) {
+    const concept = singularize(normalizeText(term));
+    if (matches.some(match => singularize(normalizeText(match)) === concept)) continue;
+    if (termMatches(text, term)) matches.push(term);
+  }
+  return matches;
 }
 
 function inferTraits(text) {
@@ -58,70 +97,113 @@ function lookupRuleNames(rules, options) {
   return names.filter(Boolean).join(' ');
 }
 
+function bestStatPhrase(text) {
+  const matches = matchedTermsFor(text, Object.keys(STAT_PHRASES));
+  matches.sort((a, b) => b.length - a.length);
+  return matches.length ? STAT_PHRASES[normalizeText(matches[0])] : '';
+}
+
+function scoreIntent(entry, nameText, patternText, lookupText) {
+  const nameMatches = matchedTermsFor(nameText, entry.identityTerms);
+  const exactName = nameMatches.find(term => normalizeText(term) === nameText || normalizeText(`${term}s`) === nameText);
+  const patternMatches = matchedTermsFor(patternText, entry.identityTerms);
+  const lookupMatches = matchedTermsFor(lookupText, entry.identityTerms);
+  const matchedTerms = uniq([...nameMatches, ...patternMatches, ...lookupMatches]);
+  if (!matchedTerms.length) return null;
+  const longest = Math.max(...matchedTerms.map(term => normalizeText(term).length));
+  const score = (exactName ? 1000 : 0) + (nameMatches.length ? 500 : 0) + (lookupMatches.length ? 90 : 0) + (patternMatches.length ? 40 : 0) + longest;
+  return { ...entry, matchedTerms, nameMatches, exactName: Boolean(exactName), longest, score };
+}
+
 export function analyzeCategoryIntent(category, options = {}) {
   const rules = rulesOf(category);
   const nameText = normalizeText(category?.Name);
   const patternText = hasItems(rules.AllowedItemNamePatterns) ? normalizeText(rules.AllowedItemNamePatterns.join(' ')) : '';
   const lookupText = normalizeText(lookupRuleNames(rules, options));
-  const text = [nameText, patternText, lookupText].filter(Boolean).join(' ');
-  const traits = inferTraits(text);
+  const combinedText = [nameText, patternText, lookupText].filter(Boolean).join(' ');
+  const traits = inferTraits(combinedText);
+  const statPhrase = bestStatPhrase(combinedText);
 
-  let best = null;
-  for (const entry of INTENTS) {
-    const matchedTerms = matchedTermsFor(text, entry.terms);
-    if (!matchedTerms.length) continue;
-    const score = matchedTerms.length + (matchedTerms.some(term => termMatches(nameText, term)) ? 2 : 0);
-    if (!best || score > best.score) best = { ...entry, matchedTerms, score };
-  }
+  const candidates = INTENTS.map(entry => scoreIntent(entry, nameText, patternText, lookupText)).filter(Boolean);
+  candidates.sort((a, b) => b.score - a.score || Number(b.nameMatches.length > 0) - Number(a.nameMatches.length > 0) || b.longest - a.longest || b.priority - a.priority);
+  const best = candidates[0];
 
   if (!best) {
-    return { intent: 'generic', subject: 'items', phrase: 'items matched by the selected category rules', confidence: 'low', matchedTerms: [], traits };
+    return { intent: 'generic', subject: 'items', phrase: 'items matched by selected rules', confidence: 'low', matchedTerms: [], traits, statPhrase };
   }
 
-  const confidence = best.matchedTerms.some(term => termMatches(nameText, term)) ? 'high' : 'medium';
+  const confidence = best.nameMatches.length ? 'high' : 'medium';
   return {
     intent: best.intent,
     subject: best.subject,
-    phrase: phraseForIntent(best.intent, traits),
+    phrase: phraseForIntent(best.intent, traits, statPhrase, combinedText),
     confidence,
     matchedTerms: best.matchedTerms,
-    traits
+    traits,
+    statPhrase
   };
 }
 
-function phraseForIntent(intent, traits = []) {
+function phraseForIntent(intent, traits = [], statPhrase = '', text = '') {
   if (intent === 'materia') {
-    if (traits.includes('crafting')) return 'crafting materia used for melding and synthesis stat customization';
-    if (traits.includes('gathering')) return 'gathering materia used for melding and gathering stat customization';
-    return 'combat materia used for melding and stat customization';
+    if (traits.includes('crafting')) return `crafting materia used to improve ${statPhrase || 'crafting stats'} through melding`;
+    if (traits.includes('gathering')) return statPhrase === 'Gathering' ? 'gathering materia used to improve gathering stats through melding' : `gathering materia used to improve ${statPhrase || 'gathering stats'} through melding`;
+    return `combat materia used to improve ${statPhrase || 'combat stats'} through melding`;
   }
-  if (intent === 'meals') return traits.includes('crafting') || traits.includes('gathering') ? 'crafting and gathering meals used for temporary performance bonuses' : 'meal consumables that provide temporary stat buffs';
+  if (intent === 'meals') return 'meal consumables that provide temporary stat bonuses';
   if (intent === 'potions') {
-    if (traits.includes('crafting')) return 'crafting potions that improve synthesis-related stats';
-    if (traits.includes('gathering')) return 'gathering potions used for temporary gathering boosts';
-    return 'stat potions used for temporary combat boosts';
+    if (traits.includes('crafting')) return statPhrase ? `${statPhrase} potions used for temporary crafting resource boosts` : 'crafting potions used for temporary crafting resource boosts';
+    if (traits.includes('gathering')) return `${statPhrase || 'gathering'} potions used for temporary gathering boosts`;
+    return `${statPhrase || 'stat'} potions used for temporary combat stat boosts`;
   }
-  if (intent === 'gear') return 'equippable gear';
-  if (intent === 'unlockables') return 'collectible unlock items such as mounts, minions, cards, emotes, or hairstyles';
-  if (intent === 'tokens') return 'exchange tokens and reward items used for vendors or progression turn-ins';
+  if (intent === 'gear') {
+    if (termMatches(text, 'weapon')) return 'weapons and combat equipment';
+    if (termMatches(text, 'armor') || termMatches(text, 'armour')) return 'protective armor and equipment';
+    if (termMatches(text, 'accessory')) return 'equippable accessories';
+    return 'equippable gear';
+  }
+  if (intent === 'unlockables') return unlockablePhrase(text);
+  if (intent === 'tokens') return tokenPhrase(text);
   if (intent === 'materials') return traits.includes('gathering') ? 'gathered materials used in crafting recipes' : 'crafting materials and recipe components';
-  if (intent === 'appearance') return 'appearance customization items for glamour or color changes';
-  return 'items matched by the selected category rules';
+  if (intent === 'appearance') return termMatches(text, 'dye') ? 'dyes for color and appearance customization' : 'glamour items for appearance customization';
+  return 'items matched by selected rules';
+}
+
+function unlockablePhrase(text) {
+  if (termMatches(text, 'mount')) return 'mount unlock items for collection and character travel';
+  if (termMatches(text, 'minion')) return 'minion unlock items for cosmetic companions and collection';
+  if (termMatches(text, 'triple triad') || termMatches(text, 'card')) return 'Triple Triad card unlocks for collection and card play';
+  if (termMatches(text, 'orchestrion')) return 'orchestrion roll unlocks for music collection';
+  if (termMatches(text, 'emote')) return 'emote unlock items for character expression';
+  if (termMatches(text, 'hairstyle')) return 'hairstyle unlock items for character customization';
+  if (termMatches(text, 'fashion accessory')) return 'fashion accessory unlocks for cosmetic customization';
+  return 'collectible unlock items for character collection';
+}
+
+function tokenPhrase(text) {
+  if (termMatches(text, 'totem')) return 'trial totems used to exchange for weapons, mounts, or other rewards';
+  if (termMatches(text, 'book')) return 'savage raid books used to exchange for raid gear and rewards';
+  if (termMatches(text, 'tome') || termMatches(text, 'tomestone')) return 'tomestone currency and exchange items used for progression rewards';
+  if (termMatches(text, 'scrip')) return 'crafting and gathering scrip items used for vendor exchanges';
+  return 'exchange tokens and reward items used for vendors or progression turn-ins';
 }
 
 function explicitIdeas(rules, intent) {
   const ideas = [];
   if (hasItems(rules.AllowedItemIds)) ideas.push('manually selected items');
-  if (hasItems(rules.AllowedItemNamePatterns)) ideas.push('items matched by name patterns');
-  if (hasItems(rules.AllowedUiCategoryIds)) ideas.push('items from selected in-game categories');
-  return intent === 'generic' ? ideas : ideas.filter(idea => idea !== 'items matched by name patterns').slice(0, 2);
+  if (hasItems(rules.AllowedItemNamePatterns)) ideas.push('name-pattern matches');
+  if (hasItems(rules.AllowedUiCategoryIds)) ideas.push('items from selected in-game item categories');
+  return intent === 'generic' ? ideas : ideas.filter(idea => idea !== 'name-pattern matches').slice(0, 2);
 }
 
-function rangeIdeas(rules, intent) {
+function rangeIdeas(rules) {
+  const hasLevel = activeRange(rules, 'Level');
+  const hasItemLevel = activeRange(rules, 'ItemLevel');
   const ideas = [];
-  if (activeRange(rules, 'ItemLevel')) ideas.push(intent === 'gear' ? 'within the selected item-level range' : 'limited by item level');
-  if (activeRange(rules, 'Level')) ideas.push('within the selected level range');
-  if (activeRange(rules, 'VendorPrice') && ideas.length === 0) ideas.push('filtered by vendor value');
+  if (hasLevel && hasItemLevel) ideas.push('within the selected level and item-level ranges');
+  else if (hasItemLevel) ideas.push('within the selected item-level range');
+  else if (hasLevel) ideas.push('within the selected level range');
+  if (activeRange(rules, 'VendorPrice')) ideas.push('filtered by vendor value');
   return ideas;
 }
 
@@ -129,54 +211,74 @@ function rarityIdea(rules) {
   const selected = Array.isArray(rules.AllowedRarities) ? rules.AllowedRarities.map(Number).filter(v => ALLOWED_RARITY_IDS.has(v)) : [];
   const unique = uniq(selected);
   if (!unique.length || unique.length >= ALLOWED_RARITY_IDS.size) return '';
-  if (unique.every(v => v >= 3)) return 'restricted to higher-rarity items';
-  if (unique.length === 1 && unique[0] === 1) return 'restricted to common items';
-  return unique.length <= 2 ? 'limited to selected rarities' : '';
+  if (unique.every(v => v >= 3)) return 'higher-rarity';
+  if (unique.length === 1 && unique[0] === 1) return 'common';
+  return unique.length <= 2 ? 'selected-rarity' : '';
 }
 
-function stateTraits(rules, intent) {
-  const traits = [];
-  if (stateValue(rules, 'Dyeable') === 1) traits.push(intent === 'gear' ? 'dyeable gear' : 'dyeable items');
-  if (stateValue(rules, 'Glamourable') === 1) traits.push('items usable for glamour');
-  if (stateValue(rules, 'Collectable') === 1) traits.push('collectable turn-in items');
-  if (stateValue(rules, 'Untradable') === 2) traits.push('tradeable items');
-  if (stateValue(rules, 'Untradable') === 1) traits.push('bound or untradeable items');
-  if (stateValue(rules, 'Desynthesizable') === 1) traits.push('items that can be desynthesized');
-  if (stateValue(rules, 'Repairable') === 1 && intent === 'gear') traits.push('repairable gear');
-  if (stateValue(rules, 'HighQuality') === 1) traits.push('high-quality items');
-  return traits;
+function stateAdjectives(rules, intent) {
+  const adjectives = [];
+  if (stateValue(rules, 'Dyeable') === 1) adjectives.push('dyeable');
+  if (stateValue(rules, 'Glamourable') === 1) adjectives.push(intent === 'gear' ? 'glamour-ready' : 'glamour-ready');
+  if (stateValue(rules, 'Repairable') === 1 && intent === 'gear') adjectives.push('repairable');
+  if (stateValue(rules, 'HighQuality') === 1) adjectives.push('high-quality');
+  const rarity = rarityIdea(rules);
+  if (rarity) adjectives.push(rarity);
+  return uniq(adjectives);
 }
 
-function constraintPhrase(constraints) {
-  const joined = readableJoin(constraints);
-  if (/^(within|limited|filtered|restricted)\b/i.test(joined)) return joined;
-  return `that are ${joined}`;
+function stateObjects(rules) {
+  const objects = [];
+  if (stateValue(rules, 'Collectable') === 1) objects.push('collectable turn-in items');
+  if (stateValue(rules, 'Untradable') === 2) objects.push('tradeable items');
+  if (stateValue(rules, 'Untradable') === 1) objects.push('untradeable items');
+  if (stateValue(rules, 'Desynthesizable') === 1) objects.push('desynthesizable items');
+  return objects;
+}
+
+function applyAdjectives(phrase, adjectives, intent) {
+  if (!adjectives.length) return phrase;
+  const prefix = readableJoin(adjectives.slice(0, 3));
+  if (intent === 'gear') {
+    if (/^equippable gear$/.test(phrase)) return `${prefix} gear`;
+    if (/equipment/.test(phrase)) return `${prefix} ${phrase}`;
+    return `${prefix} ${phrase}`;
+  }
+  if (intent === 'appearance') return `${prefix} ${phrase}`;
+  return `${prefix} ${phrase}`;
+}
+
+function appendQualifiers(sentence, qualifiers) {
+  const values = uniq(qualifiers).slice(0, 3);
+  if (!values.length) return sentence;
+  return `${sentence.replace(/\.$/, '')} ${readableJoin(values)}.`;
 }
 
 function buildIntentDescription(analysis, rules, category) {
-  const constraints = [...stateTraits(rules, analysis.intent), ...rangeIdeas(rules, analysis.intent)];
-  const rarity = rarityIdea(rules);
-  if (rarity) constraints.push(rarity);
+  const ranges = rangeIdeas(rules);
+  const objects = stateObjects(rules);
   const explicit = explicitIdeas(rules, analysis.intent);
   if (analysis.intent === 'generic') {
-    const clues = [...explicit, ...constraints];
+    const clues = [...explicit, ...objects, ...ranges];
     if (hasItems(category?.CustomItemOrder)) clues.push('custom item ordering');
     return clues.length ? `Groups ${readableJoin(clues.slice(0, 3))}.` : FALLBACK_DESCRIPTION;
   }
-  if (constraints.length) return `Groups ${analysis.phrase} ${constraintPhrase(constraints.slice(0, 2))}.`;
-  if (explicit.length) return `Groups ${analysis.phrase} from ${readableJoin(explicit.slice(0, 2))}.`;
-  return `Groups ${analysis.phrase}.`;
+  const phrase = applyAdjectives(analysis.phrase, stateAdjectives(rules, analysis.intent), analysis.intent);
+  return appendQualifiers(`Groups ${phrase}.`, [...objects, ...ranges, ...explicit.map(value => `from ${value}`)]);
 }
 
 function cleanSentence(text) {
-  return String(text)
+  let cleaned = String(text)
     .replace(/\bitems items\b/gi, 'items')
     .replace(/\bgear gear\b/gi, 'gear')
-    .replace(/\bwith within\b/gi, 'within')
-    .replace(/\s+(within|limited|filtered|restricted)/, ' $1')
+    .replace(/\bthat are within\b/gi, 'within')
+    .replace(/specific game item categories/gi, 'selected in-game item categories')
+    .replace(/selected category rules/gi, 'selected rules')
     .replace(/\s+/g, ' ')
     .replace(/\s+\./g, '.')
     .trim();
+  if (!cleaned.endsWith('.')) cleaned += '.';
+  return cleaned;
 }
 
 export function isUsefulGeneratedDescription(text) {
@@ -186,8 +288,11 @@ export function isUsefulGeneratedDescription(text) {
 
 export function generateCategoryDescription(category, options = {}) {
   const analysis = analyzeCategoryIntent(category, options);
-  const text = buildIntentDescription(analysis, rulesOf(category), category);
-  return cleanSentence(text);
+  const text = cleanSentence(buildIntentDescription(analysis, rulesOf(category), category));
+  if (/\b(ItemLevel|AllowedItemIds|AllowedUiCategoryIds|HighQuality)\b|\b(items items|gear gear)\b|specific game item categories|that are within/i.test(text)) {
+    return analysis.intent === 'generic' ? FALLBACK_DESCRIPTION : `Groups ${analysis.phrase}.`;
+  }
+  return text;
 }
 
 export { FALLBACK_DESCRIPTION };
