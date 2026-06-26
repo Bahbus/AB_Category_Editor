@@ -13,6 +13,7 @@ import { EXPORT_FILENAME, copyTextToClipboard, downloadText, makeBase64Export, p
 import { sheetLabel, collectReferencedIds, countReferencedIds, countUncachedReferencedIds, fetchLookupBatch as xivapiFetchLookupBatch, searchXivapi } from './xivapi.js';
 import { generateCategoryDescription, isUsefulGeneratedDescription } from './descriptionGenerator.js';
 import { analyzeImportedConfig, countFindings } from './validation.js';
+import { SORTAKINDA_PRESET_BASE64 } from './presets.js';
 
 let data = JSON.parse(JSON.stringify(INITIAL_DATA));
 let selectedIndex = -1;
@@ -68,13 +69,29 @@ function mergeValidationFindings(...analyses) {
   return { findings, counts: countFindings(findings) };
 }
 
-function validationSummaryText(categoryCount, analysis) {
+export function isMaterialImportRepair(repair) {
+  if (!repair) return false;
+  if (repair.material === false) return false;
+  if (repair.severity === 'error' || repair.severity === 'warning') return true;
+  if (repair.material === true) return true;
+  return repair.field !== 'Categories';
+}
+
+export function shouldShowImportValidationModal(validation) {
+  const findings = validation?.analysis?.findings || validation?.findings || [];
+  if (findings.some(item => item?.severity === 'error' || item?.severity === 'warning')) return true;
+  return (validation?.repairs || []).some(isMaterialImportRepair);
+}
+
+function validationSummaryText(categoryCount, analysis, repairs = []) {
   const counts = analysis.counts || {};
   const parts = [`Imported ${categoryCount.toLocaleString()} ${categoryCount === 1 ? 'category' : 'categories'}`];
   if (counts.error) parts.push(`${counts.error} ${counts.error === 1 ? 'error' : 'errors'}`);
   if (counts.warning) parts.push(`${counts.warning} ${counts.warning === 1 ? 'warning' : 'warnings'}`);
   if (counts.note) parts.push(`${counts.note} ${counts.note === 1 ? 'note' : 'notes'}`);
   if (!counts.error && !counts.warning && !counts.note) parts.push('no validation issues');
+  if (!counts.error && !counts.warning && counts.note) parts.push('note-only cleanup');
+  if (repairs.length && !repairs.some(isMaterialImportRepair)) parts.push('normalized display order');
   return parts.join(' · ');
 }
 
@@ -186,12 +203,16 @@ function renderList() {
   });
 }
 
+function loadSortaKindaPreset() {
+  return importText(SORTAKINDA_PRESET_BASE64, 'SortaKinda preset');
+}
+
 function renderEditor() {
   renderCategoryEditor({
     getCategories,
     getSelectedIndex: () => selectedIndex,
     setSelectedIndex: value => { selectedIndex = value; },
-    ensureShape, markDirty, markDirtyAndRenderList, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, lookupName, commitActiveField, getEditorPreferences: () => editorPreferences, copyTextToClipboard,
+    ensureShape, markDirty, markDirtyAndRenderList, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, lookupName, commitActiveField, getEditorPreferences: () => editorPreferences, copyTextToClipboard, loadSortaKindaPreset,
     listEditorDeps: { lookupName, fetchLookupBatch, searchXivapi, lookupCache, saveLookupCache, markDirty }
   });
 }
@@ -239,11 +260,11 @@ async function importText(text, sourceLabel='Import') {
   applyValidatedConfig(validation);
   selectedIndex = getCategories().length ? 0 : -1;
   markSaved('No changes');
-  const guardrailSummary = validationSummaryText(getCategories().length, importAnalysis);
+  const guardrailSummary = validationSummaryText(getCategories().length, importAnalysis, validation.repairs || []);
   setStatus(sourceLabel ? `${sourceLabel}: ${guardrailSummary}` : guardrailSummary, importAnalysis.counts.error || importAnalysis.counts.warning ? 'warn' : 'ok');
   commitActiveField();
   renderAll();
-  if (importAnalysis.findings.length || validation.repairs?.length) setTimeout(() => showValidationSummary('Import validation summary', importAnalysis, validation.repairs || []), 0);
+  if (shouldShowImportValidationModal({ analysis: importAnalysis, repairs: validation.repairs || [] })) setTimeout(() => showValidationSummary('Import validation summary', importAnalysis, validation.repairs || []), 0);
   maybeAutoLookupImportedIds();
   return true;
 }
@@ -294,9 +315,9 @@ function showRawModal(initialText = JSON.stringify(data, null, 2), initialError 
       markDirty();
       commitActiveField();
       renderAll();
-      const rawSummary = validationSummaryText(getCategories().length, rawAnalysis);
+      const rawSummary = validationSummaryText(getCategories().length, rawAnalysis, validation.repairs || []);
       setStatus(rawSummary, rawAnalysis.counts.error || rawAnalysis.counts.warning ? 'warn' : 'ok');
-      if (rawAnalysis.findings.length || validation.repairs?.length) setTimeout(() => showValidationSummary('Raw JSON validation summary', rawAnalysis, validation.repairs || []), 0);
+      if (shouldShowImportValidationModal({ analysis: rawAnalysis, repairs: validation.repairs || [] })) setTimeout(() => showValidationSummary('Raw JSON validation summary', rawAnalysis, validation.repairs || []), 0);
       maybeAutoLookupImportedIds();
     });
     requireScopedEl(wrap, '#copyRawFull', 'raw JSON').addEventListener('click', async () => {
