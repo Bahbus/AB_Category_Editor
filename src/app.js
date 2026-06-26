@@ -77,10 +77,18 @@ export function isMaterialImportRepair(repair) {
   return repair.field !== 'Categories';
 }
 
+export function reviewableImportRepairs(repairs = []) {
+  return repairs.filter(isMaterialImportRepair);
+}
+
+function reviewableImportFindings(findings = []) {
+  return findings.filter(item => item?.severity === 'error' || item?.severity === 'warning');
+}
+
 export function shouldShowImportValidationModal(validation) {
   const findings = validation?.analysis?.findings || validation?.findings || [];
-  if (findings.some(item => item?.severity === 'error' || item?.severity === 'warning')) return true;
-  return (validation?.repairs || []).some(isMaterialImportRepair);
+  if (reviewableImportFindings(findings).length) return true;
+  return reviewableImportRepairs(validation?.repairs || []).length > 0;
 }
 
 function validationSummaryText(categoryCount, analysis, repairs = []) {
@@ -127,14 +135,16 @@ function formatRepairMessage(repair) {
 }
 
 function showValidationSummary(title, analysis, repairs = []) {
-  if (!analysis.findings.length && !repairs.length) return;
+  const reviewFindings = reviewableImportFindings(analysis.findings || []);
+  const reviewRepairs = reviewableImportRepairs(repairs);
+  if (!reviewFindings.length && !reviewRepairs.length) return;
   const wrap = document.createElement('div');
-  const rows = analysis.findings.slice(0, 80).map(item => `<li class="field-${item.severity}"><strong>${escapeHtml(item.severity)}:</strong> ${escapeHtml(item.categoryName ? `${item.categoryName} · ${item.field}` : item.field)} — ${escapeHtml(item.message)}</li>`).join('');
-  const more = analysis.findings.length > 80 ? `<p class="hint">Showing first 80 of ${analysis.findings.length} findings.</p>` : '';
-  const findingsSection = analysis.findings.length ? `<ul class="validation-list">${rows}</ul>${more}` : '<p class="hint">No validation guardrail findings.</p>';
-  const repairRows = repairs.slice(0, 80).map(repair => `<li>${escapeHtml(formatRepairMessage(repair))}</li>`).join('');
-  const repairMore = repairs.length > 80 ? `<p class="hint">Showing first 80 of ${repairs.length} import changes.</p>` : '';
-  const repairSection = repairs.length ? `<h3>Changes made during import</h3><ul class="validation-list">${repairRows}</ul>${repairMore}` : '';
+  const rows = reviewFindings.slice(0, 80).map(item => `<li class="field-${item.severity}"><strong>${escapeHtml(item.severity)}:</strong> ${escapeHtml(item.categoryName ? `${item.categoryName} · ${item.field}` : item.field)} — ${escapeHtml(item.message)}</li>`).join('');
+  const more = reviewFindings.length > 80 ? `<p class="hint">Showing first 80 of ${reviewFindings.length} findings.</p>` : '';
+  const findingsSection = reviewFindings.length ? `<ul class="validation-list">${rows}</ul>${more}` : '<p class="hint">No validation guardrail findings.</p>';
+  const repairRows = reviewRepairs.slice(0, 80).map(repair => `<li>${escapeHtml(formatRepairMessage(repair))}</li>`).join('');
+  const repairMore = reviewRepairs.length > 80 ? `<p class="hint">Showing first 80 of ${reviewRepairs.length} import changes.</p>` : '';
+  const repairSection = reviewRepairs.length ? `<h3>Changes made during import</h3><ul class="validation-list">${repairRows}</ul>${repairMore}` : '';
   wrap.innerHTML = `<p class="hint">Warnings and notes do not block import; they are guardrails for cleanup while editing.</p>${findingsSection}${repairSection}<div class="row modal-action-row"><button id="closeValidationSummary" class="primary">Continue editing</button></div>`;
   openModal(title, wrap);
   try { requireScopedEl(wrap, '#closeValidationSummary', 'validation summary').addEventListener('click', closeModal); } catch (err) { reportModalBindingError('Validation summary unavailable', err); }

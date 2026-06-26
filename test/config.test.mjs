@@ -10,6 +10,8 @@ import {
   getNormalizedAllowedRarities,
   normalizeAllowedRarities,
   normalizeAllowedRaritiesWithReport,
+  normalizedRaritySet,
+  sameValidRaritySet,
   sortImportedCategories,
   validateConfig,
   buildImportSummary
@@ -75,6 +77,14 @@ test('getNormalizedAllowedRarities returns display rarities without mutating the
 
   assert.deepEqual(normalized, allowedRarities);
   assert.deepEqual(category.Rules.AllowedRarities, [7, '4', 99, 4, 1, 0, 2, 3, 3, 'bad']);
+});
+
+
+test('rarity set helpers distinguish reorder-only from dropped invalids or duplicates', () => {
+  assert.deepEqual(normalizedRaritySet([7, 4, 3, 2]), [2, 3, 4, 7]);
+  assert.equal(sameValidRaritySet([7, 4, 3, 2], [2, 3, 4, 7]), true);
+  assert.equal(sameValidRaritySet([7, 4, 999, 3, 3], [3, 4, 7]), false);
+  assert.equal(sameValidRaritySet([3, 3, 4], [3, 4]), false);
 });
 
 test('normalizeAllowedRarities keeps only supported unique numeric rarities', () => {
@@ -144,6 +154,57 @@ test('validateConfig normalizes valid configs and returns a summary without thro
   assert.match(result.summary, /Imported 2 categories/);
   assert.deepEqual(config.Categories.map(category => category.Id), ['first', 'later']);
   assert.deepEqual(config.Categories[1].Rules.AllowedRarities, [1, 7]);
+});
+
+
+test('validateConfig classifies Allowed Rarities reorder-only repair as non-material note', () => {
+  const config = { Categories: [{ Id: 'gear', Name: 'Gear', Rules: { AllowedRarities: [7, 4, 3, 2] } }] };
+
+  const result = validateConfig(config);
+  const repair = result.repairs.find(item => item.field === 'AllowedRarities');
+
+  assert.deepEqual(config.Categories[0].Rules.AllowedRarities, [2, 3, 4, 7]);
+  assert.ok(repair);
+  assert.equal(repair.material, false);
+  assert.equal(repair.severity, 'note');
+  assert.equal(repair.showBeforeAfter, false);
+  assert.match(repair.message, /sorted/);
+});
+
+test('validateConfig classifies Allowed Rarities invalid/drop repair as material warning', () => {
+  const config = { Categories: [{ Id: 'gear', Name: 'Gear', Rules: { AllowedRarities: [2, 3, 999] } }] };
+
+  const result = validateConfig(config);
+  const repair = result.repairs.find(item => item.field === 'AllowedRarities');
+
+  assert.deepEqual(config.Categories[0].Rules.AllowedRarities, [2, 3]);
+  assert.ok(repair);
+  assert.equal(repair.material, true);
+  assert.equal(repair.severity, 'warning');
+});
+
+test('validateConfig classifies duplicate Allowed Rarities removal as material warning', () => {
+  const config = { Categories: [{ Id: 'gear', Name: 'Gear', Rules: { AllowedRarities: [3, 3, 4] } }] };
+
+  const result = validateConfig(config);
+  const repair = result.repairs.find(item => item.field === 'AllowedRarities');
+
+  assert.deepEqual(config.Categories[0].Rules.AllowedRarities, [3, 4]);
+  assert.ok(repair);
+  assert.equal(repair.material, true);
+  assert.equal(repair.severity, 'warning');
+});
+
+test('validateConfig classifies non-array Allowed Rarities repair as material warning', () => {
+  const config = { Categories: [{ Id: 'gear', Name: 'Gear', Rules: { AllowedRarities: 'bad' } }] };
+
+  const result = validateConfig(config);
+  const repair = result.repairs.find(item => item.field === 'AllowedRarities');
+
+  assert.deepEqual(config.Categories[0].Rules.AllowedRarities, []);
+  assert.ok(repair);
+  assert.equal(repair.material, true);
+  assert.equal(repair.severity, 'warning');
 });
 
 test('validateConfig repair report includes rarity normalization details', () => {
