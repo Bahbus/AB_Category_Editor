@@ -97,6 +97,14 @@ function lookupRuleNames(rules, options) {
   return names.filter(Boolean).join(' ');
 }
 
+function cachedNames(sheet, ids = [], options = {}) {
+  if (typeof options.lookupName !== 'function') return [];
+  return ids
+    .map(id => options.lookupName(sheet, id))
+    .map(name => String(name || '').trim())
+    .filter(name => name && !/^unknown$/i.test(name));
+}
+
 function bestStatPhrase(text) {
   const matches = matchedTermsFor(text, Object.keys(STAT_PHRASES));
   matches.sort((a, b) => b.length - a.length);
@@ -188,12 +196,98 @@ function tokenPhrase(text) {
   return 'exchange tokens and reward items used for vendors or progression turn-ins';
 }
 
-function explicitIdeas(rules, intent) {
-  const ideas = [];
-  if (hasItems(rules.AllowedItemIds)) ideas.push('manually selected items');
-  if (hasItems(rules.AllowedItemNamePatterns)) ideas.push('name-pattern matches');
-  if (hasItems(rules.AllowedUiCategoryIds)) ideas.push('items from selected in-game item categories');
-  return intent === 'generic' ? ideas : ideas.filter(idea => idea !== 'name-pattern matches').slice(0, 2);
+const EXPLICIT_CLASSIFIERS = [
+  ['materia', ['materia']],
+  ['potion', ['potion', 'tincture', 'draught', 'medicine']],
+  ['meal', ['meal', 'food', 'dish', 'soup', 'salad']],
+  ['mount', ['mount', 'whistle', 'horn', 'key']],
+  ['minion', ['minion']],
+  ['card', ['triple triad', 'card']],
+  ['emote', ['emote', 'ballroom etiquette']],
+  ['hairstyle', ['hairstyle', 'modern aesthetics']],
+  ['token', ['token', 'totem', 'book', 'tomestone', 'scrip', 'coin', 'voucher', 'certificate']],
+  ['material', ['material', 'ingredient', 'reagent', 'ore', 'log', 'cloth', 'leather', 'lumber', 'ingot', 'nugget', 'crystal', 'cluster', 'shard']],
+  ['furnishing', ['furnishing', 'tabletop', 'wall-mounted', 'outdoor', 'housing']],
+  ['dye', ['dye']],
+  ['glamour', ['glamour', 'prism']],
+  ['weapon', ['weapon', 'arms']],
+  ['armor', ['armor', 'armour', 'shield', 'head', 'body', 'hands', 'legs', 'feet']],
+  ['accessory', ['accessory', 'bracelet', 'ring', 'earring', 'necklace']]
+];
+
+function classifyNames(names = []) {
+  const text = normalizeText(names.join(' '));
+  const found = EXPLICIT_CLASSIFIERS.find(([, terms]) => terms.some(term => termMatches(text, term)));
+  return found?.[0] || '';
+}
+
+function classLabel(kind, source) {
+  if (!kind) return '';
+  if (kind === 'potion') return source === 'category' ? 'medicine' : 'potion';
+  if (kind === 'meal') return 'meal';
+  if (kind === 'material') return source === 'category' ? 'crafting material' : 'material';
+  if (kind === 'furnishing') return source === 'category' ? 'furnishing' : 'housing';
+  if (['weapon', 'armor', 'accessory'].includes(kind)) return kind;
+  return kind;
+}
+
+function shortNames(names, limit = 3) {
+  return names.filter(name => name.length <= 42).slice(0, limit);
+}
+
+function itemPhrase(names, count) {
+  const kind = classLabel(classifyNames(names), 'item');
+  if (names.length === 1 && names[0].length <= 60) return `the selected item ${names[0]}`;
+  const examples = shortNames(names, 3);
+  if (examples.length >= 2 && examples.join(', ').length <= 120) return `selected items such as ${readableJoin(examples)}`;
+  if (kind === 'mount' || kind === 'minion') return `selected ${kind} unlock items`;
+  if (kind) return `selected ${kind} entries`;
+  return names.length ? 'selected cached item entries' : 'selected item entries';
+}
+
+function uiCategoryPhrase(names, count) {
+  const kind = classLabel(classifyNames(names), 'category');
+  const examples = shortNames(names, 3);
+  if (examples.length === 1 && count === 1) return `items from the ${examples[0]} category`;
+  if (examples.length >= 2 && examples.join(', ').length <= 90) return `items from ${readableJoin(examples)} categories`;
+  if (kind) return `selected ${kind} categories`;
+  return names.length ? 'selected cached item categories' : 'selected item categories';
+}
+
+function patternPhrase(rules) {
+  const examples = (rules.AllowedItemNamePatterns || []).map(String).filter(Boolean).slice(0, 2);
+  return { count: rules.AllowedItemNamePatterns?.length || 0, examples, phrase: 'name-pattern matches' };
+}
+
+function combineExplicitPhrases(parts) {
+  if (parts.length === 1) {
+    if (parts[0].kind === 'patterns') return 'items matched by selected name patterns';
+    if (parts[0].kind === 'ui') return parts[0].phrase.startsWith('items from') ? parts[0].phrase : parts[0].phrase;
+    return parts[0].phrase;
+  }
+  return readableJoin(parts.map(part => part.shortPhrase || part.phrase));
+}
+
+export function analyzeExplicitSources(rules, options = {}) {
+  const itemCount = rules.AllowedItemIds?.length || 0;
+  const uiCount = rules.AllowedUiCategoryIds?.length || 0;
+  const itemNames = cachedNames('Item', rules.AllowedItemIds || [], options);
+  const uiNames = cachedNames('ItemUICategory', rules.AllowedUiCategoryIds || [], options);
+  const patterns = patternPhrase(rules);
+  const item = { count: itemCount, names: itemNames, uncachedCount: Math.max(0, itemCount - itemNames.length), label: classLabel(classifyNames(itemNames), 'item'), phrase: itemPhrase(itemNames, itemCount) };
+  const ui = { count: uiCount, names: uiNames, uncachedCount: Math.max(0, uiCount - uiNames.length), label: classLabel(classifyNames(uiNames), 'category'), phrase: uiCategoryPhrase(uiNames, uiCount) };
+  const parts = [];
+  if (itemCount) parts.push({ kind: 'item', phrase: item.phrase, shortPhrase: item.label ? `selected ${item.label} entries` : 'selected item entries' });
+  if (uiCount) parts.push({ kind: 'ui', phrase: ui.phrase, shortPhrase: ui.label ? `selected ${ui.label} categories` : 'item categories' });
+  if (patterns.count) parts.push({ kind: 'patterns', phrase: 'items matched by selected name patterns', shortPhrase: 'name-pattern matches' });
+  return {
+    itemIds: item,
+    uiCategoryIds: ui,
+    namePatterns: patterns,
+    hasExplicitRules: parts.length > 0,
+    phrase: combineExplicitPhrases(parts),
+    confidence: itemNames.length || uiNames.length ? 'medium' : 'low'
+  };
 }
 
 function rangeIdeas(rules) {
@@ -254,25 +348,35 @@ function appendQualifiers(sentence, qualifiers) {
   return `${sentence.replace(/\.$/, '')} ${readableJoin(values)}.`;
 }
 
-function buildIntentDescription(analysis, rules, category) {
+function buildIntentDescription(analysis, rules, category, options = {}) {
   const ranges = rangeIdeas(rules);
   const objects = stateObjects(rules);
-  const explicit = explicitIdeas(rules, analysis.intent);
+  const explicit = analyzeExplicitSources(rules, options);
   if (analysis.intent === 'generic') {
-    const clues = [...explicit, ...objects, ...ranges];
+    const clues = [explicit.phrase, ...objects, ...ranges].filter(Boolean);
     if (hasItems(category?.CustomItemOrder)) clues.push('custom item ordering');
     return clues.length ? `Groups ${readableJoin(clues.slice(0, 3))}.` : FALLBACK_DESCRIPTION;
   }
   const phrase = applyAdjectives(analysis.phrase, stateAdjectives(rules, analysis.intent), analysis.intent);
-  return appendQualifiers(`Groups ${phrase}.`, [...objects, ...ranges, ...explicit.map(value => `from ${value}`)]);
+  const qualifiers = [...objects, ...ranges];
+  if (explicit.hasExplicitRules) {
+    if (explicit.uiCategoryIds.count && !explicit.itemIds.count && !explicit.namePatterns.count) {
+      qualifiers.push(explicit.uiCategoryIds.phrase.startsWith('items from') ? `from ${explicit.uiCategoryIds.phrase.replace(/^items from\s+/i, '')}` : `from ${explicit.uiCategoryIds.phrase}`);
+    } else if (explicit.namePatterns.count && !explicit.itemIds.count && !explicit.uiCategoryIds.count) {
+      qualifiers.push('matched by selected name patterns');
+    } else {
+      qualifiers.push(`limited to ${explicit.phrase}`);
+    }
+  }
+  return appendQualifiers(`Groups ${phrase}.`, qualifiers);
 }
 
 function cleanSentence(text) {
   let cleaned = String(text)
     .replace(/\bitems items\b/gi, 'items')
     .replace(/\bgear gear\b/gi, 'gear')
+    .replace(/\bfrom items from\b/gi, 'from')
     .replace(/\bthat are within\b/gi, 'within')
-    .replace(/specific game item categories/gi, 'selected in-game item categories')
     .replace(/selected category rules/gi, 'selected rules')
     .replace(/\s+/g, ' ')
     .replace(/\s+\./g, '.')
@@ -288,8 +392,8 @@ export function isUsefulGeneratedDescription(text) {
 
 export function generateCategoryDescription(category, options = {}) {
   const analysis = analyzeCategoryIntent(category, options);
-  const text = cleanSentence(buildIntentDescription(analysis, rulesOf(category), category));
-  if (/\b(ItemLevel|AllowedItemIds|AllowedUiCategoryIds|HighQuality)\b|\b(items items|gear gear)\b|specific game item categories|that are within/i.test(text)) {
+  const text = cleanSentence(buildIntentDescription(analysis, rulesOf(category), category, options));
+  if (/\b(ItemLevel|AllowedItemIds|AllowedUiCategoryIds|HighQuality)\b|\b(items items|gear gear)\b|specific game item categories|from manually selected items|from items from|items from selected in-game item categories|that are within/i.test(text)) {
     return analysis.intent === 'generic' ? FALLBACK_DESCRIPTION : `Groups ${analysis.phrase}.`;
   }
   return text;
