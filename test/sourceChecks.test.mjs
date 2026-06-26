@@ -148,7 +148,9 @@ test('app owns bundled preset import through normal import path', () => {
   const app = read('src/app.js');
   assert.match(app, /import \{ PRESETS \} from '\.\/presets\.js';/);
   assert.match(app, /function loadPreset\(preset\) \{/);
-  assert.match(app, /return importText\(preset\.data, preset\.sourceLabel\);/);
+  assert.match(app, /if \(!preset\?\.data\) \{/);
+  assert.match(app, /Preset is not available\./);
+  assert.match(app, /return importText\(preset\.data, preset\.sourceLabel \|\| 'Preset'\);/);
   assert.match(app, /function loadBasicPresets\(\)/);
   assert.match(app, /function loadAdvancedPresets\(\)/);
   assert.match(app, /preset => preset\.id === 'basic'/);

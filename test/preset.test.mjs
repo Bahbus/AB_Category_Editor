@@ -15,8 +15,9 @@ test('basic and advanced preset constants are real gzip+Base64 values', () => {
   assert.equal(typeof ADVANCED_PRESET_BASE64, 'string');
   assert.notEqual(BASIC_PRESET_BASE64, ADVANCED_PRESET_BASE64);
   for (const [, value] of presets) {
-    assert.notEqual(value, 'PLACEHOLDER');
+    assert.ok(value.length > 0, `${value} is non-empty`);
     assert.match(value, /^H4sI/);
+    assert.doesNotMatch(value, /PASTE_|PLACEHOLDER|TODO/);
   }
 });
 

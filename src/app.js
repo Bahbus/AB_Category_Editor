@@ -226,7 +226,11 @@ function renderList() {
 }
 
 function loadPreset(preset) {
-  return importText(preset.data, preset.sourceLabel);
+  if (!preset?.data) {
+    setStatus('Preset is not available.', 'err');
+    return false;
+  }
+  return importText(preset.data, preset.sourceLabel || 'Preset');
 }
 
 function loadBasicPresets() {
