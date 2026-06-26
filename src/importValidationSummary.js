@@ -10,7 +10,7 @@ export function reviewableImportRepairs(repairs = []) {
   return repairs.filter(isMaterialImportRepair);
 }
 
-function reviewableImportFindings(findings = []) {
+export function reviewableImportFindings(findings = []) {
   return findings.filter(item => item?.severity === 'error' || item?.severity === 'warning');
 }
 

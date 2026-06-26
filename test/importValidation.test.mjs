@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   isMaterialImportRepair,
   reviewableImportRepairs,
+  reviewableImportFindings,
   shouldShowImportValidationModal,
   validationSummaryText,
   nonMaterialRepairSummary
@@ -17,6 +18,21 @@ test('isMaterialImportRepair identifies repairs that should be reviewed', () => 
   assert.equal(isMaterialImportRepair({ material: true, field: 'Something' }), true);
   assert.equal(isMaterialImportRepair({ field: 'Categories' }), false);
   assert.equal(isMaterialImportRepair({ field: 'AllowedItemIds' }), true);
+});
+
+
+test('reviewableImportFindings filters note-only findings', () => {
+  const findings = [
+    { severity: 'note', field: 'Description' },
+    { severity: 'warning', field: 'AllowedRarities' },
+    { severity: 'error', field: 'Rules' }
+  ];
+
+  assert.deepEqual(reviewableImportFindings(findings), [
+    findings[1],
+    findings[2]
+  ]);
+  assert.deepEqual(reviewableImportFindings(), []);
 });
 
 test('reviewableImportRepairs filters non-material cleanup repairs', () => {

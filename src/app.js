@@ -14,9 +14,16 @@ import { sheetLabel, collectReferencedIds, countReferencedIds, countUncachedRefe
 import { generateCategoryDescription, isUsefulGeneratedDescription } from './descriptionGenerator.js';
 import { analyzeImportedConfig, countFindings } from './validation.js';
 import { PRESETS } from './presets.js';
-import { isMaterialImportRepair, reviewableImportRepairs, shouldShowImportValidationModal, validationSummaryText, nonMaterialRepairSummary } from './importValidationSummary.js';
+import {
+  isMaterialImportRepair,
+  reviewableImportRepairs,
+  reviewableImportFindings,
+  shouldShowImportValidationModal,
+  validationSummaryText,
+  nonMaterialRepairSummary
+} from './importValidationSummary.js';
 
-export { isMaterialImportRepair, reviewableImportRepairs, shouldShowImportValidationModal, validationSummaryText, nonMaterialRepairSummary };
+export { isMaterialImportRepair, reviewableImportRepairs, reviewableImportFindings, shouldShowImportValidationModal, validationSummaryText, nonMaterialRepairSummary };
 
 let data = JSON.parse(JSON.stringify(INITIAL_DATA));
 let selectedIndex = -1;

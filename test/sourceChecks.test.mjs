@@ -92,6 +92,20 @@ test('allowed rarity checkbox changes refresh validation and category list witho
   assert.doesNotMatch(rarityEditorBody, /renderAll\(\)/);
 });
 
+
+test('app imports import validation summary helpers it references', () => {
+  const source = read('src/app.js');
+  const importNames = source.match(/import \{(?<names>[\s\S]*?)\} from ['"]\.\/importValidationSummary\.js['"];/)?.groups.names
+    .split(',')
+    .map(name => name.trim())
+    .filter(Boolean) ?? [];
+
+  for (const helper of ['reviewableImportFindings']) {
+    if (!new RegExp(`\\b${helper}\\b`).test(source)) continue;
+    assert.ok(importNames.includes(helper), `src/app.js references ${helper} but does not import it from importValidationSummary.js`);
+  }
+});
+
 test('importText does not keep an unused importSummary binding', () => {
   const source = read('src/app.js');
   assert.doesNotMatch(source, /const\s+importSummary\s*=/);
