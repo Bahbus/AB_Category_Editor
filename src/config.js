@@ -156,6 +156,22 @@ function valuesEqual(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
+export function normalizedRaritySet(values) {
+  return [...new Set((Array.isArray(values) ? values : [])
+    .map(Number)
+    .filter(value => ALLOWED_RARITY_IDS.has(value)))]
+    .sort((a, b) => a - b);
+}
+
+export function sameValidRaritySet(before, after) {
+  if (!Array.isArray(before) || !Array.isArray(after)) return false;
+  const normalizedBefore = normalizedRaritySet(before);
+  const normalizedAfter = normalizedRaritySet(after);
+  return before.length === normalizedBefore.length
+    && after.length === normalizedAfter.length
+    && valuesEqual(normalizedBefore, normalizedAfter);
+}
+
 function snapshotCategoryForRepairs(cat, index = null) {
   const rules = isPlainObject(cat?.Rules) ? cat.Rules : {};
   const snapshot = {
@@ -177,14 +193,15 @@ function displayCategoryName(cat, before) {
   return Number.isInteger(before?.categoryIndex) ? `Category ${before.categoryIndex + 1}` : '(unnamed category)';
 }
 
-function repairRecord(cat, before, field, beforeValue, afterValue, message) {
+function repairRecord(cat, before, field, beforeValue, afterValue, message, options = {}) {
   return {
     categoryName: displayCategoryName(cat, before),
     categoryId: cat?.Id || before?.categoryId,
     field,
     before: beforeValue,
     after: afterValue,
-    message
+    message,
+    ...options
   };
 }
 
@@ -196,10 +213,24 @@ function collectCategoryRepairs(cat, before) {
   }
   for (const key of LIST_RULE_KEYS) {
     if (!valuesEqual(before[key], cat.Rules[key])) {
-      const message = key === 'AllowedRarities'
-        ? 'Allowed Rarities changed during import normalization.'
-        : `${key} was malformed and replaced with an empty array.`;
-      repairs.push(repairRecord(cat, before, key, before[key], cat.Rules[key], message));
+      if (key === 'AllowedRarities') {
+        const reorderOnly = Array.isArray(before[key])
+          && before[key].length === cat.Rules[key].length
+          && sameValidRaritySet(before[key], cat.Rules[key]);
+        repairs.push(repairRecord(
+          cat,
+          before,
+          key,
+          before[key],
+          cat.Rules[key],
+          reorderOnly ? 'Allowed Rarities were sorted during import normalization.' : 'Allowed Rarities changed during import normalization.',
+          reorderOnly
+            ? { severity: 'note', material: false, showBeforeAfter: false }
+            : { severity: 'warning', material: true }
+        ));
+      } else {
+        repairs.push(repairRecord(cat, before, key, before[key], cat.Rules[key], `${key} was malformed and replaced with an empty array.`));
+      }
     }
   }
   for (const key of RANGE_RULE_KEYS) {
