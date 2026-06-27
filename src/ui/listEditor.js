@@ -1,5 +1,6 @@
 import { escapeHtml, setStatus, showBusy, updateBusy, hideBusy } from '../dom.js';
 import { sheetLabel, normalizeLookupIds } from '../xivapi.js';
+import { isUsefulLookupName } from '../lookupNames.js';
 
 export function listEditor(title, arr, parser, formatter, options = {}) {
   const {
@@ -57,7 +58,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
 
       if (lookupSheet) {
         const name = lookupName(lookupSheet, v);
-        extra = name ? ` <span class="pill-name">— ${escapeHtml(name)}</span>` : ' <span class="pill-name">— not looked up</span>';
+        extra = isUsefulLookupName(name) ? ` <span class="pill-name">— ${escapeHtml(name)}</span>` : ' <span class="pill-name">— not looked up</span>';
       }
 
       const valueLabel = formatter(v);

@@ -271,3 +271,28 @@ test('lookup names can conservatively select a high-confidence category intent',
 });
 
 const FALLBACK_RE = /Groups items matching this category's selected rules\./;
+
+test('generated descriptions filter unusable cached item lookup names', () => {
+  const cat = category({ Name: 'Manual Picks' });
+  cat.Rules.AllowedItemIds = [10];
+  const text = generateCategoryDescription(cat, { lookupName: (sheet, id) => sheet === 'Item' && id === 10 ? '(name unavailable)' : '' });
+  assert.equal(text, 'Groups selected item entries.');
+  assert.doesNotMatch(text, /name unavailable|unknown|not looked up/i);
+});
+
+test('generated descriptions filter unusable cached UI category lookup names', () => {
+  const cat = category({ Name: 'Manual Picks' });
+  cat.Rules.AllowedUiCategoryIds = [20];
+  const text = generateCategoryDescription(cat, { lookupName: (sheet, id) => sheet === 'ItemUICategory' && id === 20 ? '(name unavailable)' : '' });
+  assert.equal(text, 'Groups selected item categories.');
+  assert.doesNotMatch(text, /name unavailable|unknown|not looked up/i);
+});
+
+test('generated descriptions keep usable cached names while omitting unusable names', () => {
+  const cat = category({ Name: 'Manual Picks' });
+  cat.Rules.AllowedItemIds = [10, 11];
+  const lookupName = (sheet, id) => sheet === 'Item' ? ({ 10: 'Grade IX Strength Tincture', 11: '(name unavailable)' }[id] || '') : '';
+  const text = generateCategoryDescription(cat, { lookupName });
+  assert.match(text, /Grade IX Strength Tincture|tincture|potion/i);
+  assert.doesNotMatch(text, /name unavailable|unknown|not looked up/i);
+});

@@ -1056,14 +1056,14 @@ details.card > .details-body {
   outline-offset: 2px;
 }
 
-@media (max-width: 980px) {
-  html, body { overflow: auto; }
+@media (max-width: 840px) {
   .app {
     grid-template-columns: 1fr;
-    grid-template-rows: 340px minmax(0, 1fr);
+    grid-template-rows: minmax(240px, 40vh) minmax(0, 1fr);
     height: 100vh;
+    min-height: 0;
   }
-  .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+  .sidebar { border-right: 0; border-bottom: 1px solid var(--border); }
   .grid.cols-2, .grid.cols-3, .color-layout, .basic-meta-grid, .rgb-grid { grid-template-columns: 1fr; }
 }
 

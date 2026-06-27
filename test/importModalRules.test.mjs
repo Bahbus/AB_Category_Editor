@@ -1,21 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const documentStub = {
-  readyState: 'loading',
-  addEventListener() {},
-  documentElement: { dataset: {} }
-};
-globalThis.document = documentStub;
-globalThis.window = { addEventListener() {} };
-
-const {
+import {
   shouldShowImportValidationModal,
   isMaterialImportRepair,
   reviewableImportRepairs,
   validationSummaryText,
   nonMaterialRepairSummary
-} = await import('../src/app.js');
+} from '../src/importValidationSummary.js';
 
 const note = { severity: 'note', field: 'Description', message: 'Description is blank.' };
 const error = { severity: 'error', field: 'Order', message: 'Order must be finite.' };
