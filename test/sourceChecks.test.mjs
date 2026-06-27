@@ -221,6 +221,12 @@ test('modal open and close keeps background app inert and aria-hidden only while
   assert.match(modals, /setAttribute\('aria-hidden', 'true'\)/);
   assert.match(modals, /\.inert\s*=\s*false/);
   assert.match(modals, /removeAttribute\('aria-hidden'\)/);
+  const openBody = modals.match(/export function openModal\([^)]*\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
+  assert.ok(
+    openBody.indexOf('focusTarget.focus()') !== -1
+      && openBody.indexOf('setAppModalInert()') > openBody.indexOf('focusTarget.focus()'),
+    'openModal should request modal focus before making the app inert/aria-hidden'
+  );
   const closeBody = modals.match(/export function closeModal\(\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
   assert.match(closeBody, /restoreAppModalInert\(\)/);
 });

@@ -64,11 +64,11 @@ export function openModal(title, contentNode, options = {}) {
   box.innerHTML = '';
   box.appendChild(contentNode);
   backdrop.classList.remove('hidden');
-  setAppModalInert();
   requestAnimationFrame(() => {
     const modal = el('modalBackdrop')?.querySelector('.modal');
     const focusTarget = getFocusableElements(modal)[0] || el('closeModal') || modal;
     if (focusTarget) focusTarget.focus();
+    setAppModalInert();
   });
 }
 
