@@ -1,4 +1,5 @@
 import { ALLOWED_RARITY_IDS } from './constants.js';
+import { isUsefulLookupName } from './lookupNames.js';
 
 const FALLBACK_DESCRIPTION = "Groups items matching this category's selected rules.";
 
@@ -102,7 +103,7 @@ function cachedNames(sheet, ids = [], options = {}) {
   return ids
     .map(id => options.lookupName(sheet, id))
     .map(name => String(name || '').trim())
-    .filter(name => name && !/^unknown$/i.test(name));
+    .filter(isUsefulLookupName);
 }
 
 function bestStatPhrase(text) {

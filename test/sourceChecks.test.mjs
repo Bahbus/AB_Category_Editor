@@ -206,3 +206,42 @@ test('link buttons use concrete theme tokens', () => {
   assert.match(styles, /:root\[data-theme="high-contrast"\] \.link-button:focus-visible/);
   assert.doesNotMatch(styles, /\.link-button[\s\S]*?var\(--(?:link|focus),/);
 });
+
+test('responsive stacked app layout source rules stay in place', () => {
+  const styles = read('styles.css');
+  assert.match(styles, /@media \(max-width: 840px\)\s*{[\s\S]*?\.app\s*{[\s\S]*?grid-template-columns:\s*1fr;[\s\S]*?grid-template-rows:\s*minmax\(240px, 40vh\) minmax\(0, 1fr\);/);
+  assert.match(styles, /@media \(max-width: 840px\)\s*{[\s\S]*?\.sidebar\s*{[^}]*border-right:\s*0;[^}]*border-bottom:\s*1px solid var\(--border\);/);
+  assert.doesNotMatch(styles, /@media \(max-width: 840px\)\s*{[\s\S]*?html, body\s*{[^}]*overflow:\s*auto;/);
+});
+
+test('modal open and close keeps background app inert and aria-hidden only while active', () => {
+  const modals = read('src/modals.js');
+  assert.match(modals, /document\.querySelector\('\.app'\)/);
+  assert.match(modals, /\.inert\s*=\s*true/);
+  assert.match(modals, /setAttribute\('aria-hidden', 'true'\)/);
+  assert.match(modals, /\.inert\s*=\s*false/);
+  assert.match(modals, /removeAttribute\('aria-hidden'\)/);
+  const closeBody = modals.match(/export function closeModal\(\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
+  assert.match(closeBody, /restoreAppModalInert\(\)/);
+});
+
+test('package scripts include test and combined check commands', () => {
+  const pkg = JSON.parse(read('package.json'));
+  assert.equal(pkg.scripts?.test, 'node --test');
+  assert.ok(pkg.scripts?.check);
+  assert.match(pkg.scripts.check, /node --check src\/app\.js/);
+  assert.match(pkg.scripts.check, /node scripts\/check-imports\.mjs/);
+  assert.match(pkg.scripts.check, /node --test/);
+});
+
+test('pure import validation helper tests import the pure helper module instead of app', () => {
+  assert.doesNotMatch(read('test/importModalRules.test.mjs'), /from ['"]\.\.\/src\/app\.js['"]|import\(['"]\.\.\/src\/app\.js['"]\)/);
+  assert.match(read('test/importModalRules.test.mjs'), /from ['"]\.\.\/src\/importValidationSummary\.js['"]/);
+});
+
+test('state filter changes schedule list rendering without full render', () => {
+  const source = read('src/ui/categoryEditor.js');
+  const body = source.match(/function renderStateFilterCard\(filterName, obj\) \{(?<body>[\s\S]*?)\n    return box;/)?.groups.body ?? '';
+  assert.match(body, /scheduleRenderList\(\)/);
+  assert.doesNotMatch(body, /renderAll\(\)/);
+});

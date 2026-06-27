@@ -24,7 +24,6 @@ import {
   importStatusSeverity
 } from './importValidationSummary.js';
 
-export { isMaterialImportRepair, reviewableImportRepairs, reviewableImportFindings, shouldShowImportValidationModal, validationSummaryText, nonMaterialRepairSummary, importStatusSeverity };
 
 let data = JSON.parse(JSON.stringify(INITIAL_DATA));
 let selectedIndex = -1;
