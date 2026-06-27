@@ -4,9 +4,11 @@ import assert from 'node:assert/strict';
 import {
   collectReferencedIds,
   countReferencedIds,
+  countUncachedReferencedIds,
   extractNextCursor,
   extractSheetRows,
   extractSheetRowsById,
+  fetchLookupBatch,
   normalizeLookupIds,
   rowId,
   rowName
@@ -81,4 +83,34 @@ test('collectReferencedIds and countReferencedIds collect Item and UI category i
   assert.deepEqual([...ids.Item].sort((a, b) => a - b), [100, 101, 102]);
   assert.deepEqual([...ids.ItemUICategory].sort((a, b) => a - b), [5, 6]);
   assert.equal(countReferencedIds(ids), 5);
+});
+
+test('countUncachedReferencedIds counts missing and unusable cached lookup names', () => {
+  const ids = {
+    Item: new Set([1, 2, 3]),
+    ItemUICategory: new Set([10, 11])
+  };
+  const cache = {
+    Item: { 1: 'Potion', 2: '(name unavailable)', 3: 'not looked up' },
+    ItemUICategory: { 10: 'Medicine' }
+  };
+  const lookupName = (sheet, id) => cache[sheet]?.[String(id)] || null;
+
+  assert.equal(countUncachedReferencedIds(ids, lookupName), 3);
+});
+
+test('fetchLookupBatch retries cached sentinel names and replaces them with useful names', async t => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({ fields: { Name: 'Ether' } })
+  });
+  const lookupCache = { Item: { 1: 'Potion', 2: '(name unavailable)' } };
+
+  const failures = await fetchLookupBatch('Item', [1, 2], { lookupCache, saveLookupCache() {}, batchSize: 50 });
+
+  assert.deepEqual(failures, []);
+  assert.equal(lookupCache.Item['1'], 'Potion');
+  assert.equal(lookupCache.Item['2'], 'Ether');
 });

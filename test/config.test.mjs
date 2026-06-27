@@ -13,8 +13,7 @@ import {
   normalizedRaritySet,
   sameValidRaritySet,
   sortImportedCategories,
-  validateConfig,
-  buildImportSummary
+  validateConfig
 } from '../src/config.js';
 import { RANGE_FILTERS, STATE_FILTER_KEYS } from '../src/constants.js';
 
@@ -137,7 +136,7 @@ test('sortImportedCategories sorts by Order, then Priority, name, and id', () =>
   assert.deepEqual(config.Categories.map(category => category.Id), ['a', 'c', 'd', 'b']);
 });
 
-test('validateConfig normalizes valid configs and returns a summary without throwing', () => {
+test('validateConfig mutates and normalizes valid configs without returning a legacy summary', () => {
   const config = {
     Categories: [
       { Id: 'later', Name: 'Later', Order: 2, Rules: { AllowedRarities: [99, 7, 7, '1'] } },
@@ -149,9 +148,8 @@ test('validateConfig normalizes valid configs and returns a summary without thro
   const result = validateConfig(config);
 
   assert.equal(result.config, config);
-  assert.equal(typeof result.summary, 'string');
+  assert.equal('summary' in result, false);
   assert.ok(Array.isArray(result.repairs));
-  assert.match(result.summary, /Imported 2 categories/);
   assert.deepEqual(config.Categories.map(category => category.Id), ['first', 'later']);
   assert.deepEqual(config.Categories[1].Rules.AllowedRarities, [1, 7]);
 });
@@ -323,12 +321,6 @@ test('validateConfig does not crash on malformed but repairable nested rules', (
 });
 
 
-test('buildImportSummary mentions Order, Priority, and Name sorting', () => {
-  const summary = buildImportSummary(2, 0);
-
-  assert.match(summary, /Order, Priority, and Name/);
-  assert.doesNotMatch(summary, /sorted them by Order\./);
-});
 
 test('makeId returns 32 lowercase hex characters', async () => {
   const { makeId } = await import('../src/config.js');

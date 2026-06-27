@@ -251,3 +251,42 @@ test('state filter changes schedule list rendering without full render', () => {
   assert.match(body, /scheduleRenderList\(\)/);
   assert.doesNotMatch(body, /renderAll\(\)/);
 });
+
+test('list editor lookup retry uses useful lookup-name semantics', () => {
+  const source = read('src/ui/listEditor.js');
+  assert.match(source, /import \{[^}]*\bisUsefulLookupName\b[^}]*\} from ['"]\.\.\/lookupNames\.js['"]/);
+  assert.match(source, /const\s+missing\s*=\s*ids\.filter\(id\s*=>\s*!isUsefulLookupName\(lookupName\(lookupSheet,\s*id\)\)\)/);
+  assert.doesNotMatch(source, /const\s+missing\s*=\s*ids\.filter\(id\s*=>\s*!lookupName\(lookupSheet,\s*id\)\)/);
+});
+
+test('compact density does not enlarge list editor pill sizing', () => {
+  const styles = read('styles.css');
+  assert.match(styles, /Compact mode must not enlarge list editor pills/);
+  assert.match(styles, /--pill-font-size\s*:\s*12px;/);
+  assert.match(styles, /--pill-padding-block\s*:\s*4px;/);
+  assert.match(styles, /--pill-padding-inline\s*:\s*8px;/);
+  assert.match(styles, /--pill-remove-size\s*:\s*16px;/);
+  assert.match(styles, /\.pill\s*{(?=[\s\S]*?font-size:\s*var\(--pill-font-size\);)(?=[\s\S]*?padding:\s*var\(--pill-padding-block\)\s+var\(--pill-padding-inline\);)[\s\S]*?line-height:\s*1\.2;/);
+  assert.match(styles, /\.pill button\s*{[\s\S]*?width:\s*var\(--pill-remove-size\);[\s\S]*?height:\s*var\(--pill-remove-size\);[\s\S]*?min-height:\s*0;/);
+  assert.match(styles, /:root\[data-density="compact"\]\s+\.pill\s*{[\s\S]*?font-size:\s*var\(--pill-font-size\);[\s\S]*?padding:\s*var\(--pill-padding-block\)\s+var\(--pill-padding-inline\);[\s\S]*?min-height:\s*0;/);
+  assert.match(styles, /:root\[data-density="compact"\]\s+\.pill button\s*{[\s\S]*?width:\s*var\(--pill-remove-size\);[\s\S]*?height:\s*var\(--pill-remove-size\);[\s\S]*?padding:\s*0;/);
+});
+
+test('modal requestAnimationFrame work is guarded against fast close', () => {
+  const source = read('src/modals.js');
+  assert.match(source, /let\s+modalVersion\s*=\s*0/);
+  assert.match(source, /const\s+version\s*=\s*\+\+modalVersion/);
+  assert.match(source, /requestAnimationFrame\(\(\)\s*=>\s*{[\s\S]*?version\s*!==\s*modalVersion[\s\S]*?classList\.contains\('hidden'\)[\s\S]*?return;/);
+  assert.match(source, /export function closeModal\(\) \{\n\s*modalVersion\+\+/);
+});
+
+test('legacy import summary and appearance modal alias stay retired', () => {
+  const app = read('src/app.js');
+  const config = read('src/config.js');
+  const preferences = read('src/ui/preferencesModal.js');
+  assert.doesNotMatch(config, /buildImportSummary/);
+  assert.doesNotMatch(config, /summary:\s*buildImportSummary|\bsummary\b/);
+  assert.match(config, /Mutates obj in place:/);
+  assert.match(app, /function applyValidatedConfig\(validation\) \{ data = validation\.config; \}/);
+  assert.doesNotMatch(preferences, /showAppearanceModal/);
+});

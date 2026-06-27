@@ -1,4 +1,5 @@
 import { XIVAPI_BASE, LOOKUP_BATCH_SIZE } from './constants.js';
+import { isUsefulLookupName } from './lookupNames.js';
 
 export function sheetLabel(sheet) {
   if (sheet === 'Item') return 'Item';
@@ -57,12 +58,12 @@ export async function fetchLookupBatch(sheet, ids, options = {}) {
   const lookupCache = options.lookupCache || {};
   const saveLookupCache = options.saveLookupCache || (() => {});
   const cache = lookupCache[sheet] || (lookupCache[sheet] = {});
-  const missing = normalizeLookupIds(ids).filter(id => !cache[String(id)]);
+  const missing = normalizeLookupIds(ids).filter(id => !isUsefulLookupName(cache[String(id)]));
   const failures = [];
   if (!missing.length) return failures;
   const cachePayloadRows = rowsById => {
     for (const id of missing) {
-      if (cache[String(id)]) continue;
+      if (isUsefulLookupName(cache[String(id)])) continue;
       const row = rowsById.get(String(id));
       if (row) cache[String(id)] = rowName(row) || '(name unavailable)';
     }
@@ -79,7 +80,7 @@ export async function fetchLookupBatch(sheet, ids, options = {}) {
       await fetchChunk(chunk.slice(midpoint));
       return;
     }
-    const unresolved = chunk.filter(id => !cache[String(id)] && !before.has(String(id)));
+    const unresolved = chunk.filter(id => !isUsefulLookupName(cache[String(id)]) && !before.has(String(id)));
     if (unresolved.length && chunk.length > 1) for (const id of unresolved) await fetchChunk([id]);
     else for (const id of unresolved) failures.push({ sheet, id, error: new Error('No row returned') });
   };
@@ -105,8 +106,8 @@ export function collectReferencedIds(categories, ensureShape) {
 export function countReferencedIds(ids) { return ids.Item.size + ids.ItemUICategory.size; }
 export function countUncachedReferencedIds(ids, lookupName) {
   let count = 0;
-  for (const id of ids.Item) if (!lookupName('Item', id)) count++;
-  for (const id of ids.ItemUICategory) if (!lookupName('ItemUICategory', id)) count++;
+  for (const id of ids.Item) if (!isUsefulLookupName(lookupName('Item', id))) count++;
+  for (const id of ids.ItemUICategory) if (!isUsefulLookupName(lookupName('ItemUICategory', id))) count++;
   return count;
 }
 function quoteQueryValue(value) { return String(value).replaceAll('\\', '\\\\').replaceAll('"', '\\"'); }

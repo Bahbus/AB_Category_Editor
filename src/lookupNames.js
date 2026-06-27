@@ -5,3 +5,11 @@ export function isUsefulLookupName(name) {
     && !/^\(?name unavailable\)?$/i.test(value)
     && !/^not looked up$/i.test(value);
 }
+
+export function hasUsefulLookupName(lookupName, sheet, id) {
+  return isUsefulLookupName(typeof lookupName === 'function' ? lookupName(sheet, id) : '');
+}
+
+export function lookupDisplayName(name) {
+  return isUsefulLookupName(name) ? String(name).trim() : '';
+}

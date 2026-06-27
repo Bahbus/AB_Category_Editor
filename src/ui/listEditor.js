@@ -148,7 +148,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       try {
         lookupButton.disabled = true;
         const ids = normalizeLookupIds(arr);
-        const missing = ids.filter(id => !lookupName(lookupSheet, id));
+        const missing = ids.filter(id => !isUsefulLookupName(lookupName(lookupSheet, id)));
         showBusy(`Looking up ${sheetLabel(lookupSheet)} names`, `0/${missing.length} uncached checked`, 0);
 
         if (missing.length) {

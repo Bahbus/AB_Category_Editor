@@ -3,6 +3,7 @@ import { el, requireEl } from './dom.js';
 let activeCloseHandler = null;
 let previouslyFocusedElement = null;
 let inertAppRoot = null;
+let modalVersion = 0;
 
 function isFocusableElementVisible(node) {
   if (!node || node.hidden || node.getAttribute('aria-hidden') === 'true') return false;
@@ -55,6 +56,7 @@ function restoreAppModalInert() {
 }
 
 export function openModal(title, contentNode, options = {}) {
+  const version = ++modalVersion;
   previouslyFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
   activeCloseHandler = typeof options.onClose === 'function' ? options.onClose : null;
   const titleNode = requireEl('modalTitle');
@@ -65,7 +67,9 @@ export function openModal(title, contentNode, options = {}) {
   box.appendChild(contentNode);
   backdrop.classList.remove('hidden');
   requestAnimationFrame(() => {
-    const modal = el('modalBackdrop')?.querySelector('.modal');
+    const currentBackdrop = el('modalBackdrop');
+    if (version !== modalVersion || !currentBackdrop || currentBackdrop.classList.contains('hidden')) return;
+    const modal = currentBackdrop.querySelector('.modal');
     const focusTarget = getFocusableElements(modal)[0] || el('closeModal') || modal;
     if (focusTarget) focusTarget.focus();
     setAppModalInert();
@@ -73,6 +77,7 @@ export function openModal(title, contentNode, options = {}) {
 }
 
 export function closeModal() {
+  modalVersion++;
   const closeHandler = activeCloseHandler;
   const restoreTarget = previouslyFocusedElement;
   activeCloseHandler = null;
