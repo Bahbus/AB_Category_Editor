@@ -15,12 +15,10 @@ import { generateCategoryDescription, isUsefulGeneratedDescription } from './des
 import { analyzeImportedConfig, countFindings } from './validation.js';
 import { PRESETS } from './presets.js';
 import {
-  isMaterialImportRepair,
   reviewableImportRepairs,
   reviewableImportFindings,
   shouldShowImportValidationModal,
   validationSummaryText,
-  nonMaterialRepairSummary,
   importStatusSeverity
 } from './importValidationSummary.js';
 
