@@ -12,6 +12,7 @@ import { openRegexToItemIdsTool as openRegexTool } from './tools/regexToItemIds.
 import { EXPORT_FILENAME, copyTextToClipboard, downloadText, makeBase64Export, parseImportedText } from './importExport.js';
 import { sheetLabel, collectReferencedIds, countReferencedIds, countUncachedReferencedIds, fetchLookupBatch as xivapiFetchLookupBatch, searchXivapi } from './xivapi.js';
 import { generateCategoryDescription, isUsefulGeneratedDescription } from './descriptionGenerator.js';
+import { isUsefulLookupName } from './lookupNames.js';
 import { analyzeImportedConfig, countFindings } from './validation.js';
 import { PRESETS } from './presets.js';
 import {
@@ -61,7 +62,7 @@ function markDirty(options = {}) {
 }
 function markDirtyAndRenderList() { markDirty({ renderList: true }); }
 function markSaved(label='Exported') { dirty = false; setSaveState(label); }
-function applyValidatedConfig(validation) { data = validation.config; return validation.summary; }
+function applyValidatedConfig(validation) { data = validation.config; }
 
 function mergeValidationFindings(...analyses) {
   const seen = new Set();
@@ -229,7 +230,7 @@ async function lookupReferencedIds(options = {}) {
   try {
     showBusy('Looking up IDs', `0/${uncached} complete`, 0);
     for (const [sheet, sheetIds] of [['ItemUICategory', [...ids.ItemUICategory]], ['Item', [...ids.Item]]]) {
-      const missing = sheetIds.filter(id => !lookupName(sheet, id));
+      const missing = sheetIds.filter(id => !isUsefulLookupName(lookupName(sheet, id)));
       if (!missing.length) continue;
       const priorCached = uncached - countUncachedReferencedIds(ids, lookupName);
       const batchFailures = await fetchLookupBatch(sheet, missing, { onProgress(doneForSheet, totalForSheet) { const done = Math.min(uncached, priorCached + doneForSheet); const percent = uncached ? (done / uncached) * 100 : 100; updateBusy(`${done}/${uncached} checked · ${sheetLabel(sheet)} batch ${Math.ceil(doneForSheet / LOOKUP_BATCH_SIZE)}/${Math.ceil(totalForSheet / LOOKUP_BATCH_SIZE)}`, percent); } });

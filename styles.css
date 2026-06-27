@@ -25,7 +25,13 @@
   --title-control-height: 2rem;
   --title-line-height: 1;
   --heading-optical-y: -1px;
+  --pill-font-size: 12px;
+  --pill-padding-block: 4px;
+  --pill-padding-inline: 8px;
+  --pill-gap: 6px;
+  --pill-remove-size: 16px;
 }
+
 :root[data-density="compact"] {
   --badge-height: 1.25rem;
   --summary-padding-block: 7px;
@@ -772,7 +778,7 @@ details.card > .details-body {
 .pill-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--pill-gap);
   padding: 8px;
   border: 1px dashed var(--border);
   border-radius: 10px;
@@ -781,12 +787,13 @@ details.card > .details-body {
 .pill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--pill-gap);
   background: var(--panel2);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 4px 8px;
-  font-size: 12px;
+  padding: var(--pill-padding-block) var(--pill-padding-inline);
+  font-size: var(--pill-font-size);
+  line-height: 1.2;
 }
 .pill .pill-name {
   color: var(--muted);
@@ -795,6 +802,10 @@ details.card > .details-body {
   border: none;
   background: transparent;
   padding: 0;
+  width: var(--pill-remove-size);
+  height: var(--pill-remove-size);
+  min-height: 0;
+  line-height: 1;
   color: var(--danger);
 }
 .lookup-results {
@@ -1016,6 +1027,18 @@ details.card > .details-body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Compact mode must not enlarge list editor pills; keep at or below comfortable sizing. */
+:root[data-density="compact"] .pill {
+  font-size: var(--pill-font-size);
+  padding: var(--pill-padding-block) var(--pill-padding-inline);
+  min-height: 0;
+}
+:root[data-density="compact"] .pill button {
+  width: var(--pill-remove-size);
+  height: var(--pill-remove-size);
+  min-height: 0;
+  padding: 0;
+}
 :root[data-density="compact"] button { padding: 5px 8px; }
 :root[data-density="compact"] button.small { padding: 3px 6px; }
 :root[data-density="compact"] input,

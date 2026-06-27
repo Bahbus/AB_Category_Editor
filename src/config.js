@@ -248,24 +248,16 @@ function collectCategoryRepairs(cat, before) {
   return repairs;
 }
 
-export function buildImportSummary(categoryCount, normalizedRarityCategoryCount) {
-  let message = `Imported ${categoryCount.toLocaleString()} ${categoryCount === 1 ? 'category' : 'categories'} and sorted ${categoryCount === 1 ? 'it' : 'them'} by Order, Priority, and Name.`;
-  if (normalizedRarityCategoryCount > 0) {
-    message += ` Normalized rarity values in ${normalizedRarityCategoryCount.toLocaleString()} ${normalizedRarityCategoryCount === 1 ? 'category' : 'categories'}.`;
-  }
-  return message;
-}
-
+// Mutates obj in place: repairs category shape, normalizes rules and rarities, and sorts categories for import/apply.
 export function validateConfig(obj) {
   if (!obj || typeof obj !== 'object') throw new Error('Root must be a JSON object.');
   if (!Array.isArray(obj.Categories)) throw new Error('Root must contain a Categories array.');
-  let normalizedRarityCategoryCount = 0;
   const repairs = [];
   const originalOrder = obj.Categories.map(cat => String(cat?.Id ?? cat?.Name ?? ''));
   obj.Categories.forEach((cat, index) => {
     const before = snapshotCategoryForRepairs(cat, index);
     ensureShape(cat);
-    if (normalizeAllowedRaritiesWithReport(cat).changed) normalizedRarityCategoryCount++;
+    normalizeAllowedRaritiesWithReport(cat);
     repairs.push(...collectCategoryRepairs(cat, before));
   });
   sortImportedCategories(obj);
@@ -281,5 +273,5 @@ export function validateConfig(obj) {
       message: 'Categories were sorted by Order, Priority, Name, and internal fallback.'
     });
   }
-  return { config: obj, summary: buildImportSummary(obj.Categories.length, normalizedRarityCategoryCount), repairs };
+  return { config: obj, repairs };
 }
