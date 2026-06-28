@@ -69,7 +69,6 @@ export async function fetchLookupBatch(sheet, ids, options = {}) {
     }
   };
   const fetchChunk = async chunk => {
-    const before = new Set(Object.keys(cache));
     try {
       if (chunk.length === 1) cache[String(chunk[0])] = rowName(await fetchLookupRow(sheet, chunk[0])) || '(name unavailable)';
       else cachePayloadRows(extractSheetRowsById(await fetchLookupRows(sheet, chunk)));
@@ -80,7 +79,7 @@ export async function fetchLookupBatch(sheet, ids, options = {}) {
       await fetchChunk(chunk.slice(midpoint));
       return;
     }
-    const unresolved = chunk.filter(id => !isUsefulLookupName(cache[String(id)]) && !before.has(String(id)));
+    const unresolved = chunk.filter(id => !isUsefulLookupName(cache[String(id)]));
     if (unresolved.length && chunk.length > 1) for (const id of unresolved) await fetchChunk([id]);
     else for (const id of unresolved) failures.push({ sheet, id, error: new Error('No row returned') });
   };

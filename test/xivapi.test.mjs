@@ -13,6 +13,7 @@ import {
   rowId,
   rowName
 } from '../src/xivapi.js';
+import { isUsefulLookupName } from '../src/lookupNames.js';
 
 test('normalizeLookupIds removes invalid, negative, fractional, and duplicate values', () => {
   assert.deepEqual(normalizeLookupIds([3, '3', 0, -1, 2.5, 'abc', 4]), [3, 0, 4]);
@@ -113,4 +114,70 @@ test('fetchLookupBatch retries cached sentinel names and replaces them with usef
   assert.deepEqual(failures, []);
   assert.equal(lookupCache.Item['1'], 'Potion');
   assert.equal(lookupCache.Item['2'], 'Ether');
+});
+
+
+test('fetchLookupBatch reports cached sentinel failure when retry returns no row', async t => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({})
+  });
+  const lookupCache = { Item: { 2: '(name unavailable)' } };
+
+  const failures = await fetchLookupBatch('Item', [2], { lookupCache, saveLookupCache() {}, batchSize: 50 });
+
+  assert.equal(failures.length, 1);
+  assert.equal(failures[0].sheet, 'Item');
+  assert.equal(failures[0].id, 2);
+  assert.equal(isUsefulLookupName(lookupCache.Item['2']), false);
+});
+
+test('fetchLookupBatch reports cached sentinel failure when retry returns unusable name', async t => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  globalThis.fetch = async () => ({
+    ok: true,
+    json: async () => ({ fields: { Name: '' } })
+  });
+  const lookupCache = { Item: { 2: '(name unavailable)' } };
+
+  const failures = await fetchLookupBatch('Item', [2], { lookupCache, saveLookupCache() {}, batchSize: 50 });
+
+  assert.equal(failures.length, 1);
+  assert.equal(failures[0].sheet, 'Item');
+  assert.equal(failures[0].id, 2);
+  assert.equal(isUsefulLookupName(lookupCache.Item['2']), false);
+});
+
+test('fetchLookupBatch falls back from mixed batch sentinel failures to single-id retry', async t => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  const requestedUrls = [];
+  globalThis.fetch = async url => {
+    requestedUrls.push(String(url));
+    if (String(url).includes('/sheet/Item?')) {
+      return {
+        ok: true,
+        json: async () => ({ rows: [{ row_id: 3, fields: { Name: 'Elixir' } }] })
+      };
+    }
+    return {
+      ok: true,
+      json: async () => ({ fields: { Name: '' } })
+    };
+  };
+  const lookupCache = { Item: { 1: 'Potion', 2: '(name unavailable)' } };
+
+  const failures = await fetchLookupBatch('Item', [1, 2, 3], { lookupCache, saveLookupCache() {}, batchSize: 50 });
+
+  assert.equal(failures.length, 1);
+  assert.equal(failures[0].sheet, 'Item');
+  assert.equal(failures[0].id, 2);
+  assert.equal(lookupCache.Item['1'], 'Potion');
+  assert.equal(isUsefulLookupName(lookupCache.Item['2']), false);
+  assert.equal(lookupCache.Item['3'], 'Elixir');
+  assert.equal(requestedUrls.length, 2);
+  assert.equal(requestedUrls.some(url => url.includes('/sheet/Item/2?')), true);
 });
