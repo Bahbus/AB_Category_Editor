@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import {
   analyzeImportedConfig,
   getCategoryIssueCount,
+  getCategoryIssueCounts,
+  groupedDuplicateSortPositionFindings,
   validateCategoryName,
   validateRegexPattern,
   validateRangeFilter,
@@ -127,12 +129,80 @@ test('duplicate Priority alone does not warn when Order differs', () => {
   assert.equal(analysis.findings.some(item => /Duplicate sort position/.test(item.message)), false);
 });
 
-test('duplicate Order and Priority pair warns as duplicate sort position', () => {
+test('duplicate Order and Priority pair creates one grouped import summary warning', () => {
   const analysis = analyzeImportedConfig({ Categories: [
+    cleanCategory({ Id: 'a', Name: 'Gear', Order: '1', Priority: 1 }),
+    cleanCategory({ Id: 'b', Name: 'Meals', Order: 1, Priority: '1' })
+  ] });
+  const sortFindings = analysis.findings.filter(item => item.field === 'SortPosition');
+
+  assert.equal(sortFindings.length, 1);
+  assert.equal(analysis.counts.warning, 1);
+  assert.match(sortFindings[0].message, /Order 1 \/ Priority 1 is shared by 2 categories/);
+  assert.match(sortFindings[0].message, /Gear/);
+  assert.match(sortFindings[0].message, /Meals/);
+  assert.equal(sortFindings[0].categoryName, '');
+  assert.doesNotMatch(sortFindings[0].message, /^Duplicate sort position: Order 1 \/ Priority 1\.$/);
+});
+
+test('three duplicate sort positions still create one grouped warning with all names', () => {
+  const findings = groupedDuplicateSortPositionFindings([
+    cleanCategory({ Id: 'a', Name: 'Gear', Order: 1, Priority: 1 }),
+    cleanCategory({ Id: 'b', Name: 'Materia', Order: 1, Priority: 1 }),
+    cleanCategory({ Id: 'c', Name: 'Meals', Order: 1, Priority: 1 })
+  ]);
+
+  assert.equal(findings.length, 1);
+  assert.match(findings[0].message, /3 categories/);
+  assert.match(findings[0].message, /Gear, Materia, Meals/);
+});
+
+test('separate duplicate sort-position groups create separate grouped warnings', () => {
+  const analysis = analyzeImportedConfig({ Categories: [
+    cleanCategory({ Id: 'a', Name: 'A', Order: 1, Priority: 1 }),
+    cleanCategory({ Id: 'b', Name: 'B', Order: 1, Priority: 1 }),
+    cleanCategory({ Id: 'c', Name: 'C', Order: 2, Priority: 5 }),
+    cleanCategory({ Id: 'd', Name: 'D', Order: 2, Priority: 5 })
+  ] });
+  const sortFindings = analysis.findings.filter(item => item.field === 'SortPosition');
+
+  assert.equal(sortFindings.length, 2);
+  assert.ok(sortFindings.some(item => /Order 1 \/ Priority 1/.test(item.message)));
+  assert.ok(sortFindings.some(item => /Order 2 \/ Priority 5/.test(item.message)));
+});
+
+test('duplicate sort grouping caps long category name lists', () => {
+  const findings = groupedDuplicateSortPositionFindings(Array.from({ length: 12 }, (_, index) => (
+    cleanCategory({ Id: `cat-${index}`, Name: `Category ${index + 1}`, Order: 1, Priority: 1 })
+  )));
+
+  assert.equal(findings.length, 1);
+  assert.match(findings[0].message, /shared by 12 categories/);
+  assert.match(findings[0].message, /Category 1, Category 2, Category 3, Category 4, Category 5, Category 6, Category 7, Category 8, \+4 more\./);
+  assert.doesNotMatch(findings[0].message, /Category 9/);
+});
+
+test('non-finite sort positions do not participate in grouped warnings but still validate fields', () => {
+  const analysis = analyzeImportedConfig({ Categories: [
+    cleanCategory({ Id: 'a', Name: 'Bad Order', Order: 'nope', Priority: 1 }),
+    cleanCategory({ Id: 'b', Name: 'Also Bad Order', Order: 'nope', Priority: 1 }),
+    cleanCategory({ Id: 'c', Name: 'Bad Priority', Order: 1, Priority: Number.POSITIVE_INFINITY })
+  ] });
+
+  assert.equal(analysis.findings.some(item => item.field === 'SortPosition'), false);
+  assert.equal(analysis.findings.filter(item => item.field === 'Order').length, 2);
+  assert.equal(analysis.findings.filter(item => item.field === 'Priority').length, 1);
+});
+
+test('category issue counts remain per-category for duplicate sort positions', () => {
+  const categories = [
     cleanCategory({ Id: 'a', Order: 1, Priority: 1 }),
     cleanCategory({ Id: 'b', Order: 1, Priority: 1 })
-  ] });
-  assert.ok(analysis.findings.some(item => item.field === 'SortPosition' && /Duplicate sort position: Order 1 \/ Priority 1/.test(item.message)));
+  ];
+  const counts = getCategoryIssueCounts(categories);
+
+  assert.equal(counts.get(categories[0]), 1);
+  assert.equal(counts.get(categories[1]), 1);
 });
 
 test('duplicate item IDs, UI category IDs, and regex patterns are reported', () => {

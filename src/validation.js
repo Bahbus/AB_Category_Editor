@@ -47,6 +47,33 @@ export function validateCategorySortPosition(category, allCategories = []) {
   return dupes.length ? [finding('warning', 'SortPosition', `Duplicate sort position: Order ${order} / Priority ${priority}.`)] : [];
 }
 
+
+export function groupedDuplicateSortPositionFindings(categories = []) {
+  const groups = new Map();
+  for (const [index, category] of (categories || []).entries()) {
+    if (!isFiniteValue(category?.Order) || !isFiniteValue(category?.Priority)) continue;
+    const order = Number(category.Order);
+    const priority = Number(category.Priority);
+    const key = `${order}:${priority}`;
+    const group = groups.get(key) || { order, priority, names: [] };
+    group.names.push(label(category, index));
+    groups.set(key, group);
+  }
+
+  return [...groups.values()]
+    .filter(group => group.names.length >= 2)
+    .map(group => {
+      const visibleNames = group.names.slice(0, 8);
+      const remainingCount = group.names.length - visibleNames.length;
+      const namesText = `${visibleNames.join(', ')}${remainingCount > 0 ? `, +${remainingCount} more` : ''}`;
+      return finding(
+        'warning',
+        'SortPosition',
+        `Duplicate sort position: Order ${group.order} / Priority ${group.priority} is shared by ${group.names.length} categories: ${namesText}.`
+      );
+    });
+}
+
 export function validateRegexPattern(pattern) {
   try { new RegExp(String(pattern)); return []; }
   catch (err) { return [finding('error', 'AllowedItemNamePatterns', `Invalid regex pattern: ${err.message}`)]; }
@@ -174,8 +201,12 @@ export function analyzeImportedConfig(config) {
   }
   for (const [index, category] of categories.entries()) {
     for (const item of validateCategory(category, categories)) {
+      if (item.field === 'SortPosition') continue;
       findings.push({ ...item, categoryId: category?.Id, categoryName: label(category, index) });
     }
+  }
+  for (const item of groupedDuplicateSortPositionFindings(categories)) {
+    findings.push({ ...item, categoryName: '' });
   }
   return { findings, counts: countFindings(findings) };
 }
