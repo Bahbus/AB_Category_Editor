@@ -18,8 +18,9 @@ export async function copyTextToClipboard(text) {
     await navigator.clipboard.writeText(text);
     return true;
   } catch {
+    let ta = null;
     try {
-      const ta = document.createElement('textarea');
+      ta = document.createElement('textarea');
       ta.value = text;
       ta.setAttribute('readonly', '');
       ta.style.position = 'fixed';
@@ -28,11 +29,11 @@ export async function copyTextToClipboard(text) {
       document.body.appendChild(ta);
       ta.focus();
       ta.select();
-      const ok = document.execCommand('copy');
-      ta.remove();
-      return ok;
+      return document.execCommand('copy');
     } catch {
       return false;
+    } finally {
+      ta?.remove();
     }
   }
 }

@@ -237,6 +237,7 @@ label {
   display: grid;
   grid-template-columns: 380px minmax(0, 1fr);
   height: 100vh;
+  height: 100dvh;
   min-height: 0;
 }
 .sidebar {

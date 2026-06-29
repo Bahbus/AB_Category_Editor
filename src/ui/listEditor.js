@@ -1,5 +1,5 @@
 import { escapeHtml, setStatus, showBusy, updateBusy, hideBusy } from '../dom.js';
-import { sheetLabel, normalizeLookupIds } from '../xivapi.js';
+import { sheetLabel, normalizeLookupIds, rowId, rowName } from '../xivapi.js';
 import { isUsefulLookupName } from '../lookupNames.js';
 
 export function listEditor(title, arr, parser, formatter, options = {}) {
@@ -207,15 +207,20 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         }
 
         for (const result of results) {
-          const id = result.row_id;
-          const name = result.fields?.Name || '(unnamed)';
-          const cache = lookupCache[lookupSheet] || (lookupCache[lookupSheet] = {});
-          cache[String(id)] = name;
-          saveLookupCache();
+          const id = rowId(result);
+          if (id === undefined || id === null || id === '') continue;
+
+          const name = rowName(result);
+          const displayName = isUsefulLookupName(name) ? name : '(name unavailable)';
+          if (isUsefulLookupName(name)) {
+            const cache = lookupCache[lookupSheet] || (lookupCache[lookupSheet] = {});
+            cache[String(id)] = name;
+            saveLookupCache();
+          }
 
           const r = document.createElement('div');
           r.className = 'lookup-row';
-          r.innerHTML = `<span>#${escapeHtml(id)}</span><span>${escapeHtml(name)}</span><button class="small">Add</button>`;
+          r.innerHTML = `<span>#${escapeHtml(id)}</span><span>${escapeHtml(displayName)}</span><button class="small">Add</button>`;
           r.querySelector('button').onclick = () => {
             if (!arr.includes(id)) {
               arr.push(id);
