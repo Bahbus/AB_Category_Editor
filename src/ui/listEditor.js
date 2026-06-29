@@ -206,9 +206,11 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
           return;
         }
 
+        let rendered = 0;
         for (const result of results) {
-          const id = rowId(result);
-          if (id === undefined || id === null || id === '') continue;
+          const rawId = rowId(result);
+          const id = Number(rawId);
+          if (!Number.isInteger(id) || id < 0) continue;
 
           const name = rowName(result);
           const displayName = isUsefulLookupName(name) ? name : '(name unavailable)';
@@ -222,7 +224,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
           r.className = 'lookup-row';
           r.innerHTML = `<span>#${escapeHtml(id)}</span><span>${escapeHtml(displayName)}</span><button class="small">Add</button>`;
           r.querySelector('button').onclick = () => {
-            if (!arr.includes(id)) {
+            if (!arr.some(value => Number(value) === id)) {
               arr.push(id);
               markDirty();
               renderPills();
@@ -230,6 +232,13 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
             }
           };
           resultsBox.appendChild(r);
+          rendered++;
+        }
+
+        if (!rendered) {
+          resultsBox.innerHTML = '<span class="hint">No usable results with valid row IDs.</span>';
+          setStatus('No usable search results with valid row IDs.');
+          return;
         }
 
         setStatus(`Search complete`, 'ok');

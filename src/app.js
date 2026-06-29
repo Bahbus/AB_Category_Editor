@@ -248,6 +248,7 @@ async function lookupReferencedIds(options = {}) {
       if (quiet) setStatus(`Automatic lookup left ${failures.length} unresolved ID(s).`);
       else setStatus(message, 'warn');
     }
+    else if (quiet) setStatus(`Automatic lookup cached ${uncached} new name(s).`);
     else setStatus(`Lookup complete: ${uncached} new name(s) cached.`, 'ok');
   } finally { hideBusy(); if (lookupButton) lookupButton.disabled = false; }
 }
