@@ -291,16 +291,31 @@ test('legacy import summary and appearance modal alias stay retired', () => {
   assert.doesNotMatch(preferences, /showAppearanceModal/);
 });
 
-test('manual lookup search uses shared row helpers and avoids unnamed cache placeholders', () => {
+test('manual lookup search normalizes row IDs and avoids unnamed cache placeholders', () => {
   const source = read('src/ui/listEditor.js');
 
   assert.match(source, /import \{[^}]*\browId\b[^}]*\browName\b[^}]*\} from ['"]\.\.\/xivapi\.js['"];/);
-  assert.match(source, /const\s+id\s*=\s*rowId\(result\)/);
+  assert.match(source, /const\s+rawId\s*=\s*rowId\(result\)/);
+  assert.match(source, /const\s+id\s*=\s*Number\(rawId\)/);
+  assert.match(source, /Number\.isInteger\(id\)/);
+  assert.match(source, /id\s*<\s*0/);
   assert.match(source, /const\s+name\s*=\s*rowName\(result\)/);
-  assert.match(source, /if \(id === undefined \|\| id === null \|\| id === ''\) continue;/);
   assert.match(source, /const\s+displayName\s*=\s*isUsefulLookupName\(name\) \? name : '\(name unavailable\)'/);
   assert.match(source, /if \(isUsefulLookupName\(name\)\) \{[\s\S]*cache\[String\(id\)\] = name;[\s\S]*saveLookupCache\(\);[\s\S]*\}/);
+  assert.match(source, /arr\.some\(value => Number\(value\) === id\)/);
+  assert.match(source, /arr\.push\(id\)/);
+  assert.doesNotMatch(source, /arr\.push\(rowId\(result\)\)/);
   assert.doesNotMatch(source, /const\s+name\s*=\s*result\.fields\?\.Name\s*\|\|\s*'\(unnamed\)'/);
+});
+
+test('manual lookup search reports no usable rendered results separately', () => {
+  const source = read('src/ui/listEditor.js');
+
+  assert.match(source, /let\s+rendered\s*=\s*0;/);
+  assert.match(source, /resultsBox\.appendChild\(r\);\s*rendered\+\+;/);
+  assert.match(source, /if \(!rendered\) \{[\s\S]*No usable results with valid row IDs\.[\s\S]*setStatus\('No usable search results with valid row IDs\.'\);[\s\S]*return;[\s\S]*\}/);
+  assert.match(source, /if \(!results\.length\) \{[\s\S]*No results\.[\s\S]*return;[\s\S]*\}/);
+  assert.match(source, /if \(!rendered\)[\s\S]*setStatus\(`Search complete`, 'ok'\)/);
 });
 
 test('lookup cache modal displays useful and unresolved cache stats', () => {
@@ -318,13 +333,26 @@ test('lookup cache modal displays useful and unresolved cache stats', () => {
   assert.doesNotMatch(modal, /Cached Item names/);
 });
 
-test('automatic lookup uses quiet unresolved failure status while manual lookup remains warning', () => {
+test('automatic lookup uses quiet success and unresolved statuses while manual lookup remains noisy', () => {
   const source = read('src/app.js');
 
   assert.match(source, /lookupReferencedIds\(\{ quiet: true \}\)/);
-  const lookupBody = source.match(/async function lookupReferencedIds\(options = \{\}\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
+  const lookupBody = source.match(/async function lookupReferencedIds\(options = \{\}\) \{(?<body>[\s\S]*?)\nfunction maybeAutoLookupImportedIds/)?.groups.body ?? '';
   assert.match(lookupBody, /const \{ quiet = false \} = options;/);
-  assert.match(source, /if \(failures\.length\) \{[\s\S]*if \(quiet\) setStatus\(`Automatic lookup left \$\{failures\.length\} unresolved ID\(s\)\.`\);[\s\S]*else setStatus\(message, 'warn'\);[\s\S]*\}/);
+  assert.match(lookupBody, /if \(quiet\) setStatus\(`Automatic lookup left \$\{failures\.length\} unresolved ID\(s\)\.`\);/);
+  assert.match(lookupBody, /else setStatus\(message, 'warn'\);/);
+  assert.match(lookupBody, /else if \(quiet\) setStatus\(`Automatic lookup cached \$\{uncached\} new name\(s\)\.`\);/);
+  assert.match(lookupBody, /else setStatus\(`Lookup complete: \$\{uncached\} new name\(s\) cached\.`, 'ok'\);/);
+  assert.doesNotMatch(lookupBody, /if \(quiet\) setStatus\([^)]*, ['"](?:ok|warn|err)['"]\)/);
+});
+
+test('lookup batch caches only the current chunk payload rows', () => {
+  const source = read('src/xivapi.js');
+
+  assert.match(source, /const\s+cachePayloadRows\s*=\s*\(idsToCache,\s*rowsById\)\s*=>\s*\{/);
+  assert.match(source, /for \(const id of idsToCache\)/);
+  assert.match(source, /cachePayloadRows\(chunk,\s*extractSheetRowsById\(await fetchLookupRows\(sheet, chunk\)\)\)/);
+  assert.doesNotMatch(source, /const\s+cachePayloadRows\s*=\s*rowsById\s*=>\s*\{\s*for \(const id of missing\)/);
 });
 
 test('clipboard fallback removes its hidden textarea in finally', () => {

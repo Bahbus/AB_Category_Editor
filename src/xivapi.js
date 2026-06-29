@@ -61,8 +61,8 @@ export async function fetchLookupBatch(sheet, ids, options = {}) {
   const missing = normalizeLookupIds(ids).filter(id => !isUsefulLookupName(cache[String(id)]));
   const failures = [];
   if (!missing.length) return failures;
-  const cachePayloadRows = rowsById => {
-    for (const id of missing) {
+  const cachePayloadRows = (idsToCache, rowsById) => {
+    for (const id of idsToCache) {
       if (isUsefulLookupName(cache[String(id)])) continue;
       const row = rowsById.get(String(id));
       if (row) cache[String(id)] = rowName(row) || '(name unavailable)';
@@ -71,7 +71,7 @@ export async function fetchLookupBatch(sheet, ids, options = {}) {
   const fetchChunk = async chunk => {
     try {
       if (chunk.length === 1) cache[String(chunk[0])] = rowName(await fetchLookupRow(sheet, chunk[0])) || '(name unavailable)';
-      else cachePayloadRows(extractSheetRowsById(await fetchLookupRows(sheet, chunk)));
+      else cachePayloadRows(chunk, extractSheetRowsById(await fetchLookupRows(sheet, chunk)));
     } catch (err) {
       if (chunk.length === 1) { failures.push({ sheet, id: chunk[0], error: err }); return; }
       const midpoint = Math.ceil(chunk.length / 2);
