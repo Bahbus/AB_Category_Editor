@@ -68,12 +68,19 @@ function markDirtyAndRenderList() { markDirty({ renderList: true }); }
 function markSaved(label='Exported') { dirty = false; setSaveState(label); }
 function applyValidatedConfig(validation) { data = validation.config; }
 
+function validationFindingKey(item) {
+  if (item?.field === 'SortPosition' && item.sortPositionKey) {
+    return `${item.severity}|${item.field}|${item.sortPositionKey}`;
+  }
+  return `${item?.severity}|${item?.field}|${item?.categoryId || ''}|${item?.message}`;
+}
+
 function mergeValidationFindings(...analyses) {
   const seen = new Set();
   const findings = [];
   for (const analysis of analyses) {
     for (const item of analysis?.findings || []) {
-      const key = `${item.severity}|${item.field}|${item.categoryId || ''}|${item.message}`;
+      const key = validationFindingKey(item);
       if (seen.has(key)) continue;
       seen.add(key);
       findings.push(item);

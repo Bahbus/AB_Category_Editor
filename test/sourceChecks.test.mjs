@@ -380,3 +380,17 @@ test('app shell keeps 100vh fallback and adds dynamic viewport height', () => {
   assert.match(appRule, /height:\s*100vh;/);
   assert.match(appRule, /height:\s*100dvh;/);
 });
+
+
+test('duplicate sort-position import merge uses stable grouped keys', () => {
+  const app = read('src/app.js');
+  const validation = read('src/validation.js');
+
+  assert.match(validation, /sortPositionKey:\s*`\$\{group\.order\}:\$\{group\.priority\}`/);
+  assert.match(validation, /categoryNames:\s*stableNames/);
+  assert.match(validation, /stableNames\s*=\s*group\.names\.slice\(\)\.sort/);
+  assert.match(app, /function\s+validationFindingKey\(item\)/);
+  assert.match(app, /item\?\.field === 'SortPosition' && item\.sortPositionKey/);
+  assert.match(app, /return `\$\{item\.severity\}\|\$\{item\.field\}\|\$\{item\.sortPositionKey\}`/);
+  assert.match(app, /const key = validationFindingKey\(item\);/);
+});
