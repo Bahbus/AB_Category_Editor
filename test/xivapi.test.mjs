@@ -88,16 +88,16 @@ test('collectReferencedIds and countReferencedIds collect Item and UI category i
 
 test('countUncachedReferencedIds counts missing and unusable cached lookup names', () => {
   const ids = {
-    Item: new Set([1, 2, 3]),
+    Item: new Set([1, 2, 3, 4, 5]),
     ItemUICategory: new Set([10, 11])
   };
   const cache = {
-    Item: { 1: 'Potion', 2: '(name unavailable)', 3: 'not looked up' },
+    Item: { 1: 'Potion', 2: '(name unavailable)', 3: 'not looked up', 4: '(unnamed)', 5: 'unnamed' },
     ItemUICategory: { 10: 'Medicine' }
   };
   const lookupName = (sheet, id) => cache[sheet]?.[String(id)] || null;
 
-  assert.equal(countUncachedReferencedIds(ids, lookupName), 3);
+  assert.equal(countUncachedReferencedIds(ids, lookupName), 5);
 });
 
 test('fetchLookupBatch retries cached sentinel names and replaces them with useful names', async t => {
