@@ -41,6 +41,7 @@ function setActiveTab(wrap, tabName) {
   for (const button of wrap.querySelectorAll('[role="tab"]')) {
     const selected = button.dataset.tab === tabName;
     button.setAttribute('aria-selected', selected ? 'true' : 'false');
+    button.setAttribute('tabindex', selected ? '0' : '-1');
     button.classList.toggle('active', selected);
   }
   for (const panel of wrap.querySelectorAll('[role="tabpanel"]')) {
@@ -56,8 +57,8 @@ export function showPreferencesModal({ getEditorPreferences, applyEditorPreferen
   wrap.innerHTML = `
     <p class="hint">These editor preferences are stored locally in this browser only. They affect the editor UI and are never included in exported AetherBags category data.</p>
     <div class="preferences-tabs" role="tablist" aria-label="Preference sections">
-      <button id="appearancePreferencesTab" class="small active" type="button" role="tab" aria-selected="true" aria-controls="appearancePreferencesPanel" data-tab="appearance">Appearance</button>
-      <button id="behaviorPreferencesTab" class="small" type="button" role="tab" aria-selected="false" aria-controls="behaviorPreferencesPanel" data-tab="behavior">Behavior</button>
+      <button id="appearancePreferencesTab" class="small active" type="button" role="tab" aria-selected="true" tabindex="0" aria-controls="appearancePreferencesPanel" data-tab="appearance">Appearance</button>
+      <button id="behaviorPreferencesTab" class="small" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="behaviorPreferencesPanel" data-tab="behavior">Behavior</button>
     </div>
     <section id="appearancePreferencesPanel" role="tabpanel" aria-labelledby="appearancePreferencesTab" data-panel="appearance">
       <h3>Appearance</h3>
@@ -81,8 +82,30 @@ export function showPreferencesModal({ getEditorPreferences, applyEditorPreferen
 
   openModal('Editor Preferences', wrap);
 
-  for (const tab of wrap.querySelectorAll('[role="tab"]')) {
+  const tabs = [...wrap.querySelectorAll('[role="tab"]')];
+  function moveTabFocus(index) {
+    const nextTab = tabs[(index + tabs.length) % tabs.length];
+    setActiveTab(wrap, nextTab.dataset.tab);
+    nextTab.focus();
+  }
+
+  for (const [index, tab] of tabs.entries()) {
     tab.addEventListener('click', () => setActiveTab(wrap, tab.dataset.tab));
+    tab.addEventListener('keydown', e => {
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        moveTabFocus(index + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        e.preventDefault();
+        moveTabFocus(index - 1);
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        moveTabFocus(0);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        moveTabFocus(tabs.length - 1);
+      }
+    });
   }
 
   const bindSelect = (id, key) => {

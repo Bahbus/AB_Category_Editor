@@ -40,7 +40,11 @@ function applyEditorPreferences(preferences = editorPreferences) {
 }
 
 function saveLookupCache() { persistLookupCache(lookupCache); }
-function lookupCacheCount(sheet) { return Object.keys(lookupCache[sheet] || {}).length; }
+function lookupCacheStats(sheet) {
+  const values = Object.values(lookupCache[sheet] || {});
+  const useful = values.filter(isUsefulLookupName).length;
+  return { useful, unresolved: values.length - useful, total: values.length };
+}
 function lookupName(sheet, id) { const cache = lookupCache[sheet] || {}; return cache[String(id)] || null; }
 function fetchLookupBatch(sheet, ids, options = {}) { return xivapiFetchLookupBatch(sheet, ids, { ...options, lookupCache, saveLookupCache }); }
 function clearLookupCache() { lookupCache = emptyLookupCache(); removeLookupCache(); renderAll(); setStatus('Lookup cache cleared. Category data was not changed.', 'ok'); }
@@ -237,7 +241,13 @@ async function lookupReferencedIds(options = {}) {
       failures.push(...batchFailures.map(failure => `${failure.sheet} ${failure.id}`));
     }
     saveLookupCache(); commitActiveField(); renderAll();
-    if (failures.length) { const shown = failures.slice(0, 5).join(', '); const more = failures.length > 5 ? `, +${failures.length - 5} more` : ''; setStatus(`Lookup finished with ${failures.length} failure(s): ${shown}${more}`, 'warn'); }
+    if (failures.length) {
+      const shown = failures.slice(0, 5).join(', ');
+      const more = failures.length > 5 ? `, +${failures.length - 5} more` : '';
+      const message = `Lookup finished with ${failures.length} failure(s): ${shown}${more}`;
+      if (quiet) setStatus(`Automatic lookup left ${failures.length} unresolved ID(s).`);
+      else setStatus(message, 'warn');
+    }
     else setStatus(`Lookup complete: ${uncached} new name(s) cached.`, 'ok');
   } finally { hideBusy(); if (lookupButton) lookupButton.disabled = false; }
 }
@@ -351,7 +361,7 @@ function bindAppEvents() {
   bindClick('sortByOrder', () => { commitActiveField(); getCategories().sort(compareCategoriesForImport); selectedIndex = 0; markDirty(); renderAll(); });
   bindClick('renumber', () => { commitActiveField(); renumberCategories(); markDirty(); renderAll(); });
   bindClick('lookupReferencedIds', () => { commitActiveField(); lookupReferencedIds().catch(err => setStatus(errorMessage('ID lookup failed', err), 'err')); });
-  bindClick('showLookupCache', () => { commitActiveField(); showLookupCacheModal({ lookupCacheCount, clearLookupCache }); });
+  bindClick('showLookupCache', () => { commitActiveField(); showLookupCacheModal({ lookupCacheStats, clearLookupCache }); });
   bindClick('showHelp', () => { commitActiveField(); showHelpModal(); });
   bindClick('showPreferences', () => showPreferencesModal({
     getEditorPreferences: () => editorPreferences,

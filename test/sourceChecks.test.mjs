@@ -290,3 +290,65 @@ test('legacy import summary and appearance modal alias stay retired', () => {
   assert.match(app, /function applyValidatedConfig\(validation\) \{ data = validation\.config; \}/);
   assert.doesNotMatch(preferences, /showAppearanceModal/);
 });
+
+test('manual lookup search uses shared row helpers and avoids unnamed cache placeholders', () => {
+  const source = read('src/ui/listEditor.js');
+
+  assert.match(source, /import \{[^}]*\browId\b[^}]*\browName\b[^}]*\} from ['"]\.\.\/xivapi\.js['"];/);
+  assert.match(source, /const\s+id\s*=\s*rowId\(result\)/);
+  assert.match(source, /const\s+name\s*=\s*rowName\(result\)/);
+  assert.match(source, /if \(id === undefined \|\| id === null \|\| id === ''\) continue;/);
+  assert.match(source, /const\s+displayName\s*=\s*isUsefulLookupName\(name\) \? name : '\(name unavailable\)'/);
+  assert.match(source, /if \(isUsefulLookupName\(name\)\) \{[\s\S]*cache\[String\(id\)\] = name;[\s\S]*saveLookupCache\(\);[\s\S]*\}/);
+  assert.doesNotMatch(source, /const\s+name\s*=\s*result\.fields\?\.Name\s*\|\|\s*'\(unnamed\)'/);
+});
+
+test('lookup cache modal displays useful and unresolved cache stats', () => {
+  const app = read('src/app.js');
+  const modal = read('src/ui/lookupCacheModal.js');
+
+  assert.match(app, /function lookupCacheStats\(sheet\) \{/);
+  assert.match(app, /values\.filter\(isUsefulLookupName\)\.length/);
+  assert.match(app, /return \{ useful, unresolved: values\.length - useful, total: values\.length \};/);
+  assert.match(app, /showLookupCacheModal\(\{ lookupCacheStats, clearLookupCache \}\)/);
+  assert.match(modal, /formatLookupCacheStats\(stats\)/);
+  assert.match(modal, /\$\{stats\.useful\.toLocaleString\(\)\} useful, \$\{stats\.unresolved\.toLocaleString\(\)\} unresolved/);
+  assert.match(modal, /Item names:/);
+  assert.match(modal, /UI category names:/);
+  assert.doesNotMatch(modal, /Cached Item names/);
+});
+
+test('automatic lookup uses quiet unresolved failure status while manual lookup remains warning', () => {
+  const source = read('src/app.js');
+
+  assert.match(source, /lookupReferencedIds\(\{ quiet: true \}\)/);
+  const lookupBody = source.match(/async function lookupReferencedIds\(options = \{\}\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
+  assert.match(lookupBody, /const \{ quiet = false \} = options;/);
+  assert.match(source, /if \(failures\.length\) \{[\s\S]*if \(quiet\) setStatus\(`Automatic lookup left \$\{failures\.length\} unresolved ID\(s\)\.`\);[\s\S]*else setStatus\(message, 'warn'\);[\s\S]*\}/);
+});
+
+test('clipboard fallback removes its hidden textarea in finally', () => {
+  const source = read('src/importExport.js');
+  const body = source.match(/export async function copyTextToClipboard\(text\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
+
+  assert.match(body, /let\s+ta\s*=\s*null;/);
+  assert.match(body, /finally\s*\{[\s\S]*ta\?\.remove\(\);[\s\S]*\}/);
+});
+
+test('preferences tabs support arrow-key navigation and roving tabindex', () => {
+  const source = read('src/ui/preferencesModal.js');
+
+  for (const token of ['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp', 'Home', 'End']) {
+    assert.match(source, new RegExp(token));
+  }
+  assert.match(source, /setAttribute\('tabindex', selected \? '0' : '-1'\)/);
+  assert.match(source, /nextTab\.focus\(\)/);
+});
+
+test('app shell keeps 100vh fallback and adds dynamic viewport height', () => {
+  const styles = read('styles.css');
+  const appRule = styles.match(/\.app\s*\{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
+
+  assert.match(appRule, /height:\s*100vh;/);
+  assert.match(appRule, /height:\s*100dvh;/);
+});
