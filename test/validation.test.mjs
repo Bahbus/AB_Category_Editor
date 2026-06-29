@@ -145,6 +145,26 @@ test('duplicate Order and Priority pair creates one grouped import summary warni
   assert.doesNotMatch(sortFindings[0].message, /^Duplicate sort position: Order 1 \/ Priority 1\.$/);
 });
 
+
+test('grouped duplicate sort-position messages are stable across input order', () => {
+  const first = groupedDuplicateSortPositionFindings([
+    cleanCategory({ Id: 'ultimate', Name: 'Ultimate Totems', Order: 30, Priority: 100 }),
+    cleanCategory({ Id: 'raid', Name: 'Raid Tokens', Order: 30, Priority: 100 })
+  ]);
+  const second = groupedDuplicateSortPositionFindings([
+    cleanCategory({ Id: 'raid', Name: 'Raid Tokens', Order: 30, Priority: 100 }),
+    cleanCategory({ Id: 'ultimate', Name: 'Ultimate Totems', Order: 30, Priority: 100 })
+  ]);
+
+  assert.equal(first.length, 1);
+  assert.equal(second.length, 1);
+  assert.equal(first[0].message, second[0].message);
+  assert.match(first[0].message, /Raid Tokens, Ultimate Totems/);
+  assert.doesNotMatch(first[0].message, /Ultimate Totems, Raid Tokens/);
+  assert.equal(first[0].sortPositionKey, '30:100');
+  assert.deepEqual(first[0].categoryNames, ['Raid Tokens', 'Ultimate Totems']);
+});
+
 test('three duplicate sort positions still create one grouped warning with all names', () => {
   const findings = groupedDuplicateSortPositionFindings([
     cleanCategory({ Id: 'a', Name: 'Gear', Order: 1, Priority: 1 }),

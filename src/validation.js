@@ -63,14 +63,23 @@ export function groupedDuplicateSortPositionFindings(categories = []) {
   return [...groups.values()]
     .filter(group => group.names.length >= 2)
     .map(group => {
-      const visibleNames = group.names.slice(0, 8);
-      const remainingCount = group.names.length - visibleNames.length;
-      const namesText = `${visibleNames.join(', ')}${remainingCount > 0 ? `, +${remainingCount} more` : ''}`;
-      return finding(
-        'warning',
-        'SortPosition',
-        `Duplicate sort position: Order ${group.order} / Priority ${group.priority} is shared by ${group.names.length} categories: ${namesText}.`
+      const stableNames = group.names.slice().sort((a, b) =>
+        a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' })
       );
+      const visibleNames = stableNames.slice(0, 8);
+      const remainingCount = stableNames.length - visibleNames.length;
+      const namesText = `${visibleNames.join(', ')}${remainingCount > 0 ? `, +${remainingCount} more` : ''}`;
+      return {
+        ...finding(
+          'warning',
+          'SortPosition',
+          `Duplicate sort position: Order ${group.order} / Priority ${group.priority} is shared by ${stableNames.length} categories: ${namesText}.`
+        ),
+        order: group.order,
+        priority: group.priority,
+        sortPositionKey: `${group.order}:${group.priority}`,
+        categoryNames: stableNames
+      };
     });
 }
 
