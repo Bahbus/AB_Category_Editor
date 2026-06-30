@@ -1,4 +1,5 @@
 import { ALLOWED_RARITY_IDS, RANGE_FILTERS, RANGE_FILTER_KEYS, STATE_FILTERS, STATE_FILTER_KEYS } from './constants.js';
+import { invalidRowIds } from './rowIds.js';
 
 const VALID_STATE_VALUES = new Set([0, 1, 2]);
 const RANGE_FILTER_LABELS = Object.fromEntries(RANGE_FILTERS.map(filter => [filter.key, filter.label]));
@@ -108,20 +109,6 @@ export function validateRarities(category) {
   if (!Array.isArray(values)) return [finding('warning', 'AllowedRarities', 'Allowed rarities list is malformed and will be normalized.')];
   const unsupported = values.filter(value => !ALLOWED_RARITY_IDS.has(Number(value)));
   return unsupported.length ? [finding('warning', 'AllowedRarities', `Unsupported rarity value(s) will be ignored: ${unsupported.join(', ')}.`)] : [];
-}
-
-function isValidRowIdValue(value) {
-  if (typeof value === 'number') return Number.isInteger(value) && value >= 0;
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    return /^\d+$/.test(trimmed);
-  }
-  return false;
-}
-
-export function invalidRowIds(values) {
-  if (!Array.isArray(values)) return [];
-  return values.filter(value => !isValidRowIdValue(value));
 }
 
 const INVALID_ROW_ID_MESSAGES = {

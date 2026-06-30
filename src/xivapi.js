@@ -1,5 +1,6 @@
 import { XIVAPI_BASE, LOOKUP_BATCH_SIZE } from './constants.js';
 import { isUsefulLookupName } from './lookupNames.js';
+import { normalizeRowIdValue } from './rowIds.js';
 
 export function sheetLabel(sheet) {
   if (sheet === 'Item') return 'Item';
@@ -10,11 +11,11 @@ export function sheetLabel(sheet) {
 export function normalizeLookupIds(ids) {
   const seen = new Set();
   const out = [];
-  for (const id of ids || []) {
-    const n = Number(id);
-    if (!Number.isInteger(n) || n < 0 || seen.has(n)) continue;
-    seen.add(n);
-    out.push(n);
+  for (const value of ids || []) {
+    const id = normalizeRowIdValue(value);
+    if (id === null || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
   }
   return out;
 }
@@ -97,8 +98,14 @@ export function collectReferencedIds(categories, ensureShape) {
   const ids = { Item: new Set(), ItemUICategory: new Set() };
   for (const cat of categories) {
     ensureShape(cat);
-    for (const id of cat.Rules.AllowedItemIds || []) if (Number.isInteger(Number(id))) ids.Item.add(Number(id));
-    for (const id of cat.Rules.AllowedUiCategoryIds || []) if (Number.isInteger(Number(id))) ids.ItemUICategory.add(Number(id));
+    for (const id of cat.Rules.AllowedItemIds || []) {
+      const normalized = normalizeRowIdValue(id);
+      if (normalized !== null) ids.Item.add(normalized);
+    }
+    for (const id of cat.Rules.AllowedUiCategoryIds || []) {
+      const normalized = normalizeRowIdValue(id);
+      if (normalized !== null) ids.ItemUICategory.add(normalized);
+    }
   }
   return ids;
 }

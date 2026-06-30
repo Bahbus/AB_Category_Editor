@@ -17,6 +17,10 @@ import { isUsefulLookupName } from '../src/lookupNames.js';
 
 test('normalizeLookupIds removes invalid, negative, fractional, and duplicate values', () => {
   assert.deepEqual(normalizeLookupIds([3, '3', 0, -1, 2.5, 'abc', 4]), [3, 0, 4]);
+  assert.deepEqual(
+    normalizeLookupIds([null, '', '   ', false, true, {}, [], -1, '-1', 1.5, '1.5', 'abc', 0, '123']),
+    [0, 123]
+  );
 });
 
 test('extractSheetRows supports plausible XIVAPI row containers', () => {
@@ -84,6 +88,26 @@ test('collectReferencedIds and countReferencedIds collect Item and UI category i
   assert.deepEqual([...ids.Item].sort((a, b) => a - b), [100, 101, 102]);
   assert.deepEqual([...ids.ItemUICategory].sort((a, b) => a - b), [5, 6]);
   assert.equal(countReferencedIds(ids), 5);
+});
+
+
+test('collectReferencedIds ignores invalid preserved row ID values', () => {
+  const categories = [{
+    Rules: {
+      AllowedItemIds: [null, '', false, true, -1, '123'],
+      AllowedUiCategoryIds: ['   ', {}, [], '456']
+    }
+  }];
+  const ensureShape = category => {
+    category.Rules ||= {};
+    category.Rules.AllowedItemIds ||= [];
+    category.Rules.AllowedUiCategoryIds ||= [];
+  };
+
+  const ids = collectReferencedIds(categories, ensureShape);
+
+  assert.deepEqual([...ids.Item], [123]);
+  assert.deepEqual([...ids.ItemUICategory], [456]);
 });
 
 test('countUncachedReferencedIds counts missing and unusable cached lookup names', () => {

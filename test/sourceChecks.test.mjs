@@ -295,10 +295,9 @@ test('manual lookup search normalizes row IDs and avoids unnamed cache placehold
   const source = read('src/ui/listEditor.js');
 
   assert.match(source, /import \{[^}]*\browId\b[^}]*\browName\b[^}]*\} from ['"]\.\.\/xivapi\.js['"];/);
-  assert.match(source, /const\s+rawId\s*=\s*rowId\(result\)/);
-  assert.match(source, /const\s+id\s*=\s*Number\(rawId\)/);
-  assert.match(source, /Number\.isInteger\(id\)/);
-  assert.match(source, /id\s*<\s*0/);
+  assert.match(source, /import \{ normalizeRowIdValue \} from ['"]\.\.\/rowIds\.js['"];/);
+  assert.match(source, /const\s+id\s*=\s*normalizeRowIdValue\(rowId\(result\)\)/);
+  assert.match(source, /if \(id === null\) continue;/);
   assert.match(source, /const\s+name\s*=\s*rowName\(result\)/);
   assert.match(source, /const\s+displayName\s*=\s*isUsefulLookupName\(name\) \? name : '\(name unavailable\)'/);
   assert.match(source, /if \(isUsefulLookupName\(name\)\) \{[\s\S]*cache\[String\(id\)\] = name;[\s\S]*saveLookupCache\(\);[\s\S]*\}/);
@@ -458,4 +457,38 @@ test('list lookup busy overlay only appears after missing ID check', () => {
   assert.ok(noMissingIndex > missingIndex, 'cached-ID branch should run after missing IDs are computed');
   assert.ok(showBusyIndex > noMissingIndex, 'busy overlay should be shown only after all-cached branch returns');
   assert.match(handler, /if \(!missing\.length\) \{[\s\S]*?already cached[\s\S]*?renderPills\(\);[\s\S]*?return;/);
+});
+
+test('regex scanner uses shared strict row ID normalization', () => {
+  const source = read('src/tools/regexToItemIds.js');
+
+  assert.match(source, /import \{ normalizeRowIdValue \} from '\.\.\/rowIds\.js';/);
+  assert.match(source, /const id = normalizeRowIdValue\(rowId\(row\)\);/);
+  assert.match(source, /if \(id === null \|\| !name\) continue;/);
+  assert.doesNotMatch(source, /matches\.push\(\{ id: Number\(id\), name \}\)/);
+});
+
+test('list lookup only hides busy overlay after showing it', () => {
+  const source = read('src/ui/listEditor.js');
+  const handler = source.match(/lookupButton\.onclick = async \(\) => \{(?<body>[\s\S]*?)\n    \};/)?.groups.body ?? '';
+  const noMissingIndex = handler.indexOf('if (!missing.length)');
+  const showBusyIndex = handler.indexOf('showBusy(');
+
+  assert.match(handler, /let busyShown = false;/);
+  assert.match(handler, /showBusy\([\s\S]*?\);\n\s*busyShown = true;/);
+  assert.match(handler, /if \(busyShown\) hideBusy\(\);/);
+  assert.ok(showBusyIndex > noMissingIndex, 'all-cached branch should remain before showBusy');
+});
+
+test('number blur handlers avoid unchanged dirty commits', () => {
+  const source = read('src/ui/formControls.js');
+  const numberBlock = source.match(/export function numberInput[\s\S]*?\n}\n\nexport function textInput/)?.[0] ?? '';
+  const rangeCommitBlock = source.match(/function commitNumber\(key, input\) \{[\s\S]*?\n  }\n  function commitFiniteNumberInput/)?.[0] ?? '';
+
+  assert.match(numberBlock, /let lastCommitted = Number\(value\) \|\| 0;/);
+  assert.match(numberBlock, /Object\.is\(next, lastCommitted\)/);
+  assert.doesNotMatch(numberBlock, /input\.onblur[\s\S]*?onChange\(next\);/);
+  assert.match(rangeCommitBlock, /const previous = Number\(rangeObj\[key\]\);/);
+  assert.match(rangeCommitBlock, /Object\.is\(previous, next\)/);
+  assert.match(rangeCommitBlock, /syncValidity\(\);\n\s*return;[\s\S]*?rangeObj\[key\] = next;[\s\S]*?onChange\(\);/);
 });
