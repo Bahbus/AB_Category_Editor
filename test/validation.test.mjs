@@ -321,3 +321,70 @@ test('clean config returns no errors or warnings', () => {
   assert.equal(analysis.counts.error, 0);
   assert.equal(analysis.counts.warning, 0);
 });
+
+test('invalid Allowed Item IDs create one warning without exposing values', () => {
+  const category = cleanCategory();
+  category.Rules.AllowedItemIds = [-1, 1.5, 'abc'];
+  const analysis = analyzeImportedConfig({ Categories: [category] });
+  const findings = analysis.findings.filter(item => item.field === 'AllowedItemIds');
+
+  assert.equal(findings.some(item => /non-negative integers/i.test(item.message)), true);
+  const invalidFinding = findings.find(item => /non-negative integers/i.test(item.message));
+  assert.doesNotMatch(invalidFinding.message, /-1|1\.5|abc/);
+});
+
+test('invalid Allowed UI Category IDs create one warning without exposing values', () => {
+  const category = cleanCategory();
+  category.Rules.AllowedUiCategoryIds = [-1, 2.5, 'bad'];
+  const analysis = analyzeImportedConfig({ Categories: [category] });
+
+  const invalidFinding = analysis.findings.find(item =>
+    item.field === 'AllowedUiCategoryIds' &&
+    /non-negative integers/i.test(item.message)
+  );
+  assert.ok(invalidFinding);
+  assert.doesNotMatch(invalidFinding.message, /-1|2\.5|bad/);
+});
+
+test('numeric string row IDs are accepted by numeric ID validation', () => {
+  const category = cleanCategory();
+  category.Rules.AllowedItemIds = ['123'];
+  category.Rules.AllowedUiCategoryIds = ['456'];
+  const analysis = analyzeImportedConfig({ Categories: [category] });
+
+  assert.equal(analysis.counts.warning, 0);
+});
+
+test('invalid numeric row ID values are grouped per field', () => {
+  const category = cleanCategory();
+  category.Rules.AllowedItemIds = [-1, -2, 'bad'];
+  const analysis = analyzeImportedConfig({ Categories: [category] });
+
+  const itemFindings = analysis.findings.filter(item =>
+    item.field === 'AllowedItemIds' &&
+    /non-negative integers/i.test(item.message)
+  );
+
+  assert.equal(itemFindings.length, 1);
+});
+
+test('invalid and duplicate row ID values produce separate Allowed Item ID issues', () => {
+  const category = cleanCategory();
+  category.Rules.AllowedItemIds = [-1, -1];
+  const analysis = analyzeImportedConfig({ Categories: [category] });
+
+  const itemFindings = analysis.findings.filter(item => item.field === 'AllowedItemIds');
+
+  assert.equal(itemFindings.length, 2);
+  assert.ok(itemFindings.some(item => /Duplicate Item IDs/i.test(item.message)));
+  assert.ok(itemFindings.some(item => /non-negative integers/i.test(item.message)));
+});
+
+test('issue counts include invalid numeric IDs once per affected field', () => {
+  const category = cleanCategory();
+  category.Rules.AllowedItemIds = [-1, -2];
+  assert.equal(getCategoryIssueCount(category), 1);
+
+  category.Rules.AllowedItemIds = [-1, -1];
+  assert.equal(getCategoryIssueCount(category), 2);
+});
