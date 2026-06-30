@@ -333,6 +333,39 @@ test('invalid Allowed Item IDs create one warning without exposing values', () =
   assert.doesNotMatch(invalidFinding.message, /-1|1\.5|abc/);
 });
 
+test('coercible imported Allowed Item IDs create one invalid warning without exposing values', () => {
+  const category = cleanCategory();
+  category.Rules.AllowedItemIds = [null, '', '   ', false, true, {}, [], -1, 1.5, 'abc', '-1', '1.5'];
+  const analysis = analyzeImportedConfig({ Categories: [category] });
+  const findings = analysis.findings.filter(item =>
+    item.field === 'AllowedItemIds' &&
+    /non-negative integers/i.test(item.message)
+  );
+
+  assert.equal(findings.length, 1);
+  assert.match(findings[0].message, /non-negative integers/i);
+  assert.doesNotMatch(findings[0].message, /null|false|true|object|abc|-1|1\.5|\[\]/i);
+});
+
+test('valid numeric row ID values do not introduce invalid numeric ID warnings', () => {
+  const category = cleanCategory();
+  category.Rules.AllowedItemIds = [0, 123, '0', '123', '00123'];
+  category.Rules.AllowedUiCategoryIds = [0, 456, '0', '456'];
+  const analysis = analyzeImportedConfig({ Categories: [category] });
+
+  const invalidNumericFindings = analysis.findings.filter(item => /non-negative integers/i.test(item.message));
+  assert.equal(invalidNumericFindings.length, 0);
+});
+
+test('issue counts include coercible invalid numeric IDs once per affected field', () => {
+  const category = cleanCategory();
+  category.Rules.AllowedItemIds = [null, false, ''];
+  assert.equal(getCategoryIssueCount(category), 1);
+
+  category.Rules.AllowedItemIds = [null, null];
+  assert.equal(getCategoryIssueCount(category), 2);
+});
+
 test('invalid Allowed UI Category IDs create one warning without exposing values', () => {
   const category = cleanCategory();
   category.Rules.AllowedUiCategoryIds = [-1, 2.5, 'bad'];
