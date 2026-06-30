@@ -164,9 +164,16 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         lookupButton.disabled = true;
         const ids = normalizeLookupIds(arr);
         const missing = ids.filter(id => !isUsefulLookupName(lookupName(lookupSheet, id)));
+
+        if (!missing.length) {
+          setStatus(`All ${ids.length} ${sheetLabel(lookupSheet)} name(s) already cached.`, 'ok');
+          renderPills();
+          return;
+        }
+
         showBusy(`Looking up ${sheetLabel(lookupSheet)} names`, `0/${missing.length} uncached checked`, 0);
 
-        if (missing.length) {
+        {
           const failures = await fetchLookupBatch(lookupSheet, missing, {
             onProgress(done, total) {
               const percent = total ? (done / total) * 100 : 100;
@@ -182,8 +189,6 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
           } else {
             setStatus(`${sheetLabel(lookupSheet)} lookup complete`, 'ok');
           }
-        } else {
-          setStatus(`All ${ids.length} ${sheetLabel(lookupSheet)} name(s) already cached.`, 'ok');
         }
 
         renderPills();

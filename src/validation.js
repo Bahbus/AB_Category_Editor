@@ -110,6 +110,24 @@ export function validateRarities(category) {
   return unsupported.length ? [finding('warning', 'AllowedRarities', `Unsupported rarity value(s) will be ignored: ${unsupported.join(', ')}.`)] : [];
 }
 
+export function invalidRowIds(values) {
+  if (!Array.isArray(values)) return [];
+  return values.filter(value => {
+    const number = Number(value);
+    return !Number.isInteger(number) || number < 0;
+  });
+}
+
+const INVALID_ROW_ID_MESSAGES = {
+  AllowedItemIds: 'Allowed Item IDs must be non-negative integers.',
+  AllowedUiCategoryIds: 'Allowed UI Category IDs must be non-negative integers.'
+};
+
+function invalidRowIdFindings(values, field) {
+  if (!invalidRowIds(values).length) return [];
+  return [finding('warning', field, INVALID_ROW_ID_MESSAGES[field])];
+}
+
 function hasDuplicateValues(values) {
   if (!Array.isArray(values)) return false;
   const seen = new Set();
@@ -149,6 +167,8 @@ function getCategoryIssueCountWithoutSortPosition(category) {
 
   if (hasDuplicateValues(rules.AllowedItemIds)) count++;
   if (hasDuplicateValues(rules.AllowedUiCategoryIds)) count++;
+  if (invalidRowIds(rules.AllowedItemIds).length) count++;
+  if (invalidRowIds(rules.AllowedUiCategoryIds).length) count++;
   if (hasDuplicateValues(rules.AllowedItemNamePatterns)) count++;
 
   if (Array.isArray(rules.AllowedItemNamePatterns)) {
@@ -186,6 +206,8 @@ export function validateCategory(category, allCategories = []) {
     ...validateRarities(category),
     ...duplicateFindings(rules.AllowedItemIds, 'AllowedItemIds', 'Item ID'),
     ...duplicateFindings(rules.AllowedUiCategoryIds, 'AllowedUiCategoryIds', 'UI Category ID'),
+    ...invalidRowIdFindings(rules.AllowedItemIds, 'AllowedItemIds'),
+    ...invalidRowIdFindings(rules.AllowedUiCategoryIds, 'AllowedUiCategoryIds'),
     ...duplicateFindings(rules.AllowedItemNamePatterns, 'AllowedItemNamePatterns', 'regex pattern')
   ];
   if (Array.isArray(rules.AllowedItemNamePatterns)) {

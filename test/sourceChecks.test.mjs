@@ -429,3 +429,33 @@ test('duplicate sort-position import merge uses stable grouped keys', () => {
   assert.match(app, /return `\$\{item\.severity\}\|\$\{item\.field\}\|\$\{item\.sortPositionKey\}`/);
   assert.match(app, /const key = validationFindingKey\(item\);/);
 });
+
+test('numeric ID list parsers reject negatives and mention non-negative integers', () => {
+  const source = read('src/ui/categoryEditor.js');
+  const uiBlock = source.match(/listEditor\('Allowed UI Category IDs',[\s\S]*?\n    \}, x => x, \{ hint: 'Game ItemUICategory/)?.[0] ?? '';
+  const itemBlock = source.match(/listEditor\('Allowed Item IDs',[\s\S]*?\n    \}, x => x, \{ hint: 'Specific Item/)?.[0] ?? '';
+
+  assert.match(uiBlock, /\/\^\\d\+\$\//);
+  assert.match(itemBlock, /\/\^\\d\+\$\//);
+  assert.doesNotMatch(uiBlock, /\/\^-\?\\d\+\$\//);
+  assert.doesNotMatch(itemBlock, /\/\^-\?\\d\+\$\//);
+  assert.match(uiBlock, /non-negative integers/);
+  assert.match(itemBlock, /non-negative integers/);
+});
+
+test('list lookup busy overlay only appears after missing ID check', () => {
+  const source = read('src/ui/listEditor.js');
+  const handler = source.match(/lookupButton\.onclick = async \(\) => \{(?<body>[\s\S]*?)\n    \};/)?.groups.body ?? '';
+  const missingIndex = handler.indexOf('const missing = ids.filter');
+  const noMissingIndex = handler.indexOf('if (!missing.length)');
+  const showBusyIndex = handler.indexOf('showBusy(');
+  const hideBusyIndex = handler.indexOf('hideBusy();');
+
+  assert.notEqual(missingIndex, -1);
+  assert.notEqual(noMissingIndex, -1);
+  assert.notEqual(showBusyIndex, -1);
+  assert.notEqual(hideBusyIndex, -1);
+  assert.ok(noMissingIndex > missingIndex, 'cached-ID branch should run after missing IDs are computed');
+  assert.ok(showBusyIndex > noMissingIndex, 'busy overlay should be shown only after all-cached branch returns');
+  assert.match(handler, /if \(!missing\.length\) \{[\s\S]*?already cached[\s\S]*?renderPills\(\);[\s\S]*?return;/);
+});
