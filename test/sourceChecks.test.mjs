@@ -318,6 +318,41 @@ test('manual lookup search reports no usable rendered results separately', () =>
   assert.match(source, /if \(!rendered\)[\s\S]*setStatus\(`Search complete`, 'ok'\)/);
 });
 
+
+test('manual lookup search result Add buttons have contextual accessible labels', () => {
+  const source = read('src/ui/listEditor.js');
+  const lookupRowBody = source.match(/const r = document\.createElement\('div'\);(?<body>[\s\S]*?)resultsBox\.appendChild\(r\);/)?.groups.body ?? '';
+
+  assert.match(lookupRowBody, /<button class="small">Add<\/button>/);
+  assert.match(lookupRowBody, /const\s+addButton\s*=\s*r\.querySelector\('button'\)/);
+  assert.match(lookupRowBody, /addButton\.setAttribute\('aria-label'/);
+  assert.match(lookupRowBody, /addButton\.title\s*=/);
+  for (const token of ['displayName', 'id', 'title']) {
+    assert.match(lookupRowBody, new RegExp(String.raw`\b${token}\b`));
+  }
+  assert.doesNotMatch(lookupRowBody, /r\.querySelector\('button'\)\.onclick/);
+});
+
+test('numeric list editors opt into typed-value dedupe without deduping name patterns', () => {
+  const listEditor = read('src/ui/listEditor.js');
+  const categoryEditor = read('src/ui/categoryEditor.js');
+
+  assert.match(listEditor, /dedupeValues\s*=\s*false/);
+  assert.match(listEditor, /dedupeKey\s*=\s*value\s*=>\s*value/);
+  assert.match(listEditor, /if \(dedupeValues\)/);
+
+  const uiCall = categoryEditor.match(new RegExp(String.raw`listEditor\('Allowed UI Category IDs',[\s\S]*?\}\),\n\s*listEditor\('Allowed Item IDs'`))?.[0] ?? '';
+  const itemCall = categoryEditor.match(new RegExp(String.raw`listEditor\('Allowed Item IDs',[\s\S]*?\}\),\n\s*listEditor\('Allowed Item Name Patterns'`))?.[0] ?? '';
+  const patternCall = categoryEditor.match(new RegExp(String.raw`listEditor\('Allowed Item Name Patterns',[\s\S]*?\}\),\n\s*renderAllowedRaritiesEditor`))?.[0] ?? '';
+
+  assert.match(uiCall, /dedupeValues:\s*true/);
+  assert.match(uiCall, /dedupeKey:\s*value\s*=>\s*Number\(value\)/);
+  assert.match(itemCall, /dedupeValues:\s*true/);
+  assert.match(itemCall, /dedupeKey:\s*value\s*=>\s*Number\(value\)/);
+  assert.doesNotMatch(patternCall, /dedupeValues:\s*true/);
+  assert.doesNotMatch(patternCall, /dedupeKey:\s*value\s*=>\s*Number\(value\)/);
+});
+
 test('lookup cache modal displays useful and unresolved cache stats', () => {
   const app = read('src/app.js');
   const modal = read('src/ui/lookupCacheModal.js');

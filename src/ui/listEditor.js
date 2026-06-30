@@ -14,7 +14,9 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     markDirty,
     validateValue = null,
     validateList = null,
-    onItemsChanged = null
+    onItemsChanged = null,
+    dedupeValues = false,
+    dedupeKey = value => value
   } = options;
 
   const card = document.createElement('div');
@@ -122,8 +124,21 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         }
         parsedParts.push(parser(part));
       }
-      for (const part of parsedParts) arr.push(part);
+      let added = 0;
+      for (const part of parsedParts) {
+        if (dedupeValues) {
+          const key = dedupeKey(part);
+          if (arr.some(existing => dedupeKey(existing) === key)) continue;
+        }
+        arr.push(part);
+        added++;
+      }
       input.value = '';
+      if (!added) {
+        setStatus('No new values added; all were already present.');
+        renderValidation();
+        return;
+      }
       markDirty();
       renderPills();
       notifyItemsChanged();
@@ -223,7 +238,10 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
           const r = document.createElement('div');
           r.className = 'lookup-row';
           r.innerHTML = `<span>#${escapeHtml(id)}</span><span>${escapeHtml(displayName)}</span><button class="small">Add</button>`;
-          r.querySelector('button').onclick = () => {
+          const addButton = r.querySelector('button');
+          addButton.setAttribute('aria-label', `Add ${displayName} #${id} to ${title}`);
+          addButton.title = `Add ${displayName} #${id} to ${title}`;
+          addButton.onclick = () => {
             if (!arr.some(value => Number(value) === id)) {
               arr.push(id);
               markDirty();
