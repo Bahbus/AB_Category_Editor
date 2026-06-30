@@ -1,5 +1,6 @@
 import { escapeHtml, setStatus, showBusy, updateBusy, hideBusy } from '../dom.js';
 import { sheetLabel, normalizeLookupIds, rowId, rowName } from '../xivapi.js';
+import { normalizeRowIdValue } from '../rowIds.js';
 import { isUsefulLookupName } from '../lookupNames.js';
 
 export function listEditor(title, arr, parser, formatter, options = {}) {
@@ -160,6 +161,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     const lookupButton = document.createElement('button');
     lookupButton.textContent = `Lookup ${sheetLabel(lookupSheet)} names`;
     lookupButton.onclick = async () => {
+      let busyShown = false;
       try {
         lookupButton.disabled = true;
         const ids = normalizeLookupIds(arr);
@@ -172,6 +174,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         }
 
         showBusy(`Looking up ${sheetLabel(lookupSheet)} names`, `0/${missing.length} uncached checked`, 0);
+        busyShown = true;
 
         {
           const failures = await fetchLookupBatch(lookupSheet, missing, {
@@ -195,7 +198,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       } catch (err) {
         setStatus(err.message, 'err');
       } finally {
-        hideBusy();
+        if (busyShown) hideBusy();
         lookupButton.disabled = false;
       }
     };
@@ -228,9 +231,8 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
 
         let rendered = 0;
         for (const result of results) {
-          const rawId = rowId(result);
-          const id = Number(rawId);
-          if (!Number.isInteger(id) || id < 0) continue;
+          const id = normalizeRowIdValue(rowId(result));
+          if (id === null) continue;
 
           const name = rowName(result);
           const displayName = isUsefulLookupName(name) ? name : '(name unavailable)';

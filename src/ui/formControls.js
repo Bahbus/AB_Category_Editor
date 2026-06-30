@@ -49,14 +49,20 @@ export function numberInput(label, value, onChange, step='1', min=null, max=null
   }
   setValidation(options.validate ? options.validate(value) : []);
   let lastCommitted = Number(value) || 0;
-  function commitFiniteInput(rawValue) {
-    if (String(rawValue).trim() === '') return false;
-    const next = Number(rawValue);
+  function commitValue(next) {
     if (!Number.isFinite(next)) return false;
+    if (Object.is(next, lastCommitted)) {
+      setValidation(options.validate ? options.validate(next) : []);
+      return false;
+    }
     lastCommitted = next;
     onChange(next);
     setValidation(options.validate ? options.validate(next) : []);
     return true;
+  }
+  function commitFiniteInput(rawValue) {
+    if (String(rawValue).trim() === '') return false;
+    return commitValue(Number(rawValue));
   }
   input.oninput = e => {
     commitFiniteInput(e.target.value);
@@ -68,8 +74,7 @@ export function numberInput(label, value, onChange, step='1', min=null, max=null
     if (min !== null) next = Math.max(Number(min), next);
     if (max !== null) next = Math.min(Number(max), next);
     e.target.value = String(next);
-    onChange(next);
-    setValidation(options.validate ? options.validate(next) : []);
+    commitValue(next);
   };
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter') e.currentTarget.blur();
@@ -197,9 +202,16 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
     maxNumber.setAttribute('aria-invalid', (reversed || !Number.isFinite(maxValue)) ? 'true' : 'false');
   }
   function commitNumber(key, input) {
+    const previous = Number(rangeObj[key]);
     const next = Number(input.value);
     if (!Number.isFinite(next)) {
       input.value = String(rangeObj[key]);
+      syncValidity();
+      return;
+    }
+    input.value = String(next);
+    if (Object.is(previous, next)) {
+      syncValidity();
       return;
     }
     rangeObj[key] = next;

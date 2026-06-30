@@ -1,6 +1,7 @@
 import { escapeHtml, requireScopedEl, setStatus, showBusy, updateBusy, hideBusy } from '../dom.js';
 import { openModal, closeModal } from '../modals.js';
 import { fetchItemRowsPage, extractSheetRows, extractNextCursor, rowId, rowName } from '../xivapi.js';
+import { normalizeRowIdValue } from '../rowIds.js';
 
 function uniqueById(items) {
   const seen = new Set();
@@ -180,13 +181,13 @@ export function openRegexToItemIdsTool(deps) {
             break;
           }
           const row = rows[rowIndex];
-          const id = rowId(row);
+          const id = normalizeRowIdValue(rowId(row));
           const name = rowName(row);
-          if (id === undefined || !name) continue;
+          if (id === null || !name) continue;
           scanned++;
           regex.lastIndex = 0;
           if (regex.test(name)) {
-            matches.push({ id: Number(id), name });
+            matches.push({ id, name });
             const cache = lookupCache.Item || (lookupCache.Item = {});
             cache[String(id)] = name;
             if (matches.length >= maxMatches) {
