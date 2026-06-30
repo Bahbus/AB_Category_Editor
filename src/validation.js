@@ -110,28 +110,27 @@ export function validateRarities(category) {
   return unsupported.length ? [finding('warning', 'AllowedRarities', `Unsupported rarity value(s) will be ignored: ${unsupported.join(', ')}.`)] : [];
 }
 
-function duplicateFindings(values, field, labelText) {
-  if (!Array.isArray(values)) return [];
+function hasDuplicateValues(values) {
+  if (!Array.isArray(values)) return false;
   const seen = new Set();
-  const dupes = new Set();
   for (const value of values) {
     const key = String(value);
-    if (seen.has(key)) dupes.add(key);
+    if (seen.has(key)) return true;
     seen.add(key);
   }
-  return [...dupes].map(() => finding('warning', field, `Duplicate ${labelText} in this category.`));
+  return false;
 }
 
-function duplicateValueCount(values) {
-  if (!Array.isArray(values)) return 0;
-  const seen = new Set();
-  const dupes = new Set();
-  for (const value of values) {
-    const key = String(value);
-    if (seen.has(key)) dupes.add(key);
-    seen.add(key);
-  }
-  return dupes.size;
+const DUPLICATE_LIST_MESSAGES = {
+  AllowedItemIds: 'Duplicate Item IDs in this category.',
+  AllowedUiCategoryIds: 'Duplicate UI Category IDs in this category.',
+  AllowedItemNamePatterns: 'Duplicate regex patterns in this category.'
+};
+
+function duplicateFindings(values, field, labelText) {
+  if (!hasDuplicateValues(values)) return [];
+  const message = DUPLICATE_LIST_MESSAGES[field] || `Duplicate ${labelText}s in this category.`;
+  return [finding('warning', field, message)];
 }
 
 function sortPositionKey(category) {
@@ -148,9 +147,9 @@ function getCategoryIssueCountWithoutSortPosition(category) {
     ...validateRarities(category)
   ].filter(isIssueFinding).length;
 
-  count += duplicateValueCount(rules.AllowedItemIds);
-  count += duplicateValueCount(rules.AllowedUiCategoryIds);
-  count += duplicateValueCount(rules.AllowedItemNamePatterns);
+  if (hasDuplicateValues(rules.AllowedItemIds)) count++;
+  if (hasDuplicateValues(rules.AllowedUiCategoryIds)) count++;
+  if (hasDuplicateValues(rules.AllowedItemNamePatterns)) count++;
 
   if (Array.isArray(rules.AllowedItemNamePatterns)) {
     for (const pattern of rules.AllowedItemNamePatterns) count += validateRegexPattern(pattern).filter(isIssueFinding).length;

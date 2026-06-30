@@ -65,6 +65,41 @@ test('shared category issue counts include duplicate list values and invalid reg
   assert.equal(getCategoryIssueCount(category), 4);
 });
 
+
+test('duplicate list warnings are grouped per field', () => {
+  const category = cleanCategory();
+  category.Rules.AllowedItemIds = [1, 1, 2, 2];
+  const analysis = analyzeImportedConfig({ Categories: [category] });
+  const itemFindings = analysis.findings.filter(item => item.field === 'AllowedItemIds');
+
+  assert.equal(itemFindings.length, 1);
+  assert.match(itemFindings[0].message, /Duplicate Item IDs/);
+  assert.doesNotMatch(itemFindings[0].message, /1|2/);
+});
+
+test('different duplicate list fields still create separate warnings', () => {
+  const category = cleanCategory();
+  category.Rules.AllowedItemIds = [1, 1];
+  category.Rules.AllowedUiCategoryIds = [2, 2];
+  category.Rules.AllowedItemNamePatterns = ['foo', 'foo'];
+  const analysis = analyzeImportedConfig({ Categories: [category] });
+  const duplicateFields = fields(analysis);
+
+  assert.equal(duplicateFields.includes('AllowedItemIds'), true);
+  assert.equal(duplicateFields.includes('AllowedUiCategoryIds'), true);
+  assert.equal(duplicateFields.includes('AllowedItemNamePatterns'), true);
+});
+
+test('category issue counts group duplicate list fields while counting invalid regex separately', () => {
+  const category = cleanCategory();
+  category.Rules.AllowedItemIds = [1, 1, 2, 2];
+  assert.equal(getCategoryIssueCount(category), 1);
+
+  category.Rules.AllowedItemIds = [];
+  category.Rules.AllowedItemNamePatterns = ['foo', 'foo', '['];
+  assert.equal(getCategoryIssueCount(category), 2);
+});
+
 test('duplicate category IDs are reported without exposing the ID value', () => {
   const analysis = analyzeImportedConfig({ Categories: [cleanCategory({ Id: 'same-secret' }), cleanCategory({ Id: 'same-secret', Order: 2, Priority: 2 })] });
   const finding = analysis.findings.find(item => item.field === 'Id');
