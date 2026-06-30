@@ -110,12 +110,18 @@ export function validateRarities(category) {
   return unsupported.length ? [finding('warning', 'AllowedRarities', `Unsupported rarity value(s) will be ignored: ${unsupported.join(', ')}.`)] : [];
 }
 
+function isValidRowIdValue(value) {
+  if (typeof value === 'number') return Number.isInteger(value) && value >= 0;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    return /^\d+$/.test(trimmed);
+  }
+  return false;
+}
+
 export function invalidRowIds(values) {
   if (!Array.isArray(values)) return [];
-  return values.filter(value => {
-    const number = Number(value);
-    return !Number.isInteger(number) || number < 0;
-  });
+  return values.filter(value => !isValidRowIdValue(value));
 }
 
 const INVALID_ROW_ID_MESSAGES = {
