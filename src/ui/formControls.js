@@ -69,6 +69,11 @@ export function numberInput(label, value, onChange, step='1', min=null, max=null
   };
   input.onblur = e => {
     const fallback = lastCommitted;
+    if (String(e.target.value).trim() === '') {
+      e.target.value = String(lastCommitted);
+      setValidation(options.validate ? options.validate(lastCommitted) : []);
+      return;
+    }
     let next = Number(e.target.value);
     if (Number.isNaN(next)) next = fallback;
     if (min !== null) next = Math.max(Number(min), next);
@@ -202,6 +207,11 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
     maxNumber.setAttribute('aria-invalid', (reversed || !Number.isFinite(maxValue)) ? 'true' : 'false');
   }
   function commitNumber(key, input) {
+    if (input.value.trim() === '') {
+      input.value = String(rangeObj[key]);
+      syncValidity();
+      return;
+    }
     const previous = Number(rangeObj[key]);
     const next = Number(input.value);
     if (!Number.isFinite(next)) {

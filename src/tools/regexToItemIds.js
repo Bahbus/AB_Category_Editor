@@ -247,6 +247,7 @@ export function openRegexToItemIdsTool(deps) {
     const ids = cat.Rules.AllowedItemIds || (cat.Rules.AllowedItemIds = []);
     const existing = new Set(ids.map(Number));
     let added = 0;
+    let removedPattern = false;
     for (const item of matches) {
       if (existing.has(Number(item.id))) continue;
       ids.push(Number(item.id));
@@ -256,13 +257,28 @@ export function openRegexToItemIdsTool(deps) {
 
     if (removePatternSelect.value === 'remove' && select.value !== 'custom') {
       const idx = Number(select.value);
-      if (!Number.isNaN(idx)) cat.Rules.AllowedItemNamePatterns.splice(idx, 1);
+      if (!Number.isNaN(idx) && idx >= 0 && idx < cat.Rules.AllowedItemNamePatterns.length) {
+        cat.Rules.AllowedItemNamePatterns.splice(idx, 1);
+        removedPattern = true;
+      }
+    }
+
+    if (!added && !removedPattern) {
+      setStatus('No new item IDs added; all matches were already present.');
+      closeModal();
+      return;
     }
 
     markDirty();
-    setStatus(`Added ${added} item ID(s).`, 'ok');
+    setStatus(
+      added && removedPattern
+        ? `Added ${added} item ID(s) and removed selected regex filter.`
+        : added
+          ? `Added ${added} item ID(s).`
+          : 'Removed selected regex filter.',
+      'ok'
+    );
     closeModal();
     renderAll();
   };
 }
-

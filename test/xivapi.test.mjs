@@ -51,6 +51,24 @@ test('extractSheetRowsById maps array rows and numeric object fallback keys', ()
   assert.equal(rowsById.has('notAnId'), false);
 });
 
+test('extractSheetRowsById uses strict explicit and fallback row id normalization', () => {
+  const payload = {
+    rows: [{ row_id: 10, fields: { Name: 'Potion' } }],
+    data: {
+      20: { id: null, fields: { Name: 'Ether' } },
+      30: { id: 'bad', fields: { Name: 'Elixir' } },
+      badKey: { id: 40, fields: { Name: 'Ignored because fallback keys are limited to numeric object entries' } }
+    }
+  };
+
+  const rowsById = extractSheetRowsById(payload);
+
+  assert.equal(rowName(rowsById.get('10')), 'Potion');
+  assert.equal(rowName(rowsById.get('20')), 'Ether');
+  assert.equal(rowName(rowsById.get('30')), 'Elixir');
+  assert.equal(rowsById.has('40'), false);
+});
+
 test('extractNextCursor prefers pagination cursors before falling back to the last row id', () => {
   assert.equal(extractNextCursor({ pagination: { next: 'p2' } }, []), 'p2');
   assert.equal(extractNextCursor({ next: 'n2' }, []), 'n2');
