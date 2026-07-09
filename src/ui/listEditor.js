@@ -126,10 +126,14 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         parsedParts.push(parser(part));
       }
       let added = 0;
+      let skippedDuplicates = 0;
       for (const part of parsedParts) {
         if (dedupeValues) {
           const key = dedupeKey(part);
-          if (arr.some(existing => dedupeKey(existing) === key)) continue;
+          if (arr.some(existing => dedupeKey(existing) === key)) {
+            skippedDuplicates++;
+            continue;
+          }
         }
         arr.push(part);
         added++;
@@ -143,6 +147,9 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       markDirty();
       renderPills();
       notifyItemsChanged();
+      if (skippedDuplicates) {
+        setStatus(`Added ${added} value(s); skipped ${skippedDuplicates} duplicate(s).`);
+      }
     } catch (err) {
       setStatus(err.message, 'err');
     }

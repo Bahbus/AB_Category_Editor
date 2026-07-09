@@ -24,8 +24,10 @@ export function extractSheetRowsById(payload) {
   const map = new Map();
   const addRow = (row, fallbackId=null) => {
     if (!row || typeof row !== 'object') return;
-    const id = rowId(row) ?? fallbackId;
-    if (id === undefined || id === null || id === '') return;
+    const explicitId = normalizeRowIdValue(rowId(row));
+    const fallback = normalizeRowIdValue(fallbackId);
+    const id = explicitId ?? fallback;
+    if (id === null) return;
     map.set(String(id), row);
   };
   for (const row of extractSheetRows(payload)) addRow(row);
