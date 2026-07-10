@@ -259,58 +259,75 @@ test('list editor lookup retry uses useful lookup-name semantics', () => {
   assert.doesNotMatch(source, /const\s+missing\s*=\s*ids\.filter\(id\s*=>\s*!lookupName\(lookupSheet,\s*id\)\)/);
 });
 
-test('regex to item IDs add handler only dirties when IDs or pattern removal change data', () => {
+test('regex add matched IDs does not dirty or say Added 0 when nothing changed', () => {
   const source = read('src/tools/regexToItemIds.js');
-  const body = source.match(/addButton\.onclick = \(\) => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
+  const addHandler = source.match(/addButton\.onclick = \(\) => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
 
-  assert.match(body, /let\s+removedPattern\s*=\s*false/);
-  assert.match(body, /removedPattern\s*=\s*true/);
-  assert.match(body, /if\s*\(\s*!added\s*&&\s*!removedPattern\s*\)/);
-  assert.match(body, /No new item IDs added; all matches were already present\./);
-  assert.ok(
-    body.indexOf('if (!added && !removedPattern)') !== -1
-      && body.indexOf('markDirty();') > body.indexOf('if (!added && !removedPattern)'),
-    'markDirty should be after the no-change return guard'
-  );
-  assert.doesNotMatch(body, /setStatus\(`Added \$\{added\} item ID\(s\)\.`, 'ok'\)/);
+  assert.match(addHandler, /let\s+removedPattern\s*=\s*false/);
+  assert.match(addHandler, /removedPattern\s*=\s*true/);
+  assert.match(addHandler, /if\s*\(\s*!added\s*&&\s*!removedPattern\s*\)/);
+  assert.match(addHandler, /No new item IDs added; all matches were already present\./);
+
+  const noChangeIndex = addHandler.search(/if\s*\(\s*!added\s*&&\s*!removedPattern\s*\)/);
+  const markDirtyIndex = addHandler.indexOf('markDirty()');
+
+  assert.ok(noChangeIndex !== -1);
+  assert.ok(markDirtyIndex !== -1);
+  assert.ok(markDirtyIndex > noChangeIndex, 'markDirty should happen only after no-change branch returns');
+
+  assert.doesNotMatch(addHandler, /setStatus\(`Added \$\{added\} item ID\(s\)\.`, 'ok'\)/);
+  assert.match(addHandler, /Added \$\{added\} item ID\(s\) and removed selected regex filter\./);
+  assert.match(addHandler, /Added \$\{added\} item ID\(s\)\./);
+  assert.match(addHandler, /Removed selected regex filter\./);
 });
 
-test('blank number blur restores the previous committed value instead of committing zero', () => {
+test('number input blank blur restores previous value instead of committing zero', () => {
   const source = read('src/ui/formControls.js');
-  const numberInputBody = source.match(/export function numberInput\([^)]*\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
-  const blurBody = numberInputBody.match(/input\.onblur = e => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
+  const numberBlock = source.match(/export function numberInput[\s\S]*?\n\}\n\nexport function textInput/)?.[0] ?? '';
+  const blurBlock = numberBlock.match(/input\.onblur = e => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
 
-  assert.match(blurBody, /String\(e\.target\.value\)\.trim\(\) === ''/);
-  assert.match(blurBody, /e\.target\.value = String\(lastCommitted\)/);
-  assert.ok(
-    blurBody.indexOf('return;') !== -1
-      && blurBody.indexOf('commitValue(next)') > blurBody.indexOf('return;'),
-    'blank blur should return before commitValue(next)'
-  );
+  assert.match(blurBlock, /String\(e\.target\.value\)\.trim\(\) === ''/);
+  assert.match(blurBlock, /e\.target\.value = String\(lastCommitted\);/);
+  assert.match(blurBlock, /setValidation\(options\.validate \? options\.validate\(lastCommitted\) : \[\]\);/);
+
+  const blankIndex = blurBlock.indexOf("String(e.target.value).trim() === ''");
+  const commitIndex = blurBlock.indexOf('commitValue(next)');
+  assert.ok(blankIndex !== -1);
+  assert.ok(commitIndex !== -1);
+  assert.ok(blankIndex < commitIndex, 'blank restore should run before commitValue');
 });
 
-test('blank range number blur restores the previous range value without firing onChange', () => {
+test('range number blank blur restores previous value instead of committing zero', () => {
   const source = read('src/ui/formControls.js');
-  const rangeBody = source.match(/export function rangeSliderControl\([^)]*\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
-  const commitNumberBody = rangeBody.match(/function commitNumber\(key, input\) \{(?<body>[\s\S]*?)\n  \}/)?.groups.body ?? '';
+  const rangeCommitBlock = source.match(/function commitNumber\(key, input\) \{(?<body>[\s\S]*?)\n  \}\n  function commitFiniteNumberInput/)?.groups.body ?? '';
 
-  assert.match(commitNumberBody, /input\.value\.trim\(\) === ''/);
-  assert.match(commitNumberBody, /input\.value = String\(rangeObj\[key\]\)/);
-  assert.ok(
-    commitNumberBody.indexOf('return;') !== -1
-      && commitNumberBody.indexOf('onChange();') > commitNumberBody.indexOf('return;'),
-    'blank range blur should return before onChange()'
-  );
+  assert.match(rangeCommitBlock, /input\.value\.trim\(\) === ''/);
+  assert.match(rangeCommitBlock, /input\.value = String\(rangeObj\[key\]\);/);
+  assert.match(rangeCommitBlock, /syncValidity\(\);/);
+
+  const blankIndex = rangeCommitBlock.indexOf("input.value.trim() === ''");
+  const nextIndex = rangeCommitBlock.indexOf('const next = Number(input.value)');
+  const assignIndex = rangeCommitBlock.indexOf('rangeObj[key] = next');
+  const changeIndex = rangeCommitBlock.indexOf('onChange()');
+
+  assert.ok(blankIndex !== -1);
+  assert.ok(nextIndex !== -1);
+  assert.ok(assignIndex !== -1);
+  assert.ok(changeIndex !== -1);
+  assert.ok(blankIndex < nextIndex, 'blank restore should happen before Number(input.value)');
+  assert.ok(blankIndex < assignIndex, 'blank restore should happen before assigning range value');
+  assert.ok(blankIndex < changeIndex, 'blank restore should happen before onChange');
 });
 
-test('typed list add reports partial duplicate skips when dedupe is enabled', () => {
+test('typed list add reports partial duplicate skips without changing all-duplicate behavior', () => {
   const source = read('src/ui/listEditor.js');
-  const addBody = source.match(/add\.onclick = \(\) => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
+  const addHandler = source.match(/add\.onclick = \(\) => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
 
-  assert.match(addBody, /let\s+skippedDuplicates\s*=\s*0/);
-  assert.match(addBody, /skippedDuplicates\+\+/);
-  assert.match(addBody, /No new values added; all were already present\./);
-  assert.match(addBody, /Added \$\{added\} value\(s\); skipped \$\{skippedDuplicates\} duplicate\(s\)\./);
+  assert.match(addHandler, /let\s+skippedDuplicates\s*=\s*0/);
+  assert.match(addHandler, /skippedDuplicates\+\+/);
+  assert.match(addHandler, /No new values added; all were already present\./);
+  assert.match(addHandler, /if\s*\(skippedDuplicates\)/);
+  assert.match(addHandler, /Added \$\{added\} value\(s\); skipped \$\{skippedDuplicates\} duplicate\(s\)\./);
 });
 
 test('compact density does not enlarge list editor pill sizing', () => {
