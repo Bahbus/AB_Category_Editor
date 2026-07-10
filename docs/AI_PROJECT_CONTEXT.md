@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phases 35.1 and 36 are validated and passed. Phase 37 — Atomic Raw Category Apply and Durable Context Sync — is the next implementation target.
+> **Current state:** Phases 35.1 through 37 are validated and passed. Phase 38 — Lookup Cache Recovery, Range Validation Accessibility, and Context Advance — is the next implementation target.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -199,7 +199,14 @@ Validated and passed.
 
 ### Phase 37
 
-Next implementation target: make selected-category Raw JSON application atomic and reject non-object category entries before they can enter live configuration state.
+Validated and passed.
+
+- Selected-category Raw JSON is parsed and shape-normalized as a local candidate before it replaces live state.
+- `null`, arrays, and scalar category entries are rejected without changing the selected category or dirty state.
+
+### Phase 38
+
+Next implementation target: normalize persisted lookup-cache shape before app use, associate range-number validation with both inputs through `aria-describedby`, and advance the durable phase context.
 
 ---
 

@@ -35,10 +35,33 @@ export function emptyLookupCache() {
   return { Item: {}, ItemUICategory: {} };
 }
 
-export function loadLookupCache() {
+function isPlainObject(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+}
+
+function normalizeLookupCacheBucket(value) {
+  const bucket = {};
+  if (!isPlainObject(value)) return bucket;
+  for (const [key, name] of Object.entries(value)) {
+    if (typeof name === 'string') Object.defineProperty(bucket, key, { value: name, enumerable: true, configurable: true, writable: true });
+  }
+  return bucket;
+}
+
+export function normalizeLookupCache(value) {
+  if (!isPlainObject(value)) return emptyLookupCache();
+  return {
+    Item: normalizeLookupCacheBucket(value.Item),
+    ItemUICategory: normalizeLookupCacheBucket(value.ItemUICategory)
+  };
+}
+
+export function loadLookupCache(storage = globalThis.localStorage) {
   try {
-    const raw = localStorage.getItem(LOOKUP_CACHE_KEY);
-    return raw ? JSON.parse(raw) : emptyLookupCache();
+    const raw = storage?.getItem?.(LOOKUP_CACHE_KEY);
+    return normalizeLookupCache(raw ? JSON.parse(raw) : null);
   } catch {
     return emptyLookupCache();
   }

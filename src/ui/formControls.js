@@ -157,6 +157,7 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
   const maxInputId = makeControlId('range-max-number');
   const minSliderId = makeControlId('range-min-slider');
   const maxSliderId = makeControlId('range-max-slider');
+  const validationId = makeControlId('range-validation');
   const bounds = rangeSliderBounds(rangeObj.Min, rangeObj.Max, defaults);
   wrap.innerHTML = `
     <div class="range-slider-stack">
@@ -169,7 +170,7 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
       <div><label for="${minInputId}">Minimum</label><input id="${minInputId}" type="number" step="1" value="${escapeHtml(rangeObj.Min)}"></div>
       <div><label for="${maxInputId}">Maximum</label><input id="${maxInputId}" type="number" step="1" value="${escapeHtml(rangeObj.Max)}"></div>
     </div>
-    <p class="hint range-validation" hidden>Minimum is greater than maximum. Values are preserved until you edit them.</p>
+    <p id="${validationId}" class="hint range-validation" hidden>Minimum is greater than maximum. Values are preserved until you edit them.</p>
   `;
   const minNumber = wrap.querySelector(`#${minInputId}`);
   const maxNumber = wrap.querySelector(`#${maxInputId}`);
@@ -185,6 +186,7 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
     const span = upperBound - lowerBound || 1;
     const nonFinite = !Number.isFinite(minValue) || !Number.isFinite(maxValue);
     const reversed = Number.isFinite(minValue) && Number.isFinite(maxValue) && minValue > maxValue;
+    const hasRangeIssue = reversed || nonFinite;
     const visualMin = Number.isFinite(minValue) ? minValue : lowerBound;
     const visualMax = Number.isFinite(maxValue) ? maxValue : upperBound;
     const start = Math.max(0, Math.min(100, ((Math.min(visualMin, visualMax) - lowerBound) / span) * 100));
@@ -199,12 +201,15 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
     maxNumber.classList.toggle('invalid', reversed || !Number.isFinite(maxValue));
     validation.textContent = nonFinite ? 'Minimum and maximum must be finite numbers.' : 'Minimum is greater than maximum. Values are preserved until you edit them.';
     validation.classList.add('range-validation');
-    validation.classList.toggle('validation-list', reversed || nonFinite);
+    validation.classList.toggle('validation-list', hasRangeIssue);
     validation.classList.toggle('field-error', nonFinite);
     validation.classList.toggle('field-warning', !nonFinite && reversed);
-    validation.hidden = !(reversed || nonFinite);
-    minNumber.setAttribute('aria-invalid', (reversed || !Number.isFinite(minValue)) ? 'true' : 'false');
-    maxNumber.setAttribute('aria-invalid', (reversed || !Number.isFinite(maxValue)) ? 'true' : 'false');
+    validation.hidden = !hasRangeIssue;
+    for (const input of [minNumber, maxNumber]) {
+      input.setAttribute('aria-invalid', hasRangeIssue ? 'true' : 'false');
+      if (hasRangeIssue) input.setAttribute('aria-describedby', validationId);
+      else input.removeAttribute('aria-describedby');
+    }
   }
   function commitNumber(key, input) {
     if (input.value.trim() === '') {
