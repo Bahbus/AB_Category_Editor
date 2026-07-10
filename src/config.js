@@ -44,6 +44,13 @@ export function defaultCategory(maxOrder = 0) {
   };
 }
 
+export function nextCategorySortValue(categories = []) {
+  return (Array.isArray(categories) ? categories : []).reduce((max, category) => {
+    const order = numericValue(category?.Order);
+    return order === null ? max : Math.max(max, order);
+  }, 0) + 1;
+}
+
 function isPlainObject(value) {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
@@ -59,7 +66,7 @@ function finiteOrDefault(value, fallback) {
 }
 
 export function ensureShape(cat) {
-  if (!cat.Color) cat.Color = { X: 1, Y: 1, Z: 1, W: 1 };
+  if (!isPlainObject(cat.Color)) cat.Color = { X: 1, Y: 1, Z: 1, W: 1 };
   for (const key of ['X','Y','Z','W']) {
     if (typeof cat.Color[key] !== 'number') cat.Color[key] = 1;
   }
@@ -178,6 +185,8 @@ function snapshotCategoryForRepairs(cat, index = null) {
     categoryName: cat?.Name,
     categoryId: cat?.Id,
     categoryIndex: index,
+    ColorWasPlainObject: isPlainObject(cat?.Color),
+    Color: cat?.Color,
     RulesWasPlainObject: isPlainObject(cat?.Rules),
     Rules: cat?.Rules
   };
@@ -207,6 +216,17 @@ function repairRecord(cat, before, field, beforeValue, afterValue, message, opti
 
 function collectCategoryRepairs(cat, before) {
   const repairs = [];
+  if (!before.ColorWasPlainObject) {
+    repairs.push(repairRecord(
+      cat,
+      before,
+      'Color',
+      before.Color,
+      cat.Color,
+      'Color was missing or malformed and replaced with default RGBA values.',
+      { severity: 'warning', material: true }
+    ));
+  }
   if (!before.RulesWasPlainObject) {
     repairs.push(repairRecord(cat, before, 'Rules', before.Rules, cat.Rules, 'Rules were missing or malformed and replaced with defaults.'));
     return repairs;

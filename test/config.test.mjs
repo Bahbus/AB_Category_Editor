@@ -11,6 +11,7 @@ import {
   normalizeAllowedRarities,
   normalizeAllowedRaritiesWithReport,
   normalizedRaritySet,
+  nextCategorySortValue,
   sameValidRaritySet,
   sortImportedCategories,
   validateConfig
@@ -56,6 +57,13 @@ test('defaultCategory uses max order for Order and Priority', () => {
   assert.match(category.Id, /^[0-9a-f]{32}$/);
 });
 
+test('nextCategorySortValue ignores non-finite imported Orders', () => {
+  const categories = [{ Order: 'not-a-number' }, { Order: 6 }, { Order: Number.POSITIVE_INFINITY }];
+
+  assert.equal(nextCategorySortValue(categories), 7);
+  assert.deepEqual(categories, [{ Order: 'not-a-number' }, { Order: 6 }, { Order: Number.POSITIVE_INFINITY }]);
+});
+
 test('ensureShape fills missing color and rule fields', () => {
   const category = { Color: { X: 0.25 }, Rules: { AllowedItemIds: 'bad' } };
 
@@ -67,6 +75,28 @@ test('ensureShape fills missing color and rule fields', () => {
   assert.deepEqual(category.Rules.AllowedItemIds, []);
   assert.deepEqual(category.Rules.AllowedRarities, []);
   assert.deepEqual(category.Rules.Level, { Enabled: false, Min: 0, Max: 200 });
+});
+
+test('validateConfig replaces an array Color and records a material import repair', () => {
+  const config = { Categories: [{ Id: 'array-color', Name: 'Array Color', Color: [], Rules: {} }] };
+  const result = validateConfig(config);
+  const repair = result.repairs.find(item => item.field === 'Color');
+
+  assert.deepEqual(config.Categories[0].Color, { X: 1, Y: 1, Z: 1, W: 1 });
+  assert.ok(repair);
+  assert.equal(repair.before instanceof Array, true);
+  assert.equal(repair.material, true);
+  assert.equal(repair.severity, 'warning');
+  assert.match(repair.message, /Color was missing or malformed/);
+});
+
+test('validateConfig replaces scalar Color values without throwing', () => {
+  const config = { Categories: [{ Id: 'scalar-color', Name: 'Scalar Color', Color: 'not-a-color', Rules: {} }] };
+
+  const result = validateConfig(config);
+
+  assert.deepEqual(config.Categories[0].Color, { X: 1, Y: 1, Z: 1, W: 1 });
+  assert.equal(result.repairs.filter(item => item.field === 'Color').length, 1);
 });
 
 test('getNormalizedAllowedRarities returns display rarities without mutating the category', () => {

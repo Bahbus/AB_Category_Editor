@@ -1,5 +1,5 @@
 import { ALLOWED_RARITY_IDS, RANGE_FILTERS, RANGE_FILTER_KEYS, STATE_FILTERS, STATE_FILTER_KEYS } from './constants.js';
-import { invalidRowIds } from './rowIds.js';
+import { invalidRowIds, normalizeRowIdValue } from './rowIds.js';
 
 const VALID_STATE_VALUES = new Set([0, 1, 2]);
 const RANGE_FILTER_LABELS = Object.fromEntries(RANGE_FILTERS.map(filter => [filter.key, filter.label]));
@@ -132,6 +132,18 @@ function hasDuplicateValues(values) {
   return false;
 }
 
+function hasDuplicateRowIds(values) {
+  if (!Array.isArray(values)) return false;
+  const seen = new Set();
+  for (const value of values) {
+    const normalized = normalizeRowIdValue(value);
+    if (normalized === null) continue;
+    if (seen.has(normalized)) return true;
+    seen.add(normalized);
+  }
+  return false;
+}
+
 const DUPLICATE_LIST_MESSAGES = {
   AllowedItemIds: 'Duplicate Item IDs in this category.',
   AllowedUiCategoryIds: 'Duplicate UI Category IDs in this category.',
@@ -139,7 +151,8 @@ const DUPLICATE_LIST_MESSAGES = {
 };
 
 function duplicateFindings(values, field, labelText) {
-  if (!hasDuplicateValues(values)) return [];
+  const duplicates = INVALID_ROW_ID_MESSAGES[field] ? hasDuplicateRowIds(values) : hasDuplicateValues(values);
+  if (!duplicates) return [];
   const message = DUPLICATE_LIST_MESSAGES[field] || `Duplicate ${labelText}s in this category.`;
   return [finding('warning', field, message)];
 }
@@ -158,8 +171,8 @@ function getCategoryIssueCountWithoutSortPosition(category) {
     ...validateRarities(category)
   ].filter(isIssueFinding).length;
 
-  if (hasDuplicateValues(rules.AllowedItemIds)) count++;
-  if (hasDuplicateValues(rules.AllowedUiCategoryIds)) count++;
+  if (hasDuplicateRowIds(rules.AllowedItemIds)) count++;
+  if (hasDuplicateRowIds(rules.AllowedUiCategoryIds)) count++;
   if (invalidRowIds(rules.AllowedItemIds).length) count++;
   if (invalidRowIds(rules.AllowedUiCategoryIds).length) count++;
   if (hasDuplicateValues(rules.AllowedItemNamePatterns)) count++;

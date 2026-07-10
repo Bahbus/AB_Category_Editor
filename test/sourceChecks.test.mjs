@@ -372,7 +372,7 @@ test('manual lookup search normalizes row IDs and avoids unnamed cache placehold
   assert.match(source, /const\s+name\s*=\s*rowName\(result\)/);
   assert.match(source, /const\s+displayName\s*=\s*isUsefulLookupName\(name\) \? name : '\(name unavailable\)'/);
   assert.match(source, /if \(isUsefulLookupName\(name\)\) \{[\s\S]*cache\[String\(id\)\] = name;[\s\S]*saveLookupCache\(\);[\s\S]*\}/);
-  assert.match(source, /arr\.some\(value => Number\(value\) === id\)/);
+  assert.match(source, /arr\.some\(value => normalizeRowIdValue\(value\) === id\)/);
   assert.match(source, /arr\.push\(id\)/);
   assert.doesNotMatch(source, /arr\.push\(rowId\(result\)\)/);
   assert.doesNotMatch(source, /const\s+name\s*=\s*result\.fields\?\.Name\s*\|\|\s*'\(unnamed\)'/);
@@ -403,7 +403,7 @@ test('manual lookup search result Add buttons have contextual accessible labels'
   assert.doesNotMatch(lookupRowBody, /r\.querySelector\('button'\)\.onclick/);
 });
 
-test('numeric list editors opt into typed-value dedupe without deduping name patterns', () => {
+test('numeric list editors use strict row-ID dedupe without deduping name patterns', () => {
   const listEditor = read('src/ui/listEditor.js');
   const categoryEditor = read('src/ui/categoryEditor.js');
 
@@ -416,11 +416,49 @@ test('numeric list editors opt into typed-value dedupe without deduping name pat
   const patternCall = categoryEditor.match(new RegExp(String.raw`listEditor\('Allowed Item Name Patterns',[\s\S]*?\}\),\n\s*renderAllowedRaritiesEditor`))?.[0] ?? '';
 
   assert.match(uiCall, /dedupeValues:\s*true/);
-  assert.match(uiCall, /dedupeKey:\s*value\s*=>\s*Number\(value\)/);
+  assert.match(categoryEditor, /import \{ normalizeRowIdValue \} from ['"]\.\.\/rowIds\.js['"];/);
+  assert.match(uiCall, /dedupeKey:\s*normalizeRowIdValue/);
   assert.match(itemCall, /dedupeValues:\s*true/);
-  assert.match(itemCall, /dedupeKey:\s*value\s*=>\s*Number\(value\)/);
+  assert.match(itemCall, /dedupeKey:\s*normalizeRowIdValue/);
   assert.doesNotMatch(patternCall, /dedupeValues:\s*true/);
-  assert.doesNotMatch(patternCall, /dedupeKey:\s*value\s*=>\s*Number\(value\)/);
+  assert.doesNotMatch(patternCall, /dedupeKey:\s*normalizeRowIdValue/);
+});
+
+test('RGB blur restores committed values and only dirties actual component changes', () => {
+  const source = read('src/ui/categoryEditor.js');
+  const rgbBlock = source.match(/function makeRgbaNumber\(label, getValue, setValue\) \{(?<body>[\s\S]*?)\n  \}/)?.groups.body ?? '';
+
+  assert.match(source, /export function normalizeRgbInputValue/);
+  assert.match(rgbBlock, /let lastCommitted = getValue\(\);/);
+  assert.match(rgbBlock, /if \(getValue\(\) === n\) return false;/);
+  assert.match(rgbBlock, /const n = normalizeRgbInputValue\(e\.target\.value, lastCommitted\);/);
+  assert.match(rgbBlock, /e\.target\.value = String\(n\);/);
+  assert.match(rgbBlock, /markDirty\(\);\s*scheduleRenderList\(\);/);
+});
+
+test('add, duplicate, lookup Add, and regex add use safe numeric-ID and sort policies', () => {
+  const app = read('src/app.js');
+  const editor = read('src/ui/categoryEditor.js');
+  const list = read('src/ui/listEditor.js');
+  const regex = read('src/tools/regexToItemIds.js');
+
+  assert.match(app, /nextCategorySortValue\(getCategories\(\)\) - 1/);
+  assert.match(editor, /const nextSortValue = nextCategorySortValue\(cats\);/);
+  assert.match(editor, /copy\.Order = nextSortValue;\s*copy\.Priority = nextSortValue;/);
+  assert.match(list, /arr\.some\(value => normalizeRowIdValue\(value\) === id\)/);
+  assert.match(regex, /new Set\(ids\.map\(normalizeRowIdValue\)\.filter\(id => id !== null\)\)/);
+  assert.match(regex, /const id = normalizeRowIdValue\(item\.id\);/);
+});
+
+test('automatic lookup and export failures release only their own busy operation', () => {
+  const app = read('src/app.js');
+  const automaticLookup = app.match(/function maybeAutoLookupImportedIds\(\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
+  const exportHandler = app.match(/bindClick\('showExportCopy', async \(\) => \{(?<body>[\s\S]*?)\n  \}\);/)?.groups.body ?? '';
+
+  assert.doesNotMatch(automaticLookup, /hideBusy\(true\)/);
+  assert.doesNotMatch(exportHandler, /hideBusy\(true\)/);
+  assert.match(exportHandler, /let busyShown = true;/);
+  assert.match(exportHandler, /if \(busyShown\) hideBusy\(\);/);
 });
 
 test('lookup cache modal displays useful and unresolved cache stats', () => {
