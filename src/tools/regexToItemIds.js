@@ -245,13 +245,14 @@ export function openRegexToItemIdsTool(deps) {
   addButton.onclick = () => {
     if (!matches.length) return;
     const ids = cat.Rules.AllowedItemIds || (cat.Rules.AllowedItemIds = []);
-    const existing = new Set(ids.map(Number));
+    const existing = new Set(ids.map(normalizeRowIdValue).filter(id => id !== null));
     let added = 0;
     let removedPattern = false;
     for (const item of matches) {
-      if (existing.has(Number(item.id))) continue;
-      ids.push(Number(item.id));
-      existing.add(Number(item.id));
+      const id = normalizeRowIdValue(item.id);
+      if (id === null || existing.has(id)) continue;
+      ids.push(id);
+      existing.add(id);
       added++;
     }
 

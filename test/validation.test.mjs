@@ -357,13 +357,24 @@ test('valid numeric row ID values do not introduce invalid numeric ID warnings',
   assert.equal(invalidNumericFindings.length, 0);
 });
 
+test('numeric ID duplicate validation uses strict normalized row-ID values', () => {
+  const category = cleanCategory();
+  category.Rules.AllowedItemIds = [null, false, '', 0, '0', '00123', 123];
+  const analysis = analyzeImportedConfig({ Categories: [category] });
+  const findings = analysis.findings.filter(item => item.field === 'AllowedItemIds');
+
+  assert.equal(findings.filter(item => /non-negative integers/i.test(item.message)).length, 1);
+  assert.equal(findings.filter(item => /Duplicate Item IDs/.test(item.message)).length, 1);
+  assert.equal(getCategoryIssueCount(category), 2);
+});
+
 test('issue counts include coercible invalid numeric IDs once per affected field', () => {
   const category = cleanCategory();
   category.Rules.AllowedItemIds = [null, false, ''];
   assert.equal(getCategoryIssueCount(category), 1);
 
   category.Rules.AllowedItemIds = [null, null];
-  assert.equal(getCategoryIssueCount(category), 2);
+  assert.equal(getCategoryIssueCount(category), 1);
 });
 
 test('invalid Allowed UI Category IDs create one warning without exposing values', () => {
@@ -403,7 +414,7 @@ test('invalid numeric row ID values are grouped per field', () => {
 
 test('invalid and duplicate row ID values produce separate Allowed Item ID issues', () => {
   const category = cleanCategory();
-  category.Rules.AllowedItemIds = [-1, -1];
+  category.Rules.AllowedItemIds = [-1, 0, '0'];
   const analysis = analyzeImportedConfig({ Categories: [category] });
 
   const itemFindings = analysis.findings.filter(item => item.field === 'AllowedItemIds');
@@ -418,6 +429,6 @@ test('issue counts include invalid numeric IDs once per affected field', () => {
   category.Rules.AllowedItemIds = [-1, -2];
   assert.equal(getCategoryIssueCount(category), 1);
 
-  category.Rules.AllowedItemIds = [-1, -1];
+  category.Rules.AllowedItemIds = [-1, 0, '0'];
   assert.equal(getCategoryIssueCount(category), 2);
 });

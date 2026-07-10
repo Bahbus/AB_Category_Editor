@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { el, requireEl } from '../src/dom.js';
+import { el, requireEl, showBusy, hideBusy } from '../src/dom.js';
 
 test('el returns matching element or null', () => {
   const expected = { id: 'present' };
@@ -37,4 +37,21 @@ test('requireEl throws a clear missing-element error', () => {
     () => requireEl('showPreferences'),
     /Missing required element: #showPreferences/
   );
+});
+
+test('one busy operation completing does not hide an overlapping operation', () => {
+  const hidden = new Set(['hidden']);
+  const box = { classList: { add: value => hidden.add(value), remove: value => hidden.delete(value), contains: value => hidden.has(value) } };
+  const title = { textContent: '' };
+  const detail = { textContent: '' };
+  const fill = { classList: { add() {}, remove() {} }, style: {} };
+  globalThis.document = { getElementById(id) { return ({ busyOverlay: box, busyTitle: title, busyDetail: detail, busyProgressFill: fill })[id] || null; } };
+
+  hideBusy(true);
+  showBusy('First');
+  showBusy('Second');
+  hideBusy();
+  assert.equal(hidden.has('hidden'), false);
+  hideBusy();
+  assert.equal(hidden.has('hidden'), true);
 });

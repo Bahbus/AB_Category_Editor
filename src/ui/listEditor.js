@@ -256,7 +256,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
           addButton.setAttribute('aria-label', `Add ${displayName} #${id} to ${title}`);
           addButton.title = `Add ${displayName} #${id} to ${title}`;
           addButton.onclick = () => {
-            if (!arr.some(value => Number(value) === id)) {
+            if (!arr.some(value => normalizeRowIdValue(value) === id)) {
               arr.push(id);
               markDirty();
               renderPills();
