@@ -2,7 +2,8 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 35 is functionally complete. Phase 35.1 has been written to add missing source-check coverage and is the next validation target after implementation. > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe
+> **Current state:** Phase 35 is functionally complete. Phase 35.1 has been written to add missing source-check coverage and is the next validation target after implementation.
+> **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe
 > **Primary verification command:** `npm run check`
 
 ---
