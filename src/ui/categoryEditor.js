@@ -634,11 +634,10 @@ export function renderEditor(deps) {
     requireScopedEl(wrap, '#cancelDeleteCat', 'delete category confirmation').onclick = closeModal;
   };
   el('applyRawCategory').onclick = () => {
-    commitActiveField();
     try {
-      const parsed = JSON.parse(el('rawCategory').value);
-      cats[selectedIndex] = parsed;
-      ensureShape(cats[selectedIndex]);
+      const candidate = JSON.parse(el('rawCategory').value);
+      ensureShape(candidate);
+      cats[selectedIndex] = candidate;
       markDirty();
       renderAll();
     } catch (err) {

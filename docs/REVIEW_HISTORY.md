@@ -445,16 +445,37 @@ That required Phase 35.1.
 
 ## Phase 35.1
 
-Task written. Pending implementation/validation in this conversation.
+Validated and passed.
 
-Required coverage additions:
+Coverage confirmed:
 
 1. Regex → Item IDs no-change path.
 2. Blank `numberInput(...)` blur restore.
 3. Blank range-number blur restore.
 4. Partial duplicate-skip status.
 
-Expected runtime behavior should remain unchanged unless tests expose a real bug.
+Runtime behavior remained unchanged.
+
+---
+
+## Phase 36
+
+Validated and passed.
+
+Implemented:
+
+- malformed Color values are repaired as material import repairs,
+- RGB blur restores the committed value and only dirties actual component changes,
+- category add/duplicate sort values and numeric-ID dedupe use the established strict helpers,
+- automatic lookup and export release only busy UI they showed.
+
+---
+
+## Deep review after Phase 36
+
+Found a data-safety bug in selected-category Raw JSON: it assigned parsed `null`, arrays, or scalars into live categories before `ensureShape(...)` could reject or repair them. Arrays could also acquire named repair properties that JSON export omits.
+
+This became Phase 37.
 
 ---
 
@@ -560,8 +581,4 @@ Periodically prune brittle source checks.
 
 # Current next step
 
-After Phase 35.1 is implemented:
-
-1. validate Phase 35.1,
-2. if no Phase 35.2 is needed, perform the standard full deep-dive review,
-3. continue phase planning from verified findings rather than speculation.
+Implement and validate Phase 37 — Atomic Raw Category Apply and Durable Context Sync. If it passes without a Phase 37.1 follow-up, continue phase planning from verified deep-review findings.
