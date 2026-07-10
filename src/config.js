@@ -52,7 +52,9 @@ export function nextCategorySortValue(categories = []) {
 }
 
 function isPlainObject(value) {
-  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
 }
 
 const RANGE_RULE_KEYS = RANGE_FILTER_KEYS;
@@ -66,6 +68,7 @@ function finiteOrDefault(value, fallback) {
 }
 
 export function ensureShape(cat) {
+  if (!isPlainObject(cat)) throw new Error('A category must be a JSON object.');
   if (!isPlainObject(cat.Color)) cat.Color = { X: 1, Y: 1, Z: 1, W: 1 };
   for (const key of ['X','Y','Z','W']) {
     if (typeof cat.Color[key] !== 'number') cat.Color[key] = 1;

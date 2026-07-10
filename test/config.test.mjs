@@ -77,6 +77,26 @@ test('ensureShape fills missing color and rule fields', () => {
   assert.deepEqual(category.Rules.Level, { Enabled: false, Min: 0, Max: 200 });
 });
 
+test('categories must be JSON objects while valid objects still receive nested repairs', () => {
+  const errorMessage = 'A category must be a JSON object.';
+  const invalidCategories = [null, [], 42, 'not a category', true];
+
+  for (const invalidCategory of invalidCategories) {
+    assert.throws(() => ensureShape(invalidCategory), { message: errorMessage });
+
+    const config = { Categories: [invalidCategory] };
+    assert.throws(() => validateConfig(config), { message: errorMessage });
+    assert.deepEqual(config.Categories, [invalidCategory]);
+  }
+
+  const validCategory = { Color: [], Rules: { AllowedItemIds: 'bad', Level: null } };
+  ensureShape(validCategory);
+
+  assert.deepEqual(validCategory.Color, { X: 1, Y: 1, Z: 1, W: 1 });
+  assert.deepEqual(validCategory.Rules.AllowedItemIds, []);
+  assert.deepEqual(validCategory.Rules.Level, { Enabled: false, Min: 0, Max: 200 });
+});
+
 test('validateConfig replaces an array Color and records a material import repair', () => {
   const config = { Categories: [{ Id: 'array-color', Name: 'Array Color', Color: [], Rules: {} }] };
   const result = validateConfig(config);

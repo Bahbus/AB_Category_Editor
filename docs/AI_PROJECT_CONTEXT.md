@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 35 is functionally complete. Phase 35.1 has been written to add missing source-check coverage and is the next validation target after implementation.  
+> **Current state:** Phases 35.1 and 36 are validated and passed. Phase 37 — Atomic Raw Category Apply and Durable Context Sync — is the next implementation target.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -180,17 +180,26 @@ Implemented and validated functionally:
 
 ### Phase 35.1
 
-Written but not yet validated in this conversation.
+Validated and passed.
 
-Purpose:
+Coverage added for:
 
-- add missing source checks for:
   - Regex → Item IDs no-change behavior,
   - blank `numberInput(...)` blur restore,
   - blank range-number blur restore,
   - partial duplicate-skip list status.
 
-Runtime code should remain unchanged unless the new tests expose a real bug.
+### Phase 36
+
+Validated and passed.
+
+- Color objects are repaired safely during import and RGB blur restores committed values without false dirty state.
+- Category add/duplicate and numeric-ID dedupe use the established safe numeric policies.
+- Busy-overlay release behavior remains scoped to the operation that showed it.
+
+### Phase 37
+
+Next implementation target: make selected-category Raw JSON application atomic and reject non-object category entries before they can enter live configuration state.
 
 ---
 

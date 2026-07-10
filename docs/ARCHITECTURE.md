@@ -125,6 +125,7 @@ Typical import flow:
 Important rule:
 
 - Invalid individual numeric IDs inside valid arrays are preserved and warned, not silently removed.
+- Category entries themselves must be JSON objects; `null`, arrays, and scalar entries fail validation rather than being repaired into categories.
 
 ---
 
@@ -368,6 +369,8 @@ It currently owns:
 - actions such as duplicate/delete/move.
 
 This concentration is the main known maintainability risk.
+
+Selected-category Raw JSON is parsed and shape-normalized as a local candidate before it replaces the live selected category. Parse or shape failures leave the current category and dirty state unchanged.
 
 Do not split it casually. Refactor when future feature work creates real friction.
 
