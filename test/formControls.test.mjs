@@ -72,3 +72,12 @@ test('hidden range validation keeps hidden display precedence', () => {
   const styles = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
   assert.match(styles, /\.validation-list\[hidden\],\s*\.range-validation\[hidden\]\s*{\s*display: none !important;/);
 });
+
+test('range validation associates both number inputs with its generated message only while invalid', () => {
+  const source = fs.readFileSync(new URL('../src/ui/formControls.js', import.meta.url), 'utf8');
+
+  assert.match(source, /const validationId = makeControlId\('range-validation'\);/);
+  assert.match(source, /<p id="\$\{validationId\}" class="hint range-validation" hidden>/);
+  assert.match(source, /const hasRangeIssue = reversed \|\| nonFinite;/);
+  assert.match(source, /for \(const input of \[minNumber, maxNumber\]\) \{[\s\S]*?input\.setAttribute\('aria-invalid', hasRangeIssue \? 'true' : 'false'\);[\s\S]*?if \(hasRangeIssue\) input\.setAttribute\('aria-describedby', validationId\);[\s\S]*?else input\.removeAttribute\('aria-describedby'\);[\s\S]*?\}/);
+});

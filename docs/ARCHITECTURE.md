@@ -324,7 +324,8 @@ Do not decrement shared busy state for an operation that returned before `showBu
 - invalid non-finite blur restores previous value,
 - unchanged blur does not call `onChange()`,
 - reversed range is preserved but warned,
-- sliders and numeric inputs remain synchronized.
+- sliders and numeric inputs remain synchronized,
+- reversed or non-finite ranges expose their validation message to both numeric inputs through `aria-describedby`; valid ranges remove that association.
 
 ---
 
@@ -444,6 +445,8 @@ Avoid bypassing the shared modal infrastructure.
 
 - lookup cache,
 - editor preferences.
+
+Persisted lookup-cache JSON is shape-normalized before application use. The runtime cache always has independent plain-object `Item` and `ItemUICategory` buckets, preserves only string cache names (including unresolved sentinel strings), and drops malformed data.
 
 Preferences include appearance/behavior settings such as theme and density, plus lookup/description behavior where applicable.
 

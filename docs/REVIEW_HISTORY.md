@@ -479,6 +479,28 @@ This became Phase 37.
 
 ---
 
+## Phase 37
+
+Validated and passed.
+
+Implemented atomic selected-category Raw JSON application:
+
+- parsed and shape-normalized the candidate before replacing live state,
+- rejected `null`, arrays, and scalar category entries,
+- preserved the current selected category and dirty state on parse or shape failure.
+
+## Deep review after Phase 37
+
+Found:
+
+1. Persisted lookup-cache JSON could be syntactically valid but structurally unsafe, allowing `null`, arrays, scalars, malformed buckets, and non-string entries to reach app consumers.
+2. Reversed or non-finite range-number inputs had visible validation and `aria-invalid`, but no `aria-describedby` link to the reason.
+3. Durable project context still listed Phase 37 as upcoming rather than recording its result and the next review work.
+
+These became Phase 38.
+
+---
+
 # Cross-phase durable invariants
 
 The following behaviors were repeatedly established and should be treated as project contracts.
@@ -581,4 +603,4 @@ Periodically prune brittle source checks.
 
 # Current next step
 
-Implement and validate Phase 37 — Atomic Raw Category Apply and Durable Context Sync. If it passes without a Phase 37.1 follow-up, continue phase planning from verified deep-review findings.
+Implement and validate Phase 38 — Lookup Cache Recovery, Range Validation Accessibility, and Context Advance. If it passes without a Phase 38.1 follow-up, continue phase planning from verified deep-review findings.
