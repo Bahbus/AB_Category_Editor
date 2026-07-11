@@ -12,6 +12,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     searchXivapi,
     lookupCache,
     saveLookupCache,
+    acquireLookupCacheProducer,
     markDirty,
     validateValue = null,
     validateList = null,
@@ -169,6 +170,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     lookupButton.textContent = `Lookup ${sheetLabel(lookupSheet)} names`;
     lookupButton.onclick = async () => {
       let busyShown = false;
+      let releaseLookupCacheProducer = null;
       try {
         lookupButton.disabled = true;
         const ids = normalizeLookupIds(arr);
@@ -180,6 +182,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
           return;
         }
 
+        releaseLookupCacheProducer = acquireLookupCacheProducer();
         showBusy(`Looking up ${sheetLabel(lookupSheet)} names`, `0/${missing.length} uncached checked`, 0);
         busyShown = true;
 
@@ -205,6 +208,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       } catch (err) {
         setStatus(err.message, 'err');
       } finally {
+        releaseLookupCacheProducer?.();
         if (busyShown) hideBusy();
         lookupButton.disabled = false;
       }

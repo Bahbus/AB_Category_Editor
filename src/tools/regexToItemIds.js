@@ -15,7 +15,7 @@ function uniqueById(items) {
 }
 
 export function openRegexToItemIdsTool(deps) {
-  const { getCategories, getSelectedIndex, ensureShape, lookupCache, saveLookupCache, markDirty, renderAll } = deps;
+  const { getCategories, getSelectedIndex, ensureShape, lookupCache, saveLookupCache, acquireLookupCacheProducer, markDirty, renderAll } = deps;
   const cat = getCategories()[getSelectedIndex()];
   if (!cat) return;
   ensureShape(cat);
@@ -166,6 +166,7 @@ export function openRegexToItemIdsTool(deps) {
     const scanState = { controller: new AbortController(), canceled: false };
     activeScan = scanState;
     setScanControls(true);
+    const releaseLookupCacheProducer = acquireLookupCacheProducer();
 
     showBusy('Scanning items', 'Starting Item sheet scan...', 0);
     try {
@@ -236,6 +237,7 @@ export function openRegexToItemIdsTool(deps) {
         setStatus('Regex scan failed: ' + err.message, 'err');
       }
     } finally {
+      releaseLookupCacheProducer();
       if (activeScan === scanState) activeScan = null;
       setScanControls(false);
       hideBusy();

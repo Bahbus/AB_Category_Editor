@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phases 35.1 through 37 are validated and passed. Phase 38 — Lookup Cache Recovery, Range Validation Accessibility, and Context Advance — is the next implementation target.
+> **Current state:** Phases 35.1 through 39 are implemented and validated. The next step is a post-Phase-39 deep review before defining another implementation phase.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -206,7 +206,22 @@ Validated and passed.
 
 ### Phase 38
 
-Next implementation target: normalize persisted lookup-cache shape before app use, associate range-number validation with both inputs through `aria-describedby`, and advance the durable phase context.
+Implemented, merged, and validated.
+
+- Persisted lookup-cache data is normalized to the exact two-bucket runtime shape before use.
+- Malformed buckets and values are dropped while string names and established sentinels remain intact.
+- Invalid range Min/Max controls share an associated validation message through `aria-describedby`.
+- The post-merge `npm run check` run passed all 19 test files.
+
+### Phase 39
+
+Implemented and validated on `agent/phase-39-lookup-cache-operation-safety`.
+
+- Referenced-ID lookup, per-list lookup, and Regex → Item IDs scanning acquire application-owned cache-producer coordination and release it in `finally`.
+- Overlapping operations remain tracked until the final idempotent lease is released.
+- Lookup-cache clearing is disabled and visibly explained while a producer is active, with a second active-state check in the clear callback.
+- Successful clearing retains the established non-dirty, category-preserving behavior.
+- `npm run check` passed all 20 test files.
 
 ---
 
