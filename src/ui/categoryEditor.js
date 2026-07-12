@@ -2,7 +2,7 @@ import { RARITIES, ALLOWED_RARITY_IDS, RANGE_FILTERS, STATE_FILTERS, STATE_FILTE
 import { el, escapeHtml, requireEl, requireScopedEl, setStatus } from '../dom.js';
 import { setDetailsSummary } from './detailsSummary.js';
 export { renderDetailsSummaryHtml } from './detailsSummary.js';
-import { colorToHex, colorToHexRGBA, hexToRgb01, hexToRgba01, rgbaCss, componentTo255 } from '../color.js';
+import { colorToHex, colorToHexRGBA, hexToRgb01, hexToRgba01, rgbaCss, componentTo255, canonicalHexRgba, decideHexRgbaCommit, decideRgbCommit, decideAlphaCommit } from '../color.js';
 import { clone, makeId, getNormalizedAllowedRarities, nextCategorySortValue } from '../config.js';
 import { openModal, closeModal } from '../modals.js';
 import { STATE_FILTER_OPTIONS, numberInput, rangeSliderControl, segmentedControl, switchInput, textInput } from './formControls.js';
@@ -11,7 +11,7 @@ import { listEditor } from './listEditor.js';
 import { generateCategoryDescription, isUsefulGeneratedDescription } from '../descriptionGenerator.js';
 import { rangeFiltersSummary, rangeFiltersSummaryParts, stateFiltersSummary, stateFiltersSummaryParts } from './filterSummary.js';
 import { normalizeRowIdValue } from '../rowIds.js';
-import { applySelectedCategoryCandidate } from '../categoryChanges.js';
+import { applyGeneratedDescriptionChange, applySelectedCategoryCandidate } from '../categoryChanges.js';
 
 export { countRangeFilterIssues, countStateFilterIssues, rangeFiltersSummary, rangeFiltersSummaryParts, stateFiltersSummary, stateFiltersSummaryParts } from './filterSummary.js';
 
@@ -182,10 +182,9 @@ function renderColorSection(cat, deps) {
   const hexInput = requireScopedEl(color, '.hex-color-input', 'color editor');
   const alphaSlider = requireScopedEl(color, '.alpha-slider', 'color editor');
   const alphaValue = requireScopedEl(color, '.alpha-value', 'color editor');
-
-  function validHex(value) {
-    return /^#?[0-9a-fA-F]{8}$/.test(value.trim());
-  }
+  let committedHex = canonicalHexRgba(colorToHexRGBA(cat.Color));
+  let committedRgb = colorToHex(cat.Color).toUpperCase();
+  let committedAlpha = componentTo255(cat.Color.W);
 
   function updateColorVisuals() {
     const hex = colorToHexRGBA(cat.Color).toUpperCase();
@@ -195,10 +194,18 @@ function renderColorSection(cat, deps) {
     hexInput.value = hex;
     alphaSlider.value = String(a255);
     alphaValue.textContent = String(a255);
+    committedHex = hex;
+    committedRgb = picker.value.toUpperCase();
+    committedAlpha = a255;
   }
 
   picker.oninput = e => {
-    const rgb = hexToRgb01(e.target.value);
+    const decision = decideRgbCommit(e.target.value, committedRgb);
+    if (decision.status !== 'valid-changed') {
+      if (decision.canonical) e.target.value = decision.canonical;
+      return;
+    }
+    const rgb = hexToRgb01(decision.canonical);
     cat.Color.X = rgb.X;
     cat.Color.Y = rgb.Y;
     cat.Color.Z = rgb.Z;
@@ -209,19 +216,23 @@ function renderColorSection(cat, deps) {
 
   function setHexValidity(value) {
     const trimmed = value.trim();
-    const valid = validHex(trimmed);
+    const valid = canonicalHexRgba(trimmed) !== null;
     hexInput.setCustomValidity(valid ? '' : 'Use #RRGGBBAA or RRGGBBAA.');
     hexInput.classList.toggle('invalid', Boolean(trimmed) && !valid);
     return valid;
   }
 
   function applyHexInput() {
-    const value = hexInput.value.trim();
-    if (!setHexValidity(value)) {
+    const decision = decideHexRgbaCommit(hexInput.value, committedHex);
+    if (decision.status === 'invalid') {
+      setHexValidity(hexInput.value);
       hexInput.reportValidity();
       return false;
     }
-    const rgba = hexToRgba01(value.startsWith('#') ? value : '#' + value);
+    hexInput.value = decision.canonical;
+    setHexValidity(decision.canonical);
+    if (decision.status === 'valid-no-change') return false;
+    const rgba = hexToRgba01(decision.canonical);
     cat.Color.X = rgba.X;
     cat.Color.Y = rgba.Y;
     cat.Color.Z = rgba.Z;
@@ -244,7 +255,9 @@ function renderColorSection(cat, deps) {
   });
 
   alphaSlider.oninput = e => {
-    const n = Number(e.target.value);
+    const decision = decideAlphaCommit(e.target.value, committedAlpha);
+    if (decision.status !== 'valid-changed') return;
+    const n = decision.value;
     cat.Color.W = n / 255;
     alphaValue.textContent = String(n);
     updateColorVisuals();
@@ -365,15 +378,12 @@ export function renderEditor(deps) {
     return generateCategoryDescription(cat, { lookupName });
   }
   function applyGeneratedDescription(text) {
-    cat.Description = text;
-    if (descriptionInput) {
-      descriptionInput.value = text;
-      descriptionInput.dispatchEvent(new Event('input', { bubbles: true }));
-    } else {
+    return applyGeneratedDescriptionChange(cat, text, () => {
+      if (descriptionInput) descriptionInput.value = text;
       updateValidationUi();
       markDirty();
       renderList();
-    }
+    });
   }
   function maybeAutoGenerateDescription(reason = 'rule change') {
     void reason;
@@ -381,8 +391,7 @@ export function renderEditor(deps) {
     if (String(cat.Description || '').trim()) return false;
     const generated = generateDescription();
     if (!isUsefulGeneratedDescription(generated)) return false;
-    applyGeneratedDescription(generated);
-    return true;
+    return applyGeneratedDescription(generated);
   }
   function updateSidebarText(valueSetter, options = {}) {
     valueSetter();
@@ -404,7 +413,10 @@ export function renderEditor(deps) {
         <button id="cancelGeneratedDescription">Cancel</button>
       </div>`;
     openModal('Generate description', wrap);
-    requireScopedEl(wrap, '#replaceGeneratedDescription', 'generated description confirmation').onclick = () => { applyGeneratedDescription(generated); closeModal(); };
+    requireScopedEl(wrap, '#replaceGeneratedDescription', 'generated description confirmation').onclick = () => {
+      if (!applyGeneratedDescription(generated)) setStatus('Description already matches the generated text.', 'ok');
+      closeModal();
+    };
     requireScopedEl(wrap, '#copyGeneratedDescription', 'generated description confirmation').onclick = async () => {
       const ok = await copyTextToClipboard(generated);
       setStatus(ok ? 'Generated description copied.' : 'Copy failed. Select the text manually.', ok ? 'ok' : 'warn');
@@ -427,7 +439,8 @@ export function renderEditor(deps) {
   generateButton.onclick = () => {
     commitActiveField();
     const generated = generateDescription();
-    if (!String(cat.Description || '').trim()) applyGeneratedDescription(generated);
+    if (cat.Description === generated) setStatus('Description already matches the generated text.', 'ok');
+    else if (!String(cat.Description || '').trim()) applyGeneratedDescription(generated);
     else showGenerateDescriptionConfirmation(generated);
   };
   const descriptionValidation = requireScopedEl(descriptionField, '.validation-list', 'description field validation');

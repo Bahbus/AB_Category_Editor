@@ -112,7 +112,7 @@ This avoids unnecessary rerenders and focus disruption.
 
 Full Raw JSON compares the final validated, repaired, normalized, and sorted candidate before destructive confirmation. An identical result closes the editor and reports validation/repair context without replacing data, resetting selection, changing dirty state, or launching automatic lookup.
 
-Phase 40 was merged at `478545235debae9a1dc064b972acc2181cd5a0e1`. Phase 40.1 was merged at `beda975e087bd012f33270b7f1574c6822340bda`; it routes the finalized candidate through `configValidationSummaryText(...)`, so both changed and no-op paths report `validation.config.Categories.length` while replacement remains after confirmation. The Phase 40 change-decision and no-op boundaries are otherwise unchanged.
+Phase 40 was merged at `478545235debae9a1dc064b972acc2181cd5a0e1`. Phase 40.1 was merged at `beda975e087bd012f33270b7f1574c6822340bda`; it routes the finalized candidate through `configValidationSummaryText(...)`, so both changed and no-op paths report `validation.config.Categories.length` while replacement remains after confirmation. The Phase 40 change-decision and no-op boundaries are otherwise unchanged. Phase 41 was merged at `2926dc35dbda24fa07beb5b92477feeea47ea23f`.
 
 Category drag/drop uses only application-owned source state established by `dragstart`. `text/plain` remains optional browser metadata and is never authoritative. `dragover` does not enable a target or alter indicators until the active source is a finite in-range integer. Drop decisions delegate to the identity-aware helper, so adjacent and same-target no-ops have no structural side effects; real changes select the moved object and then apply optional renumbering, one dirty transition, and one structural render.
 
@@ -401,6 +401,8 @@ This concentration is the main known maintainability risk.
 
 Selected-category Raw JSON is parsed and shape-normalized as a local candidate before it replaces the live selected category. JSON-semantically identical candidates retain the existing object identity, selection, and dirty state. Parse or shape failures leave the current category and dirty state unchanged.
 
+The color editor treats its 8-bit controls as displayed representations rather than lossless model values. Hex RGBA, native RGB, and alpha commits compare canonical input against refreshed displayed snapshots before parsing; same-display events therefore preserve higher-precision imported components. Every real color change synchronizes the linked controls and snapshots before later `change`/`blur` events can fire.
+
 Do not split it casually. Refactor when future feature work creates real friction.
 
 ---
@@ -445,6 +447,8 @@ Important behavior:
 - falls back when confidence is low or generated text contains known bad artifacts.
 
 Localization note:
+
+Generated-description application is strict-value change-aware. Identical generated text is not assigned and does not invoke dirty/render callbacks; both the initial Generate action and the later Replace callback enforce this independently. Automatic blank generation still requires a useful result, while manual blank generation retains the generator's deliberate fallback output.
 
 Generated descriptions should eventually use language-aware templates. They should not be treated as ordinary UI-string translation.
 

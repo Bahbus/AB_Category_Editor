@@ -687,7 +687,7 @@ Confirmed defects:
 - category `drop` trusted external `text/plain`, allowing empty text to coerce to index zero and numeric text to act as an internal source,
 - adjacent before/after placements could reproduce the same object-identity order but still renumber, select, dirty, and rerender.
 
-Phase 41 resolution on `agent/phase-41-drag-drop-integrity`:
+Phase 41 resolution, merged at `2926dc35dbda24fa07beb5b92477feeea47ea23f`:
 
 - DOM-free reorder helpers require finite in-range integer indices, compute candidate order without mutating live data, and compare object identity order,
 - live category order changes only for a real reorder, with the moved object retained as selected,
@@ -697,11 +697,37 @@ Phase 41 resolution on `agent/phase-41-drag-drop-integrity`:
 
 Validation actually run:
 
-- focused Node tests passed: 72 tests across `test/categoryChanges.test.mjs` and `test/sourceChecks.test.mjs`,
-- `npm run check` passed: JavaScript syntax check, static relative-import check, and all 21 test files (279 tests),
-- browser QA and CI were not run,
-- desktop-keyring GitHub authentication was verified before fetching; no push or PR was created.
+- the post-merge `npm run check` passed: JavaScript syntax check, static relative-import check, and all 21 test files (279 tests),
+- `git diff --check origin/main` passed, and the reviewed tree exactly matched merged `origin/main`,
+- desktop-keyring GitHub authentication was verified for the review fetch,
+- browser QA and CI were not run.
+
+## Post-Phase-41 review and Phase 42
+
+Confirmed defects:
+
+- unchanged Hex RGBA blur parsed the quantized displayed bytes back into higher-precision imported components, dirtied, and rerendered,
+- a real Hex edit could commit once on `change` and again on `blur`,
+- native RGB and alpha same-display events could likewise quantize model data and falsely dirty,
+- replacing an identical deterministic generated description assigned and dispatched input despite no JSON-value change.
+
+Phase 42 resolution on `agent/phase-42-color-description-noop-fidelity`:
+
+- DOM-free color helpers canonicalize Hex RGBA to uppercase `#RRGGBBAA` and return explicit invalid, valid-no-change, or valid-changed decisions,
+- picker and alpha decisions compare against the current displayed RGB and byte snapshots instead of round-tripping model precision,
+- every real color change synchronizes controls and refreshes all committed snapshots, so Hex `change` followed by `blur` commits once,
+- invalid Hex text retains validity reporting without mutation or dirty work,
+- a DOM-free generated-description helper uses strict value equality and invokes its callback exactly once only for a real change,
+- Generate bypasses replacement confirmation when current and generated text match, while Replace independently guards stale identical results,
+- automatic generation keeps its blank/useful guards and returns the actual change result; manual blank generation keeps established fallback behavior,
+- direct helper regression tests and focused DOM-wiring checks cover these boundaries.
+
+Validation actually run:
+
+- `npm run check` passed: JavaScript syntax check, static relative-import check, and all 21 test files (286 tests),
+- `git diff --check` passed,
+- browser QA and CI were not run.
 
 # Current next step
 
-Review Phase 41 locally. Publish it only when requested; after merge, perform the next post-merge review before defining another implementation phase.
+Review Phase 42 locally. Publish it only when requested; after merge, perform the next post-merge review before defining another implementation phase.
