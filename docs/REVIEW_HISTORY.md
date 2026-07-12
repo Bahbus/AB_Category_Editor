@@ -665,7 +665,7 @@ Confirmed regression:
 - full Raw JSON computed `validationSummaryText(getCategories().length, ...)` before applying a changed candidate, so adding or removing categories reported the old live count even though replacement succeeded,
 - the Phase 40 identical no-op path remained correct.
 
-Phase 40.1 resolution on `agent/phase-40-1-raw-summary-count`:
+Phase 40.1 resolution, merged at `beda975e087bd012f33270b7f1574c6822340bda`:
 
 - summary construction uses the final validated, repaired, normalized, and sorted candidate,
 - changed and identical no-op branches reuse the same candidate-derived summary,
@@ -674,11 +674,34 @@ Phase 40.1 resolution on `agent/phase-40-1-raw-summary-count`:
 
 Validation actually run:
 
-- focused Node tests passed: 75 tests across `test/importValidation.test.mjs`, `test/categoryChanges.test.mjs`, and `test/sourceChecks.test.mjs`,
-- `npm run check` passed: JavaScript syntax check, static relative-import check, and all 21 test files (272 tests),
+- the post-merge `npm run check` passed: JavaScript syntax check, static relative-import check, and all 21 test files (272 tests),
+- `git diff --check origin/main` passed, and the reviewed tree exactly matched merged `origin/main`,
+- desktop-keyring GitHub authentication was verified for the review fetch,
+- browser QA and CI were not run.
+
+## Post-Phase-40.1 review and Phase 41
+
+Confirmed defects:
+
+- category `dragover` enabled drop targets before validating an application-owned drag,
+- category `drop` trusted external `text/plain`, allowing empty text to coerce to index zero and numeric text to act as an internal source,
+- adjacent before/after placements could reproduce the same object-identity order but still renumber, select, dirty, and rerender.
+
+Phase 41 resolution on `agent/phase-41-drag-drop-integrity`:
+
+- DOM-free reorder helpers require finite in-range integer indices, compute candidate order without mutating live data, and compare object identity order,
+- live category order changes only for a real reorder, with the moved object retained as selected,
+- side effects occur exactly once after a real change and preserve optional automatic renumbering,
+- category event wiring accepts only valid application-owned drag state and never reads `text/plain` as category identity,
+- invalid/no-op drops have no selection, renumber, dirty, or structural-render effects, and successful drop/drag end clear transient state.
+
+Validation actually run:
+
+- focused Node tests passed: 72 tests across `test/categoryChanges.test.mjs` and `test/sourceChecks.test.mjs`,
+- `npm run check` passed: JavaScript syntax check, static relative-import check, and all 21 test files (279 tests),
 - browser QA and CI were not run,
 - desktop-keyring GitHub authentication was verified before fetching; no push or PR was created.
 
 # Current next step
 
-Review Phase 40.1 and publish it only when requested. After merge, perform the next post-merge review before defining another implementation phase.
+Review Phase 41 locally. Publish it only when requested; after merge, perform the next post-merge review before defining another implementation phase.

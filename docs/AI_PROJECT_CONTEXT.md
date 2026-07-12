@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 40 is merged at `478545235debae9a1dc064b972acc2181cd5a0e1`. The post-merge review found an incorrect full Raw JSON summary count; Phase 40.1 resolves it on `agent/phase-40-1-raw-summary-count` and is locally validated but not published or browser-tested.
+> **Current state:** Phase 40.1 is merged at `beda975e087bd012f33270b7f1574c6822340bda`. Its post-merge review confirmed category drag/drop integrity defects; Phase 41 resolves them on `agent/phase-41-drag-drop-integrity` and is locally validated but not published or browser-tested.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -254,6 +254,22 @@ The post-merge review found that full Raw JSON built its validation summary from
 - The same candidate-derived summary is reused by changed and identical no-op branches without moving live replacement before confirmation.
 - Regression tests cover adding categories, removing categories, identical no-op count reporting, and candidate-summary wiring.
 - `npm run check` passed: syntax check, static relative-import check, and all 21 test files (272 tests).
+- Phase 40.1 was merged at `beda975e087bd012f33270b7f1574c6822340bda`.
+- The post-merge review reran `npm run check`: syntax and import checks passed and all 21 test files / 272 tests passed.
+- `git diff --check origin/main` passed, and the reviewed tree exactly matched merged `origin/main`.
+- Desktop-keyring authentication was verified for the review fetch. Browser QA and CI were not run.
+
+### Phase 41
+
+The post-Phase-40.1 review confirmed that external empty or numeric `text/plain` drops could be coerced into category indices, and that identity-order no-op adjacent drops still renumbered, selected, dirtied, and rerendered.
+
+- Category reorder decisions now validate finite in-range integer indices, compute on a copy, compare the result by object identity and order, and mutate only for a real change.
+- Real reorders preserve the moved object as selected and retain optional automatic one-based renumbering.
+- Category drag targets activate only for a valid application-owned active drag; external `text/plain` is metadata only and is never read as category identity.
+- Invalid and no-op drops do not select, renumber, mark dirty, or structurally rerender, while successful drops and drag end clear transient state safely.
+- Direct regression coverage includes both movement directions and placements, adjacent and same-target no-ops, invalid indices, duplicate/JSON-identical objects, exact side-effect counts, optional renumbering, and focused event-wiring guards.
+- Focused tests passed: 72 tests across `test/categoryChanges.test.mjs` and `test/sourceChecks.test.mjs`.
+- `npm run check` passed: syntax check, static relative-import check, and all 21 test files (279 tests).
 - Browser QA and CI were not run. No push or PR was created.
 
 ---

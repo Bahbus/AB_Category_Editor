@@ -29,6 +29,36 @@ export function sortCategoriesPreservingSelection(categories, selectedIndex, com
   return { changed, selectedCategory, selectedIndex: selectedCategory === undefined ? -1 : categories.indexOf(selectedCategory) };
 }
 
+export function reorderCategories(categories, sourceIndex, targetIndex, before) {
+  const validIndex = index => Number.isFinite(index) && Number.isInteger(index) && index >= 0 && index < categories.length;
+  if (!validIndex(sourceIndex) || !validIndex(targetIndex) || typeof before !== 'boolean') {
+    return { changed: false, selectedIndex: -1 };
+  }
+  if (sourceIndex === targetIndex) return { changed: false, selectedIndex: sourceIndex };
+
+  const movedCategory = categories[sourceIndex];
+  const reordered = categories.slice();
+  reordered.splice(sourceIndex, 1);
+  let insertAt = targetIndex - (sourceIndex < targetIndex ? 1 : 0) + (before ? 0 : 1);
+  insertAt = Math.max(0, Math.min(reordered.length, insertAt));
+  reordered.splice(insertAt, 0, movedCategory);
+
+  const changed = reordered.some((category, index) => category !== categories[index]);
+  if (!changed) return { changed: false, selectedIndex: sourceIndex };
+  categories.splice(0, categories.length, ...reordered);
+  return { changed: true, selectedIndex: categories.indexOf(movedCategory) };
+}
+
+export function applyCategoryReorder({ categories, sourceIndex, targetIndex, before, setSelectedIndex, autoRenumber = false, renumber, markDirty, render }) {
+  const result = reorderCategories(categories, sourceIndex, targetIndex, before);
+  if (!result.changed) return result;
+  setSelectedIndex(result.selectedIndex);
+  if (autoRenumber) renumber();
+  markDirty();
+  render();
+  return result;
+}
+
 export function applySelectedCategoryCandidate({ categories, selectedIndex, candidate, normalize, onChanged }) {
   normalize(candidate);
   if (jsonSemanticEqual(candidate, categories[selectedIndex])) return false;

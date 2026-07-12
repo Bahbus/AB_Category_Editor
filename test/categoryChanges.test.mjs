@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyFullConfigCandidate, applySelectedCategoryCandidate, jsonSemanticEqual, renumberCategories, sortCategoriesPreservingSelection } from '../src/categoryChanges.js';
+import { applyCategoryReorder, applyFullConfigCandidate, applySelectedCategoryCandidate, jsonSemanticEqual, renumberCategories, reorderCategories, sortCategoriesPreservingSelection } from '../src/categoryChanges.js';
 import { ensureShape, validateConfig } from '../src/config.js';
 
 test('JSON semantic equality ignores object key order but preserves array order and types', () => {
@@ -36,6 +36,82 @@ test('sorting an already sorted array is a no-op', () => {
   const result = sortCategoriesPreservingSelection(categories, 1, (a, b) => a.order - b.order);
   assert.equal(result.changed, false);
   assert.equal(result.selectedIndex, 1);
+});
+
+test('category reorder supports real moves in both directions and placements', () => {
+  for (const [source, target, before, expected, selectedIndex] of [
+    [0, 2, false, ['b', 'c', 'a'], 2],
+    [2, 0, true, ['c', 'a', 'b'], 0],
+    [0, 2, true, ['b', 'a', 'c'], 1],
+    [2, 0, false, ['a', 'c', 'b'], 1]
+  ]) {
+    const categories = ['a', 'b', 'c'].map(name => ({ name }));
+    const moved = categories[source];
+    assert.deepEqual(reorderCategories(categories, source, target, before), { changed: true, selectedIndex });
+    assert.deepEqual(categories.map(category => category.name), expected);
+    assert.equal(categories[selectedIndex], moved);
+  }
+});
+
+test('category reorder detects adjacent and same-target identity no-ops', () => {
+  for (const [source, target, before] of [[0, 1, true], [1, 0, false], [1, 1, true], [1, 1, false]]) {
+    const categories = [{ name: 'a' }, { name: 'b' }, { name: 'c' }];
+    const original = categories.slice();
+    assert.deepEqual(reorderCategories(categories, source, target, before), { changed: false, selectedIndex: source });
+    assert.deepEqual(categories, original);
+  }
+});
+
+test('category reorder rejects invalid indices without mutation', () => {
+  const invalid = [-1, 0.5, NaN, Infinity, '0', null, 3];
+  for (const index of invalid) {
+    const categories = [{}, {}, {}];
+    const original = categories.slice();
+    assert.deepEqual(reorderCategories(categories, index, 1, true), { changed: false, selectedIndex: -1 });
+    assert.deepEqual(categories, original);
+    assert.deepEqual(reorderCategories(categories, 1, index, false), { changed: false, selectedIndex: -1 });
+    assert.deepEqual(categories, original);
+  }
+});
+
+test('category reorder compares identity with duplicate IDs and JSON-identical objects', () => {
+  const first = { Id: 'duplicate', Rules: {} };
+  const second = { Id: 'duplicate', Rules: {} };
+  const categories = [first, second];
+  assert.deepEqual(first, second);
+  assert.deepEqual(reorderCategories(categories, 0, 1, false), { changed: true, selectedIndex: 1 });
+  assert.equal(categories[0], second);
+  assert.equal(categories[1], first);
+});
+
+test('no-op and invalid category drops have no structural side effects', () => {
+  for (const sourceIndex of [0, -1, '0', NaN]) {
+    const categories = [{ Order: 1 }, { Order: 2 }];
+    const calls = { select: 0, renumber: 0, dirty: 0, render: 0 };
+    const result = applyCategoryReorder({
+      categories, sourceIndex, targetIndex: 1, before: true,
+      setSelectedIndex: () => calls.select++, autoRenumber: true,
+      renumber: () => calls.renumber++, markDirty: () => calls.dirty++, render: () => calls.render++
+    });
+    assert.equal(result.changed, false);
+    assert.deepEqual(calls, { select: 0, renumber: 0, dirty: 0, render: 0 });
+  }
+});
+
+test('successful category drop selects, optionally renumbers, dirties, and renders exactly once', () => {
+  for (const autoRenumber of [false, true]) {
+    const moved = { Order: 1 };
+    const categories = [moved, { Order: 2 }, { Order: 3 }];
+    const calls = { selected: [], renumber: 0, dirty: 0, render: 0 };
+    const result = applyCategoryReorder({
+      categories, sourceIndex: 0, targetIndex: 2, before: false, autoRenumber,
+      setSelectedIndex: index => calls.selected.push(index), renumber: () => calls.renumber++,
+      markDirty: () => calls.dirty++, render: () => calls.render++
+    });
+    assert.deepEqual(result, { changed: true, selectedIndex: 2 });
+    assert.equal(categories[2], moved);
+    assert.deepEqual(calls, { selected: [2], renumber: autoRenumber ? 1 : 0, dirty: 1, render: 1 });
+  }
 });
 
 test('selected Raw JSON normalized no-op does not assign or dirty', () => {
