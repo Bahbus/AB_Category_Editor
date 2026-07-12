@@ -106,6 +106,15 @@ test('app imports import validation summary helpers it references', () => {
   }
 });
 
+test('full Raw JSON wires its summary to the validated candidate', () => {
+  const source = read('src/app.js');
+  const rawApplyStart = source.indexOf("requireScopedEl(wrap, '#applyRawFull'");
+  const rawApplyEnd = source.indexOf("requireScopedEl(wrap, '#copyRawFull'", rawApplyStart);
+  const rawApplySource = source.slice(rawApplyStart, rawApplyEnd);
+  assert.match(rawApplySource, /configValidationSummaryText\(validation\.config, rawAnalysis, validation\.repairs \|\| \[\]\)/);
+  assert.doesNotMatch(rawApplySource, /validationSummaryText\(getCategories\(\)\.length/);
+});
+
 test('importText does not keep an unused importSummary binding', () => {
   const source = read('src/app.js');
   assert.doesNotMatch(source, /const\s+importSummary\s*=/);

@@ -46,6 +46,10 @@ export function validationSummaryText(categoryCount, analysis, repairs = []) {
   return parts.join(' · ');
 }
 
+export function configValidationSummaryText(config, analysis, repairs = []) {
+  return validationSummaryText(config.Categories.length, analysis, repairs);
+}
+
 export function nonMaterialRepairSummary(repairs = []) {
   const nonMaterialRepairs = repairs.filter(repair => !isMaterialImportRepair(repair));
   if (!nonMaterialRepairs.length) return '';

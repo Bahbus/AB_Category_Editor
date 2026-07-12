@@ -6,6 +6,7 @@ import {
   reviewableImportRepairs,
   reviewableImportFindings,
   shouldShowImportValidationModal,
+  configValidationSummaryText,
   validationSummaryText,
   nonMaterialRepairSummary,
   importStatusSeverity
@@ -138,6 +139,23 @@ test('validationSummaryText reports material import repairs', () => {
   const warningAndRepair = validationSummaryText(2, warning, [materialRepair]);
   assert.match(warningAndRepair, /1 warning/);
   assert.match(warningAndRepair, /1 import repair/);
+});
+
+test('full-config summary uses the candidate category count when categories are added or removed', () => {
+  const analysis = { counts: {} };
+  for (const [currentCount, candidateCount] of [[1, 3], [3, 1]]) {
+    const currentConfig = { Categories: Array.from({ length: currentCount }, () => ({})) };
+    const candidateConfig = { Categories: Array.from({ length: candidateCount }, () => ({})) };
+    const summary = configValidationSummaryText(candidateConfig, analysis);
+    assert.match(summary, new RegExp(`Imported ${candidateCount} categor`));
+    assert.doesNotMatch(summary, new RegExp(`Imported ${currentConfig.Categories.length} categor`));
+  }
+});
+
+test('full-config summary reports the candidate count for an identical no-op', () => {
+  const currentConfig = { Categories: [{ Name: 'One' }, { Name: 'Two' }] };
+  const candidateConfig = structuredClone(currentConfig);
+  assert.equal(configValidationSummaryText(candidateConfig, { counts: {} }), 'Imported 2 categories · no validation issues');
 });
 
 test('importStatusSeverity is warn only for reviewable findings or material repairs', () => {

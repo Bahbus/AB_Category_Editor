@@ -21,6 +21,7 @@ import {
   reviewableImportRepairs,
   reviewableImportFindings,
   shouldShowImportValidationModal,
+  configValidationSummaryText,
   validationSummaryText,
   importStatusSeverity
 } from './importValidationSummary.js';
@@ -332,7 +333,7 @@ function showRawModal(initialText = JSON.stringify(data, null, 2), initialError 
       catch (err) { const message = errorMessage('Invalid full JSON', err); setInlineError('rawError', message); setStatus(message, 'err'); return; }
       setInlineError('rawError', '');
       const rawAnalysis = mergeValidationFindings(preAnalysis, analyzeImportedConfig(validation.config));
-      const rawSummary = validationSummaryText(getCategories().length, rawAnalysis, validation.repairs || []);
+      const rawSummary = configValidationSummaryText(validation.config, rawAnalysis, validation.repairs || []);
       const showRawSummary = () => {
         setStatus(rawSummary, importStatusSeverity(rawAnalysis, validation.repairs || []));
         if (shouldShowImportValidationModal({ analysis: rawAnalysis, repairs: validation.repairs || [] })) setTimeout(() => showValidationSummary('Raw JSON validation summary', rawAnalysis, validation.repairs || []), 0);
