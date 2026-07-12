@@ -111,6 +111,8 @@ This avoids unnecessary rerenders and focus disruption.
 
 Full Raw JSON compares the final validated, repaired, normalized, and sorted candidate before destructive confirmation. An identical result closes the editor and reports validation/repair context without replacing data, resetting selection, changing dirty state, or launching automatic lookup.
 
+Phase 40 was merged at `478545235debae9a1dc064b972acc2181cd5a0e1`. Its post-merge review found that the full Raw JSON status summary read the old live category count before changed-candidate replacement. Phase 40.1 routes the finalized candidate through `configValidationSummaryText(...)`, so both changed and no-op paths report `validation.config.Categories.length` while replacement remains after confirmation. The Phase 40 change-decision and no-op boundaries are otherwise unchanged.
+
 ### Lookup-cache operation coordination
 
 `src/lookupCacheOperations.js` owns a private active-producer count and issues idempotent release leases. `src/app.js` passes only the narrow acquire function into list-editor and regex-tool dependencies rather than exposing application globals.

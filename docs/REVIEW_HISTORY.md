@@ -639,7 +639,7 @@ Confirmed four false-change paths: Sort by Order always dirtied and reset select
 
 ## Phase 40
 
-Implemented and locally validated on `agent/phase-40-noop-dirty-selection-fidelity`.
+Implemented, merged at `478545235debae9a1dc064b972acc2181cd5a0e1`, and post-merge validated.
 
 Resolution:
 
@@ -654,9 +654,31 @@ Validation actually run:
 
 - `npm run check` passed: JavaScript syntax check, static relative-import check, and all 21 test files.
 - `git diff --check` passed.
-- Browser QA and CI were not run.
-- GitHub authentication was not verified because no authenticated operation was performed; nothing was pushed and no PR was created.
+- The post-merge review reran `npm run check`: syntax and import checks passed and all 21 test files passed.
+- The post-merge `git diff --check origin/main` passed.
+- Browser QA was not run during the post-merge review.
+
+## Post-Phase-40 review and Phase 40.1
+
+Confirmed regression:
+
+- full Raw JSON computed `validationSummaryText(getCategories().length, ...)` before applying a changed candidate, so adding or removing categories reported the old live count even though replacement succeeded,
+- the Phase 40 identical no-op path remained correct.
+
+Phase 40.1 resolution on `agent/phase-40-1-raw-summary-count`:
+
+- summary construction uses the final validated, repaired, normalized, and sorted candidate,
+- changed and identical no-op branches reuse the same candidate-derived summary,
+- live data remains untouched until changed-candidate confirmation succeeds,
+- direct tests cover added, removed, and identical candidate counts, with a focused source check for the DOM-bound wiring.
+
+Validation actually run:
+
+- focused Node tests passed: 75 tests across `test/importValidation.test.mjs`, `test/categoryChanges.test.mjs`, and `test/sourceChecks.test.mjs`,
+- `npm run check` passed: JavaScript syntax check, static relative-import check, and all 21 test files (272 tests),
+- browser QA and CI were not run,
+- desktop-keyring GitHub authentication was verified before fetching; no push or PR was created.
 
 # Current next step
 
-Review and publish Phase 40 only when requested, then perform the post-merge deep review before defining the next numbered implementation phase.
+Review Phase 40.1 and publish it only when requested. After merge, perform the next post-merge review before defining another implementation phase.

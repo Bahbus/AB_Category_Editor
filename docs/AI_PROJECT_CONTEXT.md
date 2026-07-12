@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 39 is merged. Phase 40 is implemented and locally validated on `agent/phase-40-noop-dirty-selection-fidelity`; it has not been published or browser-tested in this phase.
+> **Current state:** Phase 40 is merged at `478545235debae9a1dc064b972acc2181cd5a0e1`. The post-merge review found an incorrect full Raw JSON summary count; Phase 40.1 resolves it on `agent/phase-40-1-raw-summary-count` and is locally validated but not published or browser-tested.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -236,14 +236,25 @@ These became Phase 40.
 
 ### Phase 40
 
-Implemented and locally validated on `agent/phase-40-noop-dirty-selection-fidelity`.
+Implemented, merged at `478545235debae9a1dc064b972acc2181cd5a0e1`, and post-merge validated.
 
 - Shared pure change helpers provide JSON-semantic equality, strict one-based renumber change detection, identity-aware sorting, and directly testable Raw JSON apply decisions.
 - Sort preserves the selected category object and dirties only when identity order changes.
 - Manual Renumber dirties only when numeric `Order` or `Priority` values actually change; drag/move remains dirty because category order changes.
 - Both Raw JSON paths preserve live state and dirty state for identical normalized candidates; full Raw JSON no-ops bypass replacement confirmation and automatic lookup.
 - `npm run check` passed all 21 test files, and `git diff --check` passed.
-- Browser QA, CI, GitHub authentication verification, push, and PR creation were not performed.
+- The post-merge review reran `npm run check`: syntax and import checks passed and all 21 test files passed; `git diff --check origin/main` also passed.
+- Browser QA was not run during the post-merge review.
+
+### Phase 40.1
+
+The post-merge review found that full Raw JSON built its validation summary from the old live category count before applying a changed candidate. The candidate itself was still applied correctly, and the Phase 40 no-op behavior remained correct.
+
+- Full Raw JSON summary creation now uses the final validated, repaired, normalized, and sorted candidate category count.
+- The same candidate-derived summary is reused by changed and identical no-op branches without moving live replacement before confirmation.
+- Regression tests cover adding categories, removing categories, identical no-op count reporting, and candidate-summary wiring.
+- `npm run check` passed: syntax check, static relative-import check, and all 21 test files (272 tests).
+- Browser QA and CI were not run. No push or PR was created.
 
 ---
 
