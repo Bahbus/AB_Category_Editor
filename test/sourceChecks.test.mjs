@@ -330,24 +330,18 @@ test('typed list add reports partial duplicate skips without changing all-duplic
   assert.match(addHandler, /Added \$\{added\} value\(s\); skipped \$\{skippedDuplicates\} duplicate\(s\)\./);
 });
 
-test('raw category JSON validates a local candidate before replacing live state', () => {
+test('raw category JSON delegates atomic normalization and replacement to the change helper', () => {
   const source = read('src/ui/categoryEditor.js');
   const handler = source.match(/el\('applyRawCategory'\)\.onclick = \(\) => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
 
   assert.match(handler, /const candidate = JSON\.parse\(el\('rawCategory'\)\.value\);/);
-  assert.match(handler, /ensureShape\(candidate\);/);
-  assert.match(handler, /cats\[selectedIndex\] = candidate;/);
+  assert.match(handler, /applySelectedCategoryCandidate\(\{ categories: cats, selectedIndex, candidate, normalize: ensureShape/);
+  assert.match(handler, /if \(!changed\) setStatus\('There are no category changes to apply\.', 'ok'\);/);
   assert.match(handler, /setStatus\('Invalid category JSON: ' \+ err\.message, 'err'\);/);
   assert.doesNotMatch(handler, /cats\[selectedIndex\] = parsed;/);
   assert.doesNotMatch(handler, /commitActiveField\(\)/);
 
-  const validateIndex = handler.indexOf('ensureShape(candidate)');
-  const assignmentIndex = handler.indexOf('cats[selectedIndex] = candidate');
-  const dirtyIndex = handler.indexOf('markDirty()');
-  const renderIndex = handler.indexOf('renderAll()');
-
-  assert.ok(validateIndex !== -1 && assignmentIndex > validateIndex, 'candidate validation must precede live-state replacement');
-  assert.ok(dirtyIndex > assignmentIndex && renderIndex > dirtyIndex, 'only a successful replacement may dirty and render');
+  assert.doesNotMatch(handler, /cats\[selectedIndex\] = candidate/);
 });
 
 test('compact density does not enlarge list editor pill sizing', () => {

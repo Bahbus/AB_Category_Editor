@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phases 35.1 through 39 are implemented and validated. The next step is a post-Phase-39 deep review before defining another implementation phase.
+> **Current state:** Phase 39 is merged. Phase 40 is implemented and locally validated on `agent/phase-40-noop-dirty-selection-fidelity`; it has not been published or browser-tested in this phase.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -215,13 +215,35 @@ Implemented, merged, and validated.
 
 ### Phase 39
 
-Implemented and validated on `agent/phase-39-lookup-cache-operation-safety`.
+Implemented, merged at `8d22220e8d067848f446be2524b0736b83677d41`, and validated.
 
 - Referenced-ID lookup, per-list lookup, and Regex → Item IDs scanning acquire application-owned cache-producer coordination and release it in `finally`.
 - Overlapping operations remain tracked until the final idempotent lease is released.
 - Lookup-cache clearing is disabled and visibly explained while a producer is active, with a second active-state check in the clear callback.
 - Successful clearing retains the established non-dirty, category-preserving behavior.
 - `npm run check` passed all 20 test files.
+
+### Post-Phase-39 deep review
+
+Confirmed four no-op dirty-state and selection-fidelity defects:
+
+- Sort by Order dirtied already-sorted data and reset selection.
+- Renumber dirtied already-correct numeric positions.
+- selected-category Raw JSON replaced and dirtied an identical normalized category.
+- full Raw JSON confirmed, replaced, reset selection, dirtied, and could auto-lookup an identical normalized config.
+
+These became Phase 40.
+
+### Phase 40
+
+Implemented and locally validated on `agent/phase-40-noop-dirty-selection-fidelity`.
+
+- Shared pure change helpers provide JSON-semantic equality, strict one-based renumber change detection, identity-aware sorting, and directly testable Raw JSON apply decisions.
+- Sort preserves the selected category object and dirties only when identity order changes.
+- Manual Renumber dirties only when numeric `Order` or `Priority` values actually change; drag/move remains dirty because category order changes.
+- Both Raw JSON paths preserve live state and dirty state for identical normalized candidates; full Raw JSON no-ops bypass replacement confirmation and automatic lookup.
+- `npm run check` passed all 21 test files, and `git diff --check` passed.
+- Browser QA, CI, GitHub authentication verification, push, and PR creation were not performed.
 
 ---
 

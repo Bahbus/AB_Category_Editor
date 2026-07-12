@@ -615,7 +615,7 @@ The post-merge `npm run check` run passed all 19 test files.
 
 ## Phase 39
 
-Implemented and validated.
+Implemented, merged at `8d22220e8d067848f446be2524b0736b83677d41`, and validated.
 
 Finding:
 
@@ -633,6 +633,30 @@ Validation actually run:
 
 - `npm run check` passed: JavaScript syntax check, static relative-import check, and all 20 test files.
 
+## Deep review after Phase 39
+
+Confirmed four false-change paths: Sort by Order always dirtied and reset selection; Renumber always dirtied already-correct numeric positions; selected-category Raw JSON always replaced and dirtied an identical normalized category; and full Raw JSON could confirm, replace, reset selection, dirty, and auto-lookup an identical normalized config. These became Phase 40.
+
+## Phase 40
+
+Implemented and locally validated on `agent/phase-40-noop-dirty-selection-fidelity`.
+
+Resolution:
+
+- added direct, DOM-free helpers for JSON-semantic equality and change decisions,
+- Sort by Order detects identity-order changes and preserves the selected object across reordering,
+- manual Renumber changes only non-matching `Order`/`Priority` JSON values and preserves numeric one-based output,
+- both Raw JSON paths retain live data and dirty state for identical normalized candidates,
+- full Raw JSON no-ops bypass confirmation, replacement, selection reset, and automatic lookup,
+- changed candidates retain established behavior, and parse/shape failures remain atomic.
+
+Validation actually run:
+
+- `npm run check` passed: JavaScript syntax check, static relative-import check, and all 21 test files.
+- `git diff --check` passed.
+- Browser QA and CI were not run.
+- GitHub authentication was not verified because no authenticated operation was performed; nothing was pushed and no PR was created.
+
 # Current next step
 
-Perform the post-Phase-39 deep review before defining the next numbered implementation phase.
+Review and publish Phase 40 only when requested, then perform the post-merge deep review before defining the next numbered implementation phase.
