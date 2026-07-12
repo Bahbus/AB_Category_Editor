@@ -1,6 +1,7 @@
 import { el, escapeHtml } from '../dom.js';
 import { clamp01, rgbaCssWithMinimumAlpha } from '../color.js';
 import { getCategoryIssueCounts } from '../validation.js';
+import { applyCategoryReorder } from '../categoryChanges.js';
 
 function getCategorySearchText() {
   const search = el('search');
@@ -39,6 +40,11 @@ function clearDropClasses() {
   });
 }
 
+function clearDragClasses() {
+  clearDropClasses();
+  document.querySelectorAll('.cat-item.dragging').forEach(node => node.classList.remove('dragging'));
+}
+
 export function renderCategoryList({
   data,
   getCategories,
@@ -67,18 +73,11 @@ export function renderCategoryList({
   }
 
   function moveCategory(from, to, before) {
-    const cats = getCategories();
-    if (from < 0 || from >= cats.length || to < 0 || to >= cats.length) return;
-    const [moved] = cats.splice(from, 1);
-    let insertAt = to;
-    if (from < to) insertAt--;
-    if (!before) insertAt++;
-    insertAt = Math.max(0, Math.min(cats.length, insertAt));
-    cats.splice(insertAt, 0, moved);
-    setSelectedIndex(insertAt);
-    if (el('autoRenumberDrag').checked) renumberCategories();
-    markDirty();
-    renderAll();
+    return applyCategoryReorder({
+      categories: getCategories(), sourceIndex: from, targetIndex: to, before,
+      setSelectedIndex, autoRenumber: el('autoRenumberDrag').checked,
+      renumber: renumberCategories, markDirty, render: renderAll
+    });
   }
 
   const cats = getCategories();
@@ -136,26 +135,29 @@ export function renderCategoryList({
     };
     item.ondragend = () => {
       setDraggedIndex(null);
-      clearDropClasses();
-      item.classList.remove('dragging');
+      clearDragClasses();
     };
     item.ondragover = ev => {
       if (searchActive) return;
+      const from = getDraggedIndex();
+      if (!Number.isFinite(from) || !Number.isInteger(from) || from < 0 || from >= cats.length) return;
       ev.preventDefault();
-      if (getDraggedIndex() === null || getDraggedIndex() === idx) return;
       clearDropClasses();
+      if (from === idx) return;
       const rect = item.getBoundingClientRect();
       const before = ev.clientY < rect.top + rect.height / 2;
       item.classList.add(before ? 'drop-before' : 'drop-after');
     };
     item.ondrop = ev => {
       if (searchActive) return;
+      const from = getDraggedIndex();
+      if (!Number.isFinite(from) || !Number.isInteger(from) || from < 0 || from >= cats.length) return;
       ev.preventDefault();
-      const from = getDraggedIndex() ?? Number(ev.dataTransfer.getData('text/plain'));
       const to = idx;
-      if (Number.isNaN(from) || from === to) return;
       const rect = item.getBoundingClientRect();
       const before = ev.clientY < rect.top + rect.height / 2;
+      setDraggedIndex(null);
+      clearDragClasses();
       moveCategory(from, to, before);
     };
 

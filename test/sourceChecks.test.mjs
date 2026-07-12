@@ -208,6 +208,16 @@ test('accessibility polish remains wired in source', () => {
   assert.match(read('src/ui/listEditor.js'), /setAttribute\('aria-label'/);
 });
 
+test('category drops trust only valid application-owned drag state', () => {
+  const source = read('src/ui/categoryList.js');
+  const dragOver = source.match(/item\.ondragover = ev => \{(?<body>[\s\S]*?)\n    \};/)?.groups.body ?? '';
+  const drop = source.match(/item\.ondrop = ev => \{(?<body>[\s\S]*?)\n    \};/)?.groups.body ?? '';
+  assert.match(dragOver, /const from = getDraggedIndex\(\);[\s\S]*Number\.isFinite\(from\)[\s\S]*Number\.isInteger\(from\)[\s\S]*ev\.preventDefault\(\)/);
+  assert.match(drop, /const from = getDraggedIndex\(\);[\s\S]*Number\.isFinite\(from\)[\s\S]*Number\.isInteger\(from\)[\s\S]*ev\.preventDefault\(\)/);
+  assert.doesNotMatch(drop, /dataTransfer|getData|text\/plain|Number\(/);
+  assert.match(drop, /setDraggedIndex\(null\);[\s\S]*clearDragClasses\(\);[\s\S]*moveCategory/);
+});
+
 test('link buttons use concrete theme tokens', () => {
   const styles = read('styles.css');
   assert.match(styles, /\.link-button\s*\{[\s\S]*?color:\s*var\(--accent\)/);

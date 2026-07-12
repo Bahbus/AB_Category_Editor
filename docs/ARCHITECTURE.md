@@ -108,10 +108,13 @@ This avoids unnecessary rerenders and focus disruption.
 - manual renumbering writes one-based numeric `Order`/`Priority` values and reports whether category data changed.
 - sorting detects array-order changes by object identity and resolves the selected object's new index.
 - selected and full Raw JSON helpers keep normalization, confirmation, and live-state mutation boundaries directly testable.
+- category reorder helpers validate indices, compute candidate order without live mutation, compare object identity order, preserve moved-object selection, and apply side effects only after a real change.
 
 Full Raw JSON compares the final validated, repaired, normalized, and sorted candidate before destructive confirmation. An identical result closes the editor and reports validation/repair context without replacing data, resetting selection, changing dirty state, or launching automatic lookup.
 
-Phase 40 was merged at `478545235debae9a1dc064b972acc2181cd5a0e1`. Its post-merge review found that the full Raw JSON status summary read the old live category count before changed-candidate replacement. Phase 40.1 routes the finalized candidate through `configValidationSummaryText(...)`, so both changed and no-op paths report `validation.config.Categories.length` while replacement remains after confirmation. The Phase 40 change-decision and no-op boundaries are otherwise unchanged.
+Phase 40 was merged at `478545235debae9a1dc064b972acc2181cd5a0e1`. Phase 40.1 was merged at `beda975e087bd012f33270b7f1574c6822340bda`; it routes the finalized candidate through `configValidationSummaryText(...)`, so both changed and no-op paths report `validation.config.Categories.length` while replacement remains after confirmation. The Phase 40 change-decision and no-op boundaries are otherwise unchanged.
+
+Category drag/drop uses only application-owned source state established by `dragstart`. `text/plain` remains optional browser metadata and is never authoritative. `dragover` does not enable a target or alter indicators until the active source is a finite in-range integer. Drop decisions delegate to the identity-aware helper, so adjacent and same-target no-ops have no structural side effects; real changes select the moved object and then apply optional renumbering, one dirty transition, and one structural render.
 
 ### Lookup-cache operation coordination
 
