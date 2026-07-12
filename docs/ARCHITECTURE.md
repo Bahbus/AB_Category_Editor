@@ -17,44 +17,47 @@ Primary layers:
 2. **Configuration shape/defaults/import repair**
    - `src/config.js`
 
-3. **Validation**
+3. **Category change decisions**
+   - `src/categoryChanges.js`
+
+4. **Validation**
    - `src/validation.js`
    - `src/importValidationSummary.js`
 
-4. **Shared row-ID semantics**
+5. **Shared row-ID semantics**
    - `src/rowIds.js`
 
-5. **Import/export and clipboard/download**
+6. **Import/export and clipboard/download**
    - `src/importExport.js`
 
-6. **XIVAPI and lookup**
+7. **XIVAPI and lookup**
    - `src/xivapi.js`
    - `src/lookupNames.js`
 
-7. **UI rendering**
+8. **UI rendering**
    - `src/ui/categoryList.js`
    - `src/ui/categoryEditor.js`
    - `src/ui/listEditor.js`
    - `src/ui/formControls.js`
    - modal-specific UI modules
 
-8. **Modal infrastructure**
+9. **Modal infrastructure**
    - `src/modals.js`
 
-9. **Persistent state**
+10. **Persistent state**
    - `src/state.js`
 
-10. **Tools**
+11. **Tools**
    - `src/tools/regexToItemIds.js`
 
-11. **Description generation**
+12. **Description generation**
    - `src/descriptionGenerator.js`
 
-12. **Static assets and layout**
+13. **Static assets and layout**
    - `index.html`
    - `styles.css`
 
-13. **Tests and guardrails**
+14. **Tests and guardrails**
    - `test/*.test.mjs`
    - `scripts/check-imports.mjs`
    - source checks in `test/sourceChecks.test.mjs`
@@ -96,6 +99,17 @@ Local field edits should prefer:
 - `renderList()` when list metadata changes.
 
 This avoids unnecessary rerenders and focus disruption.
+
+### Category change decisions
+
+`src/categoryChanges.js` contains DOM-free behavior used by the application and direct tests:
+
+- JSON-semantic equality ignores object key order while preserving array order and primitive types.
+- manual renumbering writes one-based numeric `Order`/`Priority` values and reports whether category data changed.
+- sorting detects array-order changes by object identity and resolves the selected object's new index.
+- selected and full Raw JSON helpers keep normalization, confirmation, and live-state mutation boundaries directly testable.
+
+Full Raw JSON compares the final validated, repaired, normalized, and sorted candidate before destructive confirmation. An identical result closes the editor and reports validation/repair context without replacing data, resetting selection, changing dirty state, or launching automatic lookup.
 
 ### Lookup-cache operation coordination
 
@@ -380,7 +394,7 @@ It currently owns:
 
 This concentration is the main known maintainability risk.
 
-Selected-category Raw JSON is parsed and shape-normalized as a local candidate before it replaces the live selected category. Parse or shape failures leave the current category and dirty state unchanged.
+Selected-category Raw JSON is parsed and shape-normalized as a local candidate before it replaces the live selected category. JSON-semantically identical candidates retain the existing object identity, selection, and dirty state. Parse or shape failures leave the current category and dirty state unchanged.
 
 Do not split it casually. Refactor when future feature work creates real friction.
 

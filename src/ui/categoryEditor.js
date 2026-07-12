@@ -11,6 +11,7 @@ import { listEditor } from './listEditor.js';
 import { generateCategoryDescription, isUsefulGeneratedDescription } from '../descriptionGenerator.js';
 import { rangeFiltersSummary, rangeFiltersSummaryParts, stateFiltersSummary, stateFiltersSummaryParts } from './filterSummary.js';
 import { normalizeRowIdValue } from '../rowIds.js';
+import { applySelectedCategoryCandidate } from '../categoryChanges.js';
 
 export { countRangeFilterIssues, countStateFilterIssues, rangeFiltersSummary, rangeFiltersSummaryParts, stateFiltersSummary, stateFiltersSummaryParts } from './filterSummary.js';
 
@@ -636,10 +637,8 @@ export function renderEditor(deps) {
   el('applyRawCategory').onclick = () => {
     try {
       const candidate = JSON.parse(el('rawCategory').value);
-      ensureShape(candidate);
-      cats[selectedIndex] = candidate;
-      markDirty();
-      renderAll();
+      const changed = applySelectedCategoryCandidate({ categories: cats, selectedIndex, candidate, normalize: ensureShape, onChanged: () => { markDirty(); renderAll(); } });
+      if (!changed) setStatus('There are no category changes to apply.', 'ok');
     } catch (err) {
       setStatus('Invalid category JSON: ' + err.message, 'err');
     }

@@ -16,6 +16,7 @@ import { isUsefulLookupName } from './lookupNames.js';
 import { analyzeImportedConfig, countFindings } from './validation.js';
 import { PRESETS } from './presets.js';
 import { createLookupCacheOperationCoordinator, clearLookupCacheIfIdle } from './lookupCacheOperations.js';
+import { applyFullConfigCandidate, renumberCategories as applyCategoryRenumber, sortCategoriesPreservingSelection } from './categoryChanges.js';
 import {
   reviewableImportRepairs,
   reviewableImportFindings,
@@ -65,7 +66,7 @@ function defaultCategory() {
   }
   return category;
 }
-function renumberCategories() { getCategories().forEach((cat, i) => { cat.Order = i + 1; cat.Priority = i + 1; }); }
+function renumberCategories() { return applyCategoryRenumber(getCategories()); }
 function markDirty(options = {}) {
   dirty = true;
   setSaveState('Changes not exported', 'warn');
@@ -330,18 +331,33 @@ function showRawModal(initialText = JSON.stringify(data, null, 2), initialError 
       try { const parsed = JSON.parse(text); preAnalysis = analyzeImportedConfig(parsed); validation = validateConfig(parsed); }
       catch (err) { const message = errorMessage('Invalid full JSON', err); setInlineError('rawError', message); setStatus(message, 'err'); return; }
       setInlineError('rawError', '');
-      if (!(await confirmReplacingCurrentWork())) { showRawModal(text); return; }
       const rawAnalysis = mergeValidationFindings(preAnalysis, analyzeImportedConfig(validation.config));
-      applyValidatedConfig(validation);
-      selectedIndex = getCategories().length ? 0 : -1;
-      closeModal();
-      markDirty();
-      commitActiveField();
-      renderAll();
       const rawSummary = validationSummaryText(getCategories().length, rawAnalysis, validation.repairs || []);
-      setStatus(rawSummary, importStatusSeverity(rawAnalysis, validation.repairs || []));
-      if (shouldShowImportValidationModal({ analysis: rawAnalysis, repairs: validation.repairs || [] })) setTimeout(() => showValidationSummary('Raw JSON validation summary', rawAnalysis, validation.repairs || []), 0);
-      maybeAutoLookupImportedIds();
+      const showRawSummary = () => {
+        setStatus(rawSummary, importStatusSeverity(rawAnalysis, validation.repairs || []));
+        if (shouldShowImportValidationModal({ analysis: rawAnalysis, repairs: validation.repairs || [] })) setTimeout(() => showValidationSummary('Raw JSON validation summary', rawAnalysis, validation.repairs || []), 0);
+      };
+      const result = await applyFullConfigCandidate({
+        currentData: data,
+        candidate: validation.config,
+        confirmReplace: confirmReplacingCurrentWork,
+        onNoChange: () => {
+          closeModal();
+          setStatus(`${rawSummary} No full JSON changes were applied.`, importStatusSeverity(rawAnalysis, validation.repairs || []));
+          if (shouldShowImportValidationModal({ analysis: rawAnalysis, repairs: validation.repairs || [] })) setTimeout(() => showValidationSummary('Raw JSON validation summary', rawAnalysis, validation.repairs || []), 0);
+        },
+        onChanged: () => {
+          applyValidatedConfig(validation);
+          selectedIndex = getCategories().length ? 0 : -1;
+          closeModal();
+          markDirty();
+          commitActiveField();
+          renderAll();
+          showRawSummary();
+          maybeAutoLookupImportedIds();
+        }
+      });
+      if (result === null) showRawModal(text);
     });
     requireScopedEl(wrap, '#copyRawFull', 'raw JSON').addEventListener('click', async () => {
       commitActiveField();
@@ -374,8 +390,20 @@ function bindAppEvents() {
   if (searchInput) searchInput.addEventListener('keydown', e => { if (e.key === 'Escape' && e.currentTarget.value) { e.preventDefault(); clearSearch(); } });
   if (clearSearchButton) clearSearchButton.addEventListener('click', clearSearch);
   bindClick('addCategory', () => { commitActiveField(); getCategories().push(defaultCategory()); selectedIndex = getCategories().length - 1; markDirty(); renderAll(); });
-  bindClick('sortByOrder', () => { commitActiveField(); getCategories().sort(compareCategoriesForImport); selectedIndex = 0; markDirty(); renderAll(); });
-  bindClick('renumber', () => { commitActiveField(); renumberCategories(); markDirty(); renderAll(); });
+  bindClick('sortByOrder', () => {
+    commitActiveField();
+    const result = sortCategoriesPreservingSelection(getCategories(), selectedIndex, compareCategoriesForImport);
+    selectedIndex = result.selectedIndex;
+    if (result.changed) markDirty();
+    else setStatus('Categories are already sorted. No changes were made.', 'ok');
+    renderAll();
+  });
+  bindClick('renumber', () => {
+    commitActiveField();
+    if (renumberCategories()) markDirty();
+    else setStatus('Order and Priority are already renumbered. No changes were made.', 'ok');
+    renderAll();
+  });
   bindClick('lookupReferencedIds', () => { commitActiveField(); lookupReferencedIds().catch(err => setStatus(errorMessage('ID lookup failed', err), 'err')); });
   bindClick('showLookupCache', () => { commitActiveField(); showLookupCacheModal({ lookupCacheStats, clearLookupCache, isLookupCacheProducerActive: lookupCacheOperations.isActive, onLookupCacheProducerChange: lookupCacheOperations.subscribe }); });
   bindClick('showHelp', () => { commitActiveField(); showHelpModal(); });
