@@ -15,6 +15,7 @@ import { generateCategoryDescription, isUsefulGeneratedDescription } from './des
 import { isUsefulLookupName } from './lookupNames.js';
 import { analyzeImportedConfig, countFindings } from './validation.js';
 import { PRESETS } from './presets.js';
+import { createLookupCacheOperationCoordinator, clearLookupCacheIfIdle } from './lookupCacheOperations.js';
 import {
   reviewableImportRepairs,
   reviewableImportFindings,
@@ -30,6 +31,7 @@ let dirty = false;
 let draggedIndex = null;
 let lookupCache = loadLookupCache();
 let editorPreferences = loadEditorPreferences();
+const lookupCacheOperations = createLookupCacheOperationCoordinator();
 
 function applyEditorPreferences(preferences = editorPreferences) {
   editorPreferences = persistEditorPreferences(preferences);
@@ -47,7 +49,13 @@ function lookupCacheStats(sheet) {
 }
 function lookupName(sheet, id) { const cache = lookupCache[sheet] || {}; return cache[String(id)] || null; }
 function fetchLookupBatch(sheet, ids, options = {}) { return xivapiFetchLookupBatch(sheet, ids, { ...options, lookupCache, saveLookupCache }); }
-function clearLookupCache() { lookupCache = emptyLookupCache(); removeLookupCache(); renderAll(); setStatus('Lookup cache cleared. Category data was not changed.', 'ok'); }
+function clearLookupCache() {
+  return clearLookupCacheIfIdle({
+    isActive: lookupCacheOperations.isActive,
+    onRefused: () => setStatus('Lookup cache cannot be cleared while a lookup or scan is running.', 'warn'),
+    clear: () => { lookupCache = emptyLookupCache(); removeLookupCache(); renderAll(); setStatus('Lookup cache cleared. Category data was not changed.', 'ok'); }
+  });
+}
 function getCategories() { if (!data.Categories) data.Categories = []; return data.Categories; }
 function defaultCategory() {
   const category = makeDefaultCategory(nextCategorySortValue(getCategories()) - 1);
@@ -134,7 +142,7 @@ function showValidationSummary(title, analysis, repairs = []) {
   openModal(title, wrap);
   try { requireScopedEl(wrap, '#closeValidationSummary', 'validation summary').addEventListener('click', closeModal); } catch (err) { reportModalBindingError('Validation summary unavailable', err); }
 }
-function openRegexToItemIdsTool() { commitActiveField(); openRegexTool({ getCategories, getSelectedIndex: () => selectedIndex, ensureShape, lookupCache, saveLookupCache, markDirty, renderAll }); }
+function openRegexToItemIdsTool() { commitActiveField(); openRegexTool({ getCategories, getSelectedIndex: () => selectedIndex, ensureShape, lookupCache, saveLookupCache, acquireLookupCacheProducer: lookupCacheOperations.acquire, markDirty, renderAll }); }
 
 function commitActiveField() {
   const active = document.activeElement;
@@ -220,7 +228,7 @@ function renderEditor() {
     getSelectedIndex: () => selectedIndex,
     setSelectedIndex: value => { selectedIndex = value; },
     ensureShape, markDirty, markDirtyAndRenderList, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, lookupName, commitActiveField, getEditorPreferences: () => editorPreferences, copyTextToClipboard, loadBasicPresets, loadAdvancedPresets,
-    listEditorDeps: { lookupName, fetchLookupBatch, searchXivapi, lookupCache, saveLookupCache, markDirty }
+    listEditorDeps: { lookupName, fetchLookupBatch, searchXivapi, lookupCache, saveLookupCache, acquireLookupCacheProducer: lookupCacheOperations.acquire, markDirty }
   });
 }
 
@@ -237,6 +245,7 @@ async function lookupReferencedIds(options = {}) {
   const lookupButton = el('lookupReferencedIds');
   if (lookupButton) lookupButton.disabled = true;
   const failures = [];
+  const releaseLookupCacheProducer = lookupCacheOperations.acquire();
   try {
     showBusy('Looking up IDs', `0/${uncached} complete`, 0);
     for (const [sheet, sheetIds] of [['ItemUICategory', [...ids.ItemUICategory]], ['Item', [...ids.Item]]]) {
@@ -256,7 +265,7 @@ async function lookupReferencedIds(options = {}) {
     }
     else if (quiet) setStatus(`Automatic lookup cached ${uncached} new name(s).`);
     else setStatus(`Lookup complete: ${uncached} new name(s) cached.`, 'ok');
-  } finally { hideBusy(); if (lookupButton) lookupButton.disabled = false; }
+  } finally { releaseLookupCacheProducer(); hideBusy(); if (lookupButton) lookupButton.disabled = false; }
 }
 
 function maybeAutoLookupImportedIds() {
@@ -368,7 +377,7 @@ function bindAppEvents() {
   bindClick('sortByOrder', () => { commitActiveField(); getCategories().sort(compareCategoriesForImport); selectedIndex = 0; markDirty(); renderAll(); });
   bindClick('renumber', () => { commitActiveField(); renumberCategories(); markDirty(); renderAll(); });
   bindClick('lookupReferencedIds', () => { commitActiveField(); lookupReferencedIds().catch(err => setStatus(errorMessage('ID lookup failed', err), 'err')); });
-  bindClick('showLookupCache', () => { commitActiveField(); showLookupCacheModal({ lookupCacheStats, clearLookupCache }); });
+  bindClick('showLookupCache', () => { commitActiveField(); showLookupCacheModal({ lookupCacheStats, clearLookupCache, isLookupCacheProducerActive: lookupCacheOperations.isActive, onLookupCacheProducerChange: lookupCacheOperations.subscribe }); });
   bindClick('showHelp', () => { commitActiveField(); showHelpModal(); });
   bindClick('showPreferences', () => showPreferencesModal({
     getEditorPreferences: () => editorPreferences,

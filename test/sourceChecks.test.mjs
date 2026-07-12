@@ -488,12 +488,38 @@ test('lookup cache modal displays useful and unresolved cache stats', () => {
   assert.match(app, /function lookupCacheStats\(sheet\) \{/);
   assert.match(app, /values\.filter\(isUsefulLookupName\)\.length/);
   assert.match(app, /return \{ useful, unresolved: values\.length - useful, total: values\.length \};/);
-  assert.match(app, /showLookupCacheModal\(\{ lookupCacheStats, clearLookupCache \}\)/);
+  assert.match(app, /showLookupCacheModal\(\{ lookupCacheStats, clearLookupCache, isLookupCacheProducerActive:/);
   assert.match(modal, /formatLookupCacheStats\(stats\)/);
   assert.match(modal, /\$\{stats\.useful\.toLocaleString\(\)\} useful, \$\{stats\.unresolved\.toLocaleString\(\)\} unresolved/);
   assert.match(modal, /Item names:/);
   assert.match(modal, /UI category names:/);
   assert.doesNotMatch(modal, /Cached Item names/);
+});
+
+test('all asynchronous cache producers use finally-safe coordination', () => {
+  const app = read('src/app.js');
+  const list = read('src/ui/listEditor.js');
+  const regex = read('src/tools/regexToItemIds.js');
+
+  const referenced = app.match(/async function lookupReferencedIds[\s\S]*?\nfunction maybeAutoLookupImportedIds/)?.[0] ?? '';
+  assert.match(referenced, /const releaseLookupCacheProducer = lookupCacheOperations\.acquire\(\);/);
+  assert.match(referenced, /finally \{ releaseLookupCacheProducer\(\);/);
+  assert.match(list, /releaseLookupCacheProducer = acquireLookupCacheProducer\(\);/);
+  assert.match(list, /finally \{\s*releaseLookupCacheProducer\?\.\(\);/);
+  assert.match(regex, /const releaseLookupCacheProducer = acquireLookupCacheProducer\(\);/);
+  assert.match(regex, /finally \{\s*releaseLookupCacheProducer\(\);/);
+});
+
+test('lookup cache modal disables and explains clearing while producers are active', () => {
+  const app = read('src/app.js');
+  const modal = read('src/ui/lookupCacheModal.js');
+
+  assert.match(app, /clearLookupCacheIfIdle\(\{/);
+  assert.match(app, /Lookup cache cannot be cleared while a lookup or scan is running\./);
+  assert.match(modal, /clearButton\.disabled = active;/);
+  assert.match(modal, /Wait for the lookup or scan to finish before clearing the cache\./);
+  assert.match(modal, /if \(!clearLookupCache\(\)\)/);
+  assert.match(modal, /The cache was not cleared because a lookup or scan is still running\./);
 });
 
 test('automatic lookup uses quiet success and unresolved statuses while manual lookup remains noisy', () => {

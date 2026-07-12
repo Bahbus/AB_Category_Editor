@@ -601,6 +601,38 @@ Periodically prune brittle source checks.
 
 ---
 
+## Phase 38
+
+Implemented, merged, and validated.
+
+Fixed:
+
+- malformed persisted lookup-cache data is normalized before application use,
+- the runtime cache retains the exact `Item` and `ItemUICategory` buckets,
+- range Min/Max validation is associated with both inputs through `aria-describedby`.
+
+The post-merge `npm run check` run passed all 19 test files.
+
+## Phase 39
+
+Implemented and validated.
+
+Finding:
+
+- asynchronous referenced-ID lookup, per-list lookup, and regex scanning could retain an old cache object while cache clearing replaced the application cache, allowing fetched names and success reporting to diverge from persisted/rendered state.
+
+Resolution:
+
+- application-owned coordination tracks overlapping cache producers with idempotent release leases,
+- all three producers release in `finally` on success, failure, and cancellation paths,
+- the Lookup Cache modal disables and explains clearing while work is active,
+- the clear callback re-checks active state and reports refusal rather than silently ignoring it,
+- clearing after release retains the existing non-dirty, category-preserving contract.
+
+Validation actually run:
+
+- `npm run check` passed: JavaScript syntax check, static relative-import check, and all 20 test files.
+
 # Current next step
 
-Implement and validate Phase 38 — Lookup Cache Recovery, Range Validation Accessibility, and Context Advance. If it passes without a Phase 38.1 follow-up, continue phase planning from verified deep-review findings.
+Perform the post-Phase-39 deep review before defining the next numbered implementation phase.

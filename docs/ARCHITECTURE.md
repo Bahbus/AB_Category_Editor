@@ -70,6 +70,7 @@ Primary layers:
 - dirty state,
 - dragged category index,
 - lookup cache,
+- active lookup-cache producer coordination,
 - editor preferences.
 
 Important responsibilities:
@@ -95,6 +96,14 @@ Local field edits should prefer:
 - `renderList()` when list metadata changes.
 
 This avoids unnecessary rerenders and focus disruption.
+
+### Lookup-cache operation coordination
+
+`src/lookupCacheOperations.js` owns a private active-producer count and issues idempotent release leases. `src/app.js` passes only the narrow acquire function into list-editor and regex-tool dependencies rather than exposing application globals.
+
+Long-lived leases cover referenced-ID batch lookup, per-list batch lookup, and Regex → Item IDs sheet scanning. Each producer releases its lease in `finally`, including failure and scan cancellation. Overlapping leases are independent and coexist with the busy overlay's own nested counting.
+
+The Lookup Cache modal observes active state, disables clearing with visible explanatory text, and the application re-checks the same state at the clear boundary. This prevents replacement of the cache object while asynchronous producers still hold it. Synchronous manual-search additions do not acquire a lease.
 
 ---
 
