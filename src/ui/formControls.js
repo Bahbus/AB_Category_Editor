@@ -31,6 +31,19 @@ export function rangeSliderBounds(min, max, defaults = {}) {
   return { min: Math.floor(lower), max: Math.ceil(upper) };
 }
 
+export function decideRangeValueChange(storedValue, nextValue) {
+  if (!Number.isFinite(nextValue)) return { valid: false, changed: false, value: storedValue };
+  return { valid: true, changed: !Object.is(storedValue, nextValue), value: nextValue };
+}
+
+export function applyRangeValueChange(rangeObj, key, nextValue, onChange = () => {}) {
+  const decision = decideRangeValueChange(rangeObj[key], nextValue);
+  if (!decision.valid || !decision.changed) return false;
+  rangeObj[key] = decision.value;
+  onChange();
+  return true;
+}
+
 export function numberInput(label, value, onChange, step='1', min=null, max=null, options = {}) {
   const wrap = document.createElement('div');
   const id = makeControlId('number-input');
@@ -217,7 +230,6 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
       syncValidity();
       return;
     }
-    const previous = Number(rangeObj[key]);
     const next = Number(input.value);
     if (!Number.isFinite(next)) {
       input.value = String(rangeObj[key]);
@@ -225,11 +237,7 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
       return;
     }
     input.value = String(next);
-    if (Object.is(previous, next)) {
-      syncValidity();
-      return;
-    }
-    rangeObj[key] = next;
+    const changed = applyRangeValueChange(rangeObj, key, next, onChange);
     const nextBounds = rangeSliderBounds(rangeObj.Min, rangeObj.Max, defaults);
     for (const slider of [minSlider, maxSlider]) {
       slider.min = String(nextBounds.min);
@@ -238,13 +246,13 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
     minSlider.value = String(rangeObj.Min);
     maxSlider.value = String(rangeObj.Max);
     syncValidity();
-    onChange();
+    return changed;
   }
   function commitFiniteNumberInput(key, input) {
     if (input.value.trim() === '') return;
     const next = Number(input.value);
     if (!Number.isFinite(next)) return;
-    rangeObj[key] = next;
+    const changed = applyRangeValueChange(rangeObj, key, next, onChange);
     const nextBounds = rangeSliderBounds(rangeObj.Min, rangeObj.Max, defaults);
     for (const slider of [minSlider, maxSlider]) {
       slider.min = String(nextBounds.min);
@@ -253,7 +261,7 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
     minSlider.value = String(rangeObj.Min);
     maxSlider.value = String(rangeObj.Max);
     syncValidity();
-    onChange();
+    return changed;
   }
   minNumber.oninput = () => commitFiniteNumberInput('Min', minNumber);
   maxNumber.oninput = () => commitFiniteNumberInput('Max', maxNumber);
@@ -262,16 +270,14 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
   minNumber.addEventListener('keydown', e => { if (e.key === 'Enter') e.currentTarget.blur(); });
   maxNumber.addEventListener('keydown', e => { if (e.key === 'Enter') e.currentTarget.blur(); });
   minSlider.oninput = e => {
-    rangeObj.Min = Number(e.target.value);
+    applyRangeValueChange(rangeObj, 'Min', Number(e.target.value), onChange);
     minNumber.value = e.target.value;
     syncValidity();
-    onChange();
   };
   maxSlider.oninput = e => {
-    rangeObj.Max = Number(e.target.value);
+    applyRangeValueChange(rangeObj, 'Max', Number(e.target.value), onChange);
     maxNumber.value = e.target.value;
     syncValidity();
-    onChange();
   };
   syncValidity();
   return wrap;

@@ -4,12 +4,13 @@ import { setDetailsSummary } from './detailsSummary.js';
 export { renderDetailsSummaryHtml } from './detailsSummary.js';
 import { colorToHex, colorToHexRGBA, hexToRgb01, hexToRgba01, rgbaCss, componentTo255, canonicalHexRgba, decideHexRgbaCommit, decideRgbCommit, decideAlphaCommit } from '../color.js';
 import { clone, makeId, getNormalizedAllowedRarities, nextCategorySortValue } from '../config.js';
+import { optionalFiniteNumber } from '../optionalNumbers.js';
 import { openModal, closeModal } from '../modals.js';
 import { STATE_FILTER_OPTIONS, numberInput, rangeSliderControl, segmentedControl, switchInput, textInput } from './formControls.js';
 import { validateCategoryName, validateCategoryOrder, validateCategoryPriority, validateRegexPattern, validateCategory } from '../validation.js';
 import { listEditor } from './listEditor.js';
 import { generateCategoryDescription, isUsefulGeneratedDescription } from '../descriptionGenerator.js';
-import { rangeFiltersSummary, rangeFiltersSummaryParts, stateFiltersSummary, stateFiltersSummaryParts } from './filterSummary.js';
+import { rangeFiltersSummaryParts, stateFiltersSummaryParts } from './filterSummary.js';
 import { normalizeRowIdValue } from '../rowIds.js';
 import { applyGeneratedDescriptionChange, applySelectedCategoryCandidate } from '../categoryChanges.js';
 
@@ -613,12 +614,14 @@ export function renderEditor(deps) {
     copy.Id = makeId();
     copy.Name = (copy.Name || 'Category') + ' Copy';
     const nextSortValue = nextCategorySortValue(cats);
-    if (!Number.isFinite(Number(copy.Order)) || !Number.isFinite(Number(copy.Priority))) {
+    const copyOrder = optionalFiniteNumber(copy.Order);
+    const copyPriority = optionalFiniteNumber(copy.Priority);
+    if (copyOrder === null || copyPriority === null) {
       copy.Order = nextSortValue;
       copy.Priority = nextSortValue;
     } else {
-      copy.Order = Number(copy.Order) + 1;
-      copy.Priority = Number(copy.Priority) + 1;
+      copy.Order = copyOrder + 1;
+      copy.Priority = copyPriority + 1;
     }
     cats.splice(selectedIndex + 1, 0, copy);
     selectedIndex++; setSelectedIndex(selectedIndex);

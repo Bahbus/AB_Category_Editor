@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 41 is merged at `2926dc35dbda24fa07beb5b92477feeea47ea23f`. Its post-merge review confirmed color-precision and generated-description no-op defects; Phase 42 resolves them on `agent/phase-42-color-description-noop-fidelity` and is locally validated but not published or browser-tested.
+> **Current state:** Phase 42 is merged at `ab8997ae53b1136fab56b445fa3c811cf0bd25a9`. Its post-merge review confirmed import-repair, strict sort-number, manual-search cache coordination, range no-op, and export saved-state defects; Phase 43 resolves them on `agent/phase-43-import-async-dirty-integrity` and is locally validated but not published or browser-tested.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -286,6 +286,32 @@ The post-Phase-41 review confirmed that unchanged 8-bit color-control events cou
 - Automatic blank-description generation retains its usefulness gate and reports whether data actually changed; manual blank generation retains its existing fallback behavior.
 - Direct helper tests cover canonicalization, invalid/no-op/changed decisions, precision preservation, idempotent hex commits, and exact generated-description callback counts; focused source checks cover DOM wiring.
 - `npm run check` passed: syntax check, static relative-import check, and all 21 test files (286 tests).
+- `git diff --check` passed.
+- Browser QA and CI were not run.
+
+Phase 42 was merged at `ab8997ae53b1136fab56b445fa3c811cf0bd25a9`.
+
+### Post-Phase-42 deep review
+
+Confirmed five integrity defects:
+
+- plain Color objects silently repaired malformed or missing components without a material review record,
+- Order/Priority validation and consumers accepted coercion-only values such as `null`, blank strings, booleans, arrays, and objects,
+- manual XIVAPI search could write results to a cache object replaced while its request was pending,
+- same-value range number and slider events could falsely mark the document dirty,
+- automatic clipboard completion from an older export could clear dirty state after a newer edit.
+
+These became Phase 43.
+
+### Phase 43
+
+- Plain Color objects are snapshotted by value before normalization; component changes create one material Color warning while valid numeric precision remains untouched and whole-object repairs retain distinct messaging.
+- One strict optional-number interpretation now governs Order/Priority validation, duplicate grouping, import sorting, next-sort calculation, and category duplication. Finite numbers and non-empty finite numeric strings remain accepted without rewriting imported strings.
+- Every nonblank manual XIVAPI search holds the application lookup-cache producer lease across the network and result-processing window and releases it once in `finally`.
+- Directly tested range-value decisions and application helpers prevent same-value number, blur, and slider events from mutating or notifying; real changes notify once and a following blur is a no-op.
+- Export marks the generated snapshot saved immediately after opening the export modal and before awaiting automatic clipboard work.
+- Unused local `rangeFiltersSummary` and `stateFiltersSummary` imports were removed while public re-exports remain.
+- `npm run check` passed: syntax check, static relative-import check, and all 22 test files (298 tests).
 - `git diff --check` passed.
 - Browser QA and CI were not run.
 

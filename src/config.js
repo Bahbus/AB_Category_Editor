@@ -1,4 +1,5 @@
 import { ALLOWED_RARITY_IDS, RANGE_FILTERS, RANGE_FILTER_KEYS, STATE_FILTER_KEYS } from './constants.js';
+import { optionalFiniteNumber } from './optionalNumbers.js';
 
 export function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
@@ -46,7 +47,7 @@ export function defaultCategory(maxOrder = 0) {
 
 export function nextCategorySortValue(categories = []) {
   return (Array.isArray(categories) ? categories : []).reduce((max, category) => {
-    const order = numericValue(category?.Order);
+    const order = optionalFiniteNumber(category?.Order);
     return order === null ? max : Math.max(max, order);
   }, 0) + 1;
 }
@@ -103,14 +104,9 @@ export function ensureShape(cat) {
 }
 
 
-export function numericValue(value) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : null;
-}
-
 export function compareOptionalNumber(a, b) {
-  const aNumber = numericValue(a);
-  const bNumber = numericValue(b);
+  const aNumber = optionalFiniteNumber(a);
+  const bNumber = optionalFiniteNumber(b);
   if (aNumber !== null && bNumber !== null && aNumber !== bNumber) return aNumber - bNumber;
   if ((aNumber !== null) !== (bNumber !== null)) return aNumber !== null ? -1 : 1;
   return 0;
@@ -184,12 +180,13 @@ export function sameValidRaritySet(before, after) {
 
 function snapshotCategoryForRepairs(cat, index = null) {
   const rules = isPlainObject(cat?.Rules) ? cat.Rules : {};
+  const colorWasPlainObject = isPlainObject(cat?.Color);
   const snapshot = {
     categoryName: cat?.Name,
     categoryId: cat?.Id,
     categoryIndex: index,
-    ColorWasPlainObject: isPlainObject(cat?.Color),
-    Color: cat?.Color,
+    ColorWasPlainObject: colorWasPlainObject,
+    Color: colorWasPlainObject ? { ...cat.Color } : cat?.Color,
     RulesWasPlainObject: isPlainObject(cat?.Rules),
     Rules: cat?.Rules
   };
@@ -228,6 +225,16 @@ function collectCategoryRepairs(cat, before) {
       cat.Color,
       'Color was missing or malformed and replaced with default RGBA values.',
       { severity: 'warning', material: true }
+    ));
+  } else if (!valuesEqual(before.Color, cat.Color)) {
+    repairs.push(repairRecord(
+      cat,
+      before,
+      'Color',
+      before.Color,
+      cat.Color,
+      'Malformed or missing Color components were replaced with default values.',
+      { severity: 'warning', material: true, showBeforeAfter: false }
     ));
   }
   if (!before.RulesWasPlainObject) {

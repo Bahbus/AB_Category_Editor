@@ -330,16 +330,13 @@ test('range number blank blur restores previous value instead of committing zero
 
   const blankIndex = rangeCommitBlock.indexOf("input.value.trim() === ''");
   const nextIndex = rangeCommitBlock.indexOf('const next = Number(input.value)');
-  const assignIndex = rangeCommitBlock.indexOf('rangeObj[key] = next');
-  const changeIndex = rangeCommitBlock.indexOf('onChange()');
+  const applyIndex = rangeCommitBlock.indexOf('applyRangeValueChange(rangeObj, key, next, onChange)');
 
   assert.ok(blankIndex !== -1);
   assert.ok(nextIndex !== -1);
-  assert.ok(assignIndex !== -1);
-  assert.ok(changeIndex !== -1);
+  assert.ok(applyIndex !== -1);
   assert.ok(blankIndex < nextIndex, 'blank restore should happen before Number(input.value)');
-  assert.ok(blankIndex < assignIndex, 'blank restore should happen before assigning range value');
-  assert.ok(blankIndex < changeIndex, 'blank restore should happen before onChange');
+  assert.ok(blankIndex < applyIndex, 'blank restore should happen before applying a range value');
 });
 
 test('typed list add reports partial duplicate skips without changing all-duplicate behavior', () => {
@@ -498,6 +495,18 @@ test('automatic lookup and export failures release only their own busy operation
   assert.match(exportHandler, /if \(busyShown\) hideBusy\(\);/);
 });
 
+test('export marks the generated snapshot saved before awaiting automatic clipboard copy', () => {
+  const app = read('src/app.js');
+  const handler = app.match(/bindClick\('showExportCopy', async \(\) => \{(?<body>[\s\S]*?)\n  \}\);/)?.groups.body ?? '';
+  const openIndex = handler.indexOf("openModal('Export / Copy', wrap)");
+  const savedIndex = handler.indexOf("markSaved('Exported')");
+  const clipboardIndex = handler.indexOf('await copyTextToClipboard(b64)');
+
+  assert.ok(openIndex !== -1 && savedIndex !== -1 && clipboardIndex !== -1);
+  assert.ok(openIndex < savedIndex, 'the generated export must be shown before it counts as exported');
+  assert.ok(savedIndex < clipboardIndex, 'saved state must not be cleared after the clipboard await');
+});
+
 test('lookup cache modal displays useful and unresolved cache stats', () => {
   const app = read('src/app.js');
   const modal = read('src/ui/lookupCacheModal.js');
@@ -652,6 +661,23 @@ test('list lookup only hides busy overlay after showing it', () => {
   assert.ok(showBusyIndex > noMissingIndex, 'all-cached branch should remain before showBusy');
 });
 
+test('manual lookup search holds a cache-producer lease across every async exit path', () => {
+  const source = read('src/ui/listEditor.js');
+  const handler = source.match(/searchButton\.onclick = async \(\) => \{(?<body>[\s\S]*?)\n    \};/)?.groups.body ?? '';
+  const blankIndex = handler.indexOf('if (!query) return');
+  const acquireIndex = handler.indexOf('const releaseLookupCacheProducer = acquireLookupCacheProducer()');
+  const awaitIndex = handler.indexOf('await searchXivapi(lookupSheet, query)');
+  const finallyIndex = handler.indexOf('} finally {');
+
+  assert.ok(blankIndex !== -1 && acquireIndex !== -1 && awaitIndex !== -1 && finallyIndex !== -1);
+  assert.ok(blankIndex < acquireIndex && acquireIndex < awaitIndex && awaitIndex < finallyIndex);
+  assert.equal((handler.match(/releaseLookupCacheProducer\(\)/g) || []).length, 1);
+  assert.match(handler, /finally \{\s*releaseLookupCacheProducer\(\);\s*searchButton\.disabled = false;/);
+  assert.match(handler, /if \(!results\.length\) \{[\s\S]*?return;/);
+  assert.match(handler, /if \(!rendered\) \{[\s\S]*?return;/);
+  assert.match(handler, /catch \(err\) \{[\s\S]*?setStatus\(err\.message, 'err'\);/);
+});
+
 test('number blur handlers avoid unchanged dirty commits', () => {
   const source = read('src/ui/formControls.js');
   const numberBlock = source.match(/export function numberInput[\s\S]*?\n}\n\nexport function textInput/)?.[0] ?? '';
@@ -660,7 +686,15 @@ test('number blur handlers avoid unchanged dirty commits', () => {
   assert.match(numberBlock, /let lastCommitted = Number\(value\) \|\| 0;/);
   assert.match(numberBlock, /Object\.is\(next, lastCommitted\)/);
   assert.doesNotMatch(numberBlock, /input\.onblur[\s\S]*?onChange\(next\);/);
-  assert.match(rangeCommitBlock, /const previous = Number\(rangeObj\[key\]\);/);
-  assert.match(rangeCommitBlock, /Object\.is\(previous, next\)/);
-  assert.match(rangeCommitBlock, /syncValidity\(\);\n\s*return;[\s\S]*?rangeObj\[key\] = next;[\s\S]*?onChange\(\);/);
+  assert.match(rangeCommitBlock, /applyRangeValueChange\(rangeObj, key, next, onChange\)/);
+  assert.doesNotMatch(rangeCommitBlock, /rangeObj\[key\] = next/);
+});
+
+test('range number and slider live events share the guarded change helper', () => {
+  const source = read('src/ui/formControls.js');
+  const finiteInputBlock = source.match(/function commitFiniteNumberInput\(key, input\) \{(?<body>[\s\S]*?)\n  \}/)?.groups.body ?? '';
+
+  assert.match(finiteInputBlock, /applyRangeValueChange\(rangeObj, key, next, onChange\)/);
+  assert.match(source, /minSlider\.oninput = e => \{\s*applyRangeValueChange\(rangeObj, 'Min', Number\(e\.target\.value\), onChange\);/);
+  assert.match(source, /maxSlider\.oninput = e => \{\s*applyRangeValueChange\(rangeObj, 'Max', Number\(e\.target\.value\), onChange\);/);
 });
