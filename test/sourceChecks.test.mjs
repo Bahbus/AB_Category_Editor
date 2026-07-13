@@ -135,6 +135,10 @@ test('generated description UI wiring stays safe and source-consistent', () => {
   assert.match(app, /renderCategoryEditor\(\{[\s\S]*copyTextToClipboard,/);
   assert.match(editor, /const ok = await copyTextToClipboard\(generated\);/);
   assert.doesNotMatch(editor, /navigator\.clipboard\?\.writeText\(generated\)/);
+  assert.match(editor, /return applyGeneratedDescriptionChange\(cat, text, \(\) => \{/);
+  assert.match(editor, /if \(cat\.Description === generated\) setStatus\('Description already matches the generated text\.', 'ok'\);[\s\S]*?else if \(!String\(cat\.Description \|\| ''\)\.trim\(\)\) applyGeneratedDescription\(generated\);[\s\S]*?else showGenerateDescriptionConfirmation\(generated\);/);
+  assert.match(editor, /replaceGeneratedDescription[\s\S]*?if \(!applyGeneratedDescription\(generated\)\) setStatus\('Description already matches the generated text\.', 'ok'\);/);
+  assert.match(editor, /if \(!isUsefulGeneratedDescription\(generated\)\) return false;[\s\S]*?return applyGeneratedDescription\(generated\);/);
 });
 
 test('import and raw JSON paths do not auto-generate descriptions', () => {

@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 40.1 is merged at `beda975e087bd012f33270b7f1574c6822340bda`. Its post-merge review confirmed category drag/drop integrity defects; Phase 41 resolves them on `agent/phase-41-drag-drop-integrity` and is locally validated but not published or browser-tested.
+> **Current state:** Phase 41 is merged at `2926dc35dbda24fa07beb5b92477feeea47ea23f`. Its post-merge review confirmed color-precision and generated-description no-op defects; Phase 42 resolves them on `agent/phase-42-color-description-noop-fidelity` and is locally validated but not published or browser-tested.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -270,7 +270,24 @@ The post-Phase-40.1 review confirmed that external empty or numeric `text/plain`
 - Direct regression coverage includes both movement directions and placements, adjacent and same-target no-ops, invalid indices, duplicate/JSON-identical objects, exact side-effect counts, optional renumbering, and focused event-wiring guards.
 - Focused tests passed: 72 tests across `test/categoryChanges.test.mjs` and `test/sourceChecks.test.mjs`.
 - `npm run check` passed: syntax check, static relative-import check, and all 21 test files (279 tests).
-- Browser QA and CI were not run. No push or PR was created.
+- Phase 41 was merged at `2926dc35dbda24fa07beb5b92477feeea47ea23f`.
+- The post-merge review reran `npm run check`: syntax and import checks passed and all 21 test files / 279 tests passed.
+- `git diff --check origin/main` passed, and the reviewed tree exactly matched merged `origin/main`.
+- Desktop-keyring authentication was verified for the review fetch. Browser QA and CI were not run.
+
+### Phase 42
+
+The post-Phase-41 review confirmed that unchanged 8-bit color-control events could quantize higher-precision imported RGBA data and falsely dirty the document, Hex RGBA `change` followed by `blur` could commit twice, and replacing an identical generated description could dirty and rerender without changing data.
+
+- Pure color decisions canonicalize Hex RGBA text, distinguish invalid/no-change/changed commits, and compare picker RGB and alpha bytes against their committed displayed snapshots.
+- Hex, native picker, and alpha handlers preserve higher-precision model values for same-display events; real changes synchronize all linked controls and refresh every committed snapshot.
+- A successful Hex RGBA change updates the committed snapshot before a following blur, making that second event a no-op.
+- Generated-description application uses a DOM-free strict-value change helper, and both Generate and Replace independently guard identical text.
+- Automatic blank-description generation retains its usefulness gate and reports whether data actually changed; manual blank generation retains its existing fallback behavior.
+- Direct helper tests cover canonicalization, invalid/no-op/changed decisions, precision preservation, idempotent hex commits, and exact generated-description callback counts; focused source checks cover DOM wiring.
+- `npm run check` passed: syntax check, static relative-import check, and all 21 test files (286 tests).
+- `git diff --check` passed.
+- Browser QA and CI were not run.
 
 ---
 

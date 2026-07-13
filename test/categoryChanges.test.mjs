@@ -1,12 +1,28 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyCategoryReorder, applyFullConfigCandidate, applySelectedCategoryCandidate, jsonSemanticEqual, renumberCategories, reorderCategories, sortCategoriesPreservingSelection } from '../src/categoryChanges.js';
+import { applyCategoryReorder, applyFullConfigCandidate, applyGeneratedDescriptionChange, applySelectedCategoryCandidate, jsonSemanticEqual, renumberCategories, reorderCategories, sortCategoriesPreservingSelection } from '../src/categoryChanges.js';
 import { ensureShape, validateConfig } from '../src/config.js';
 
 test('JSON semantic equality ignores object key order but preserves array order and types', () => {
   assert.equal(jsonSemanticEqual({ a: 1, b: { c: true } }, { b: { c: true }, a: 1 }), true);
   assert.equal(jsonSemanticEqual([1, 2], [2, 1]), false);
   assert.equal(jsonSemanticEqual({ value: 1 }, { value: '1' }), false);
+});
+
+test('identical generated description performs no assignment or callback', () => {
+  const category = { Description: 'Groups crafting materials.' };
+  let callbacks = 0;
+  assert.equal(applyGeneratedDescriptionChange(category, 'Groups crafting materials.', () => callbacks++), false);
+  assert.deepEqual(category, { Description: 'Groups crafting materials.' });
+  assert.equal(callbacks, 0);
+});
+
+test('changed generated description assigns and signals exactly once', () => {
+  const category = { Description: 'Old text.' };
+  let callbacks = 0;
+  assert.equal(applyGeneratedDescriptionChange(category, 'New text.', () => callbacks++), true);
+  assert.equal(category.Description, 'New text.');
+  assert.equal(callbacks, 1);
 });
 
 test('renumber is a no-op for correct numeric values', () => {

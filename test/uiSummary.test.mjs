@@ -172,6 +172,13 @@ test('color editor schedules high-frequency sidebar renders and keeps immediate 
   assert.match(source, /picker\.oninput = e => \{[\s\S]*?markDirty\(\);[\s\S]*?scheduleRenderList\(\);[\s\S]*?\};/);
   assert.match(source, /alphaSlider\.oninput = e => \{[\s\S]*?markDirty\(\);[\s\S]*?scheduleRenderList\(\);[\s\S]*?\};/);
   assert.match(source, /function applyHexInput\(\) \{[\s\S]*?markDirtyAndRenderList\(\);[\s\S]*?return true;/);
+  assert.match(source, /let committedHex = canonicalHexRgba\(colorToHexRGBA\(cat\.Color\)\)/);
+  assert.match(source, /let committedRgb = colorToHex\(cat\.Color\)\.toUpperCase\(\)/);
+  assert.match(source, /let committedAlpha = componentTo255\(cat\.Color\.W\)/);
+  assert.match(source, /function updateColorVisuals\(\) \{[\s\S]*?committedHex = hex;[\s\S]*?committedRgb = picker\.value\.toUpperCase\(\);[\s\S]*?committedAlpha = a255;/);
+  assert.match(source, /picker\.oninput = e => \{[\s\S]*?decideRgbCommit\(e\.target\.value, committedRgb\)[\s\S]*?status !== 'valid-changed'[\s\S]*?hexToRgb01\(decision\.canonical\)/);
+  assert.match(source, /function applyHexInput\(\) \{[\s\S]*?decideHexRgbaCommit\(hexInput\.value, committedHex\)[\s\S]*?status === 'invalid'[\s\S]*?status === 'valid-no-change'[\s\S]*?hexToRgba01\(decision\.canonical\)/);
+  assert.match(source, /alphaSlider\.oninput = e => \{[\s\S]*?decideAlphaCommit\(e\.target\.value, committedAlpha\)[\s\S]*?status !== 'valid-changed'/);
 });
 
 test('icon and action controls have accessible labels', () => {
