@@ -57,11 +57,14 @@ test('defaultCategory uses max order for Order and Priority', () => {
   assert.match(category.Id, /^[0-9a-f]{32}$/);
 });
 
-test('nextCategorySortValue ignores non-finite imported Orders', () => {
-  const categories = [{ Order: 'not-a-number' }, { Order: 6 }, { Order: Number.POSITIVE_INFINITY }];
+test('nextCategorySortValue uses strict optional-number semantics while accepting numeric strings', () => {
+  const categories = [
+    { Order: 'not-a-number' }, { Order: 6 }, { Order: '8.5' }, { Order: Number.POSITIVE_INFINITY },
+    { Order: null }, { Order: ' ' }, { Order: false }, { Order: [] }, { Order: {} }
+  ];
 
-  assert.equal(nextCategorySortValue(categories), 7);
-  assert.deepEqual(categories, [{ Order: 'not-a-number' }, { Order: 6 }, { Order: Number.POSITIVE_INFINITY }]);
+  assert.equal(nextCategorySortValue(categories), 9.5);
+  assert.equal(categories[2].Order, '8.5');
 });
 
 test('ensureShape fills missing color and rule fields', () => {
@@ -117,6 +120,27 @@ test('validateConfig replaces scalar Color values without throwing', () => {
 
   assert.deepEqual(config.Categories[0].Color, { X: 1, Y: 1, Z: 1, W: 1 });
   assert.equal(result.repairs.filter(item => item.field === 'Color').length, 1);
+});
+
+test('validateConfig records one material repair for malformed Color components and preserves numeric precision', () => {
+  const precise = 0.123456789;
+  const config = { Categories: [{
+    Id: 'component-color',
+    Name: 'Component Color',
+    Color: { X: precise, Y: 'bad', Z: 0.75 },
+    Rules: {}
+  }] };
+
+  const result = validateConfig(config);
+  const repairs = result.repairs.filter(item => item.field === 'Color');
+
+  assert.deepEqual(config.Categories[0].Color, { X: precise, Y: 1, Z: 0.75, W: 1 });
+  assert.equal(repairs.length, 1);
+  assert.equal(repairs[0].material, true);
+  assert.equal(repairs[0].severity, 'warning');
+  assert.equal(repairs[0].showBeforeAfter, false);
+  assert.match(repairs[0].message, /components/);
+  assert.doesNotMatch(repairs[0].message, /missing or malformed and replaced with default RGBA values/);
 });
 
 test('getNormalizedAllowedRarities returns display rarities without mutating the category', () => {
@@ -184,6 +208,38 @@ test('sortImportedCategories sorts by Order, then Priority, name, and id', () =>
 
   assert.equal(sortImportedCategories(config), config);
   assert.deepEqual(config.Categories.map(category => category.Id), ['a', 'c', 'd', 'b']);
+});
+
+test('import sorting accepts numeric strings and places coercion-only sort values after valid values', () => {
+  const config = { Categories: [
+    { Id: 'null', Name: 'Null', Order: null, Priority: 0 },
+    { Id: 'blank', Name: 'Blank', Order: ' ', Priority: 0 },
+    { Id: 'boolean', Name: 'Boolean', Order: false, Priority: 0 },
+    { Id: 'array', Name: 'Array', Order: [], Priority: 0 },
+    { Id: 'decimal', Name: 'Decimal', Order: '-1.5', Priority: '+2' },
+    { Id: 'number', Name: 'Number', Order: 3, Priority: 0 }
+  ] };
+
+  sortImportedCategories(config);
+
+  assert.deepEqual(config.Categories.map(category => category.Id), ['decimal', 'number', 'array', 'blank', 'boolean', 'null']);
+  assert.equal(config.Categories[0].Order, '-1.5');
+  assert.equal(config.Categories[0].Priority, '+2');
+});
+
+test('validateConfig preserves accepted imported Order and Priority numeric strings', () => {
+  const config = { Categories: [{
+    Id: 'numeric-strings',
+    Name: 'Numeric Strings',
+    Order: '-1.25',
+    Priority: ' +3 ',
+    Rules: {}
+  }] };
+
+  validateConfig(config);
+
+  assert.equal(config.Categories[0].Order, '-1.25');
+  assert.equal(config.Categories[0].Priority, ' +3 ');
 });
 
 test('validateConfig mutates and normalizes valid configs without returning a legacy summary', () => {

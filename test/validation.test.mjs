@@ -35,6 +35,19 @@ test('shared category issue counts include errors and warnings but not notes', (
   assert.equal(getCategoryIssueCount(cleanCategory({ Order: 'not-finite' })), 1);
 });
 
+test('Order and Priority validation rejects coercion-only values but accepts numeric strings', () => {
+  for (const value of [null, undefined, '', ' ', true, false, [], {}, 'not-a-number', Infinity]) {
+    const category = cleanCategory({ Order: value });
+    assert.equal(analyzeImportedConfig({ Categories: [category] }).findings.some(item => item.field === 'Order'), true);
+  }
+
+  for (const value of ['-2.5', ' +3 ', 4.25]) {
+    const category = cleanCategory({ Order: value, Priority: value });
+    const findings = analyzeImportedConfig({ Categories: [category] }).findings;
+    assert.equal(findings.some(item => item.field === 'Order' || item.field === 'Priority'), false);
+  }
+});
+
 test('shared category issue counts handle sort-position duplicates only for matching pairs', () => {
   const sameOrder = [
     cleanCategory({ Id: 'a', Order: 1, Priority: 1 }),
@@ -178,6 +191,16 @@ test('duplicate Order and Priority pair creates one grouped import summary warni
   assert.match(sortFindings[0].message, /Meals/);
   assert.equal(sortFindings[0].categoryName, '');
   assert.doesNotMatch(sortFindings[0].message, /^Duplicate sort position: Order 1 \/ Priority 1\.$/);
+});
+
+test('duplicate sort grouping ignores coercion-only values', () => {
+  for (const value of [null, '', ' ', false, [], {}]) {
+    const findings = groupedDuplicateSortPositionFindings([
+      cleanCategory({ Id: 'a', Name: 'A', Order: value, Priority: value }),
+      cleanCategory({ Id: 'b', Name: 'B', Order: value, Priority: value })
+    ]);
+    assert.deepEqual(findings, []);
+  }
 });
 
 

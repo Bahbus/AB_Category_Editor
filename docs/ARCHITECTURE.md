@@ -27,37 +27,40 @@ Primary layers:
 5. **Shared row-ID semantics**
    - `src/rowIds.js`
 
-6. **Import/export and clipboard/download**
+6. **Shared optional-number semantics**
+   - `src/optionalNumbers.js`
+
+7. **Import/export and clipboard/download**
    - `src/importExport.js`
 
-7. **XIVAPI and lookup**
+8. **XIVAPI and lookup**
    - `src/xivapi.js`
    - `src/lookupNames.js`
 
-8. **UI rendering**
+9. **UI rendering**
    - `src/ui/categoryList.js`
    - `src/ui/categoryEditor.js`
    - `src/ui/listEditor.js`
    - `src/ui/formControls.js`
    - modal-specific UI modules
 
-9. **Modal infrastructure**
+10. **Modal infrastructure**
    - `src/modals.js`
 
-10. **Persistent state**
+11. **Persistent state**
    - `src/state.js`
 
-11. **Tools**
+12. **Tools**
    - `src/tools/regexToItemIds.js`
 
-12. **Description generation**
+13. **Description generation**
    - `src/descriptionGenerator.js`
 
-13. **Static assets and layout**
+14. **Static assets and layout**
    - `index.html`
    - `styles.css`
 
-14. **Tests and guardrails**
+15. **Tests and guardrails**
    - `test/*.test.mjs`
    - `scripts/check-imports.mjs`
    - source checks in `test/sourceChecks.test.mjs`
@@ -112,7 +115,7 @@ This avoids unnecessary rerenders and focus disruption.
 
 Full Raw JSON compares the final validated, repaired, normalized, and sorted candidate before destructive confirmation. An identical result closes the editor and reports validation/repair context without replacing data, resetting selection, changing dirty state, or launching automatic lookup.
 
-Phase 40 was merged at `478545235debae9a1dc064b972acc2181cd5a0e1`. Phase 40.1 was merged at `beda975e087bd012f33270b7f1574c6822340bda`; it routes the finalized candidate through `configValidationSummaryText(...)`, so both changed and no-op paths report `validation.config.Categories.length` while replacement remains after confirmation. The Phase 40 change-decision and no-op boundaries are otherwise unchanged. Phase 41 was merged at `2926dc35dbda24fa07beb5b92477feeea47ea23f`.
+Phase 40 was merged at `478545235debae9a1dc064b972acc2181cd5a0e1`. Phase 40.1 was merged at `beda975e087bd012f33270b7f1574c6822340bda`; it routes the finalized candidate through `configValidationSummaryText(...)`, so both changed and no-op paths report `validation.config.Categories.length` while replacement remains after confirmation. The Phase 40 change-decision and no-op boundaries are otherwise unchanged. Phase 41 was merged at `2926dc35dbda24fa07beb5b92477feeea47ea23f`. Phase 42 was merged at `ab8997ae53b1136fab56b445fa3c811cf0bd25a9`.
 
 Category drag/drop uses only application-owned source state established by `dragstart`. `text/plain` remains optional browser metadata and is never authoritative. `dragover` does not enable a target or alter indicators until the active source is a finite in-range integer. Drop decisions delegate to the identity-aware helper, so adjacent and same-target no-ops have no structural side effects; real changes select the moved object and then apply optional renumbering, one dirty transition, and one structural render.
 
@@ -120,9 +123,9 @@ Category drag/drop uses only application-owned source state established by `drag
 
 `src/lookupCacheOperations.js` owns a private active-producer count and issues idempotent release leases. `src/app.js` passes only the narrow acquire function into list-editor and regex-tool dependencies rather than exposing application globals.
 
-Long-lived leases cover referenced-ID batch lookup, per-list batch lookup, and Regex → Item IDs sheet scanning. Each producer releases its lease in `finally`, including failure and scan cancellation. Overlapping leases are independent and coexist with the busy overlay's own nested counting.
+Long-lived leases cover referenced-ID batch lookup, per-list batch lookup, manual XIVAPI search, and Regex → Item IDs sheet scanning. Each asynchronous producer releases its lease in `finally`, including success, empty or unusable results, failure, and scan cancellation. Overlapping leases are independent and coexist with the busy overlay's own nested counting.
 
-The Lookup Cache modal observes active state, disables clearing with visible explanatory text, and the application re-checks the same state at the clear boundary. This prevents replacement of the cache object while asynchronous producers still hold it. Synchronous manual-search additions do not acquire a lease.
+The Lookup Cache modal observes active state, disables clearing with visible explanatory text, and the application re-checks the same state at the clear boundary. This prevents replacement of the cache object while asynchronous producers still hold it.
 
 ---
 
@@ -154,6 +157,7 @@ Important rule:
 
 - Invalid individual numeric IDs inside valid arrays are preserved and warned, not silently removed.
 - Category entries themselves must be JSON objects; `null`, arrays, and scalar entries fail validation rather than being repaired into categories.
+- Plain Color objects are snapshotted by value before normalization. Missing or non-number components are repaired to defaults with one material, reviewable Color warning; valid numeric components, including higher-precision values, remain exact. Malformed whole Color values retain separate repair messaging.
 
 ---
 
@@ -171,6 +175,8 @@ Important rule:
 - duplicate-list detection,
 - invalid row-ID detection,
 - issue counts.
+
+Order/Priority decisions use `src/optionalNumbers.js`. They accept finite numbers and non-empty finite numeric strings, while rejecting nullish, blank, boolean, array, object, non-numeric, and non-finite values. Validation, duplicate grouping, import sorting, next-sort calculation, and category duplication share this interpretation; accepted imported strings are preserved until explicit Renumber.
 
 ### Grouped duplicate sort positions
 
@@ -353,6 +359,7 @@ Do not decrement shared busy state for an operation that returned before `showBu
 - unchanged blur does not call `onChange()`,
 - reversed range is preserved but warned,
 - sliders and numeric inputs remain synchronized,
+- same-value live number, blur, and slider events do not mutate or notify; a real change mutates once and notifies once,
 - reversed or non-finite ranges expose their validation message to both numeric inputs through `aria-describedby`; valid ranges remove that association.
 
 ---
@@ -498,6 +505,8 @@ Future localization preferences should integrate here rather than inventing sepa
 - raw import parsing.
 
 Clipboard fallback must remove temporary textarea nodes in `finally`.
+
+A generated export shown in the modal counts as exported before automatic clipboard work begins. This ordering prevents an older clipboard promise from clearing dirty state after a newer edit while retaining clipboard fallback behavior.
 
 Browser support errors should be explicit for missing `CompressionStream`/`DecompressionStream`.
 

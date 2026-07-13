@@ -227,6 +227,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     searchButton.onclick = async () => {
       const query = searchInput.value.trim();
       if (!query) return;
+      const releaseLookupCacheProducer = acquireLookupCacheProducer();
 
       try {
         searchButton.disabled = true;
@@ -282,6 +283,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         resultsBox.innerHTML = '';
         setStatus(err.message, 'err');
       } finally {
+        releaseLookupCacheProducer();
         searchButton.disabled = false;
       }
     };

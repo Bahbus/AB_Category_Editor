@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 import { RARITIES } from '../src/constants.js';
-import { STATE_FILTER_OPTIONS, rangeSliderBounds, stateFilterLabel } from '../src/ui/formControls.js';
+import { applyRangeValueChange, decideRangeValueChange, STATE_FILTER_OPTIONS, rangeSliderBounds, stateFilterLabel } from '../src/ui/formControls.js';
 
 test('rarity labels hide internal numeric values', () => {
   assert.deepEqual(RARITIES.map(rarity => rarity.label), ['Common', 'Uncommon', 'Rare', 'Relic', 'Aetherial']);
@@ -28,6 +28,30 @@ test('rangeSliderBounds includes current values without clamping unusual imports
   assert.deepEqual(rangeSliderBounds(-50, 500, { min: 0, max: 100 }), { min: -50, max: 500 });
   assert.deepEqual(rangeSliderBounds(25, 10, { min: 0, max: 20 }), { min: 0, max: 25 });
   assert.deepEqual(rangeSliderBounds(5, 5, { min: 5, max: 5 }), { min: 5, max: 6 });
+});
+
+test('range value decisions distinguish invalid, unchanged, and changed values', () => {
+  assert.deepEqual(decideRangeValueChange(10, NaN), { valid: false, changed: false, value: 10 });
+  assert.deepEqual(decideRangeValueChange(10, 10), { valid: true, changed: false, value: 10 });
+  assert.deepEqual(decideRangeValueChange(10, 11), { valid: true, changed: true, value: 11 });
+});
+
+test('range value application is a no-op for same values and notifies once for a real change', () => {
+  const range = { Min: 10, Max: 20 };
+  let notifications = 0;
+  const notify = () => { notifications++; };
+
+  assert.equal(applyRangeValueChange(range, 'Min', 10, notify), false);
+  assert.deepEqual(range, { Min: 10, Max: 20 });
+  assert.equal(notifications, 0);
+
+  assert.equal(applyRangeValueChange(range, 'Min', 12, notify), true);
+  assert.deepEqual(range, { Min: 12, Max: 20 });
+  assert.equal(notifications, 1);
+
+  assert.equal(applyRangeValueChange(range, 'Min', 12, notify), false);
+  assert.deepEqual(range, { Min: 12, Max: 20 });
+  assert.equal(notifications, 1);
 });
 
 

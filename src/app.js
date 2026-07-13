@@ -436,7 +436,8 @@ function bindAppEvents() {
       const wrap = document.createElement('div');
       wrap.innerHTML = `<p class="hint">Current gzip+Base64 export. This was automatically copied to your clipboard if the browser allowed it.</p><div id="exportError" class="modal-error hidden" role="alert"></div><textarea id="exportText" class="raw" readonly>${escapeHtml(b64)}</textarea><div class="row modal-action-row"><button id="copyExportAgain" class="primary">Copy again</button></div><p class="hint" id="exportCopyStatus"></p>`;
       openModal('Export / Copy', wrap);
-      const copied = await copyTextToClipboard(b64); markSaved('Exported');
+      markSaved('Exported');
+      const copied = await copyTextToClipboard(b64);
       const exportCopyStatus = requireScopedEl(wrap, '#exportCopyStatus', 'export');
       const exportText = requireScopedEl(wrap, '#exportText', 'export');
       const copyExportAgain = requireScopedEl(wrap, '#copyExportAgain', 'export');

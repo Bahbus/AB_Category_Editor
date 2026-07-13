@@ -711,7 +711,7 @@ Confirmed defects:
 - native RGB and alpha same-display events could likewise quantize model data and falsely dirty,
 - replacing an identical deterministic generated description assigned and dispatched input despite no JSON-value change.
 
-Phase 42 resolution on `agent/phase-42-color-description-noop-fidelity`:
+Phase 42 resolution, merged at `ab8997ae53b1136fab56b445fa3c811cf0bd25a9`:
 
 - DOM-free color helpers canonicalize Hex RGBA to uppercase `#RRGGBBAA` and return explicit invalid, valid-no-change, or valid-changed decisions,
 - picker and alpha decisions compare against the current displayed RGB and byte snapshots instead of round-tripping model precision,
@@ -728,6 +728,32 @@ Validation actually run:
 - `git diff --check` passed,
 - browser QA and CI were not run.
 
+## Post-Phase-42 review and Phase 43
+
+Confirmed defects:
+
+- plain Color component normalization mutated the same snapshotted object and therefore produced no repair record,
+- Order/Priority validation, duplicate grouping, sorting, and next-sort calculations accepted coercion-only values through `Number(value)`,
+- manual XIVAPI search did not participate in cache-producer coordination while it awaited and then wrote cache results,
+- range number live input and sliders notified on same-value events,
+- export awaited automatic clipboard copy before marking the generated snapshot saved, allowing an older completion to clear dirty state after a newer edit.
+
+Phase 43 resolution on `agent/phase-43-import-async-dirty-integrity`:
+
+- plain Color objects are snapshotted by value and component normalization emits one material warning without quantizing valid numeric components; malformed whole values keep distinct messaging,
+- a shared strict optional-number helper accepts finite numbers and non-empty finite numeric strings, rejects coercion-only values, and is used consistently by validation, duplicate grouping, import sorting, next-sort calculation, and category duplication,
+- manual searches acquire the application-owned producer lease before the network await and release exactly once in `finally` across success, empty, unusable, and error exits,
+- directly tested range decisions and application wiring make same-value number and slider events no-ops, real changes notify once, and the following blur remains a no-op,
+- the generated export snapshot is marked saved after the modal opens and before automatic clipboard work is awaited,
+- unused local summary imports were removed without changing public re-exports.
+
+Validation actually run:
+
+- focused regression tests passed: 138 tests across the touched configuration, validation, range-control, optional-number, and source-check files,
+- `npm run check` passed: JavaScript syntax check, static relative-import check, and all 22 test files (298 tests),
+- `git diff --check` passed,
+- browser QA and CI were not run.
+
 # Current next step
 
-Review Phase 42 locally. Publish it only when requested; after merge, perform the next post-merge review before defining another implementation phase.
+Review Phase 43 locally. Publish it only when requested; after merge, perform the next post-merge review before defining another implementation phase.

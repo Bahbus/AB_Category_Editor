@@ -1,5 +1,6 @@
 import { ALLOWED_RARITY_IDS, RANGE_FILTERS, RANGE_FILTER_KEYS, STATE_FILTERS, STATE_FILTER_KEYS } from './constants.js';
 import { invalidRowIds, normalizeRowIdValue } from './rowIds.js';
+import { optionalFiniteNumber } from './optionalNumbers.js';
 
 const VALID_STATE_VALUES = new Set([0, 1, 2]);
 const RANGE_FILTER_LABELS = Object.fromEntries(RANGE_FILTERS.map(filter => [filter.key, filter.label]));
@@ -12,8 +13,6 @@ function label(category, index = null) {
   return Number.isInteger(index) ? `Category ${index + 1}` : '(unnamed category)';
 }
 function rulesOf(category) { return category?.Rules && typeof category.Rules === 'object' ? category.Rules : {}; }
-function isFiniteValue(value) { return Number.isFinite(Number(value)); }
-
 export function isIssueFinding(item) {
   return item?.severity === 'error' || item?.severity === 'warning';
 }
@@ -27,7 +26,7 @@ export function validateCategoryName(category) {
 }
 
 function validateFiniteNumber(category, key) {
-  if (!isFiniteValue(category?.[key])) return [finding('error', key, `${key} must be a finite number.`)];
+  if (optionalFiniteNumber(category?.[key]) === null) return [finding('error', key, `${key} must be a finite number.`)];
   return [];
 }
 
@@ -35,15 +34,13 @@ export function validateCategoryOrder(category) { return validateFiniteNumber(ca
 export function validateCategoryPriority(category) { return validateFiniteNumber(category, 'Priority'); }
 
 export function validateCategorySortPosition(category, allCategories = []) {
-  if (!isFiniteValue(category?.Order) || !isFiniteValue(category?.Priority)) return [];
-  const order = Number(category.Order);
-  const priority = Number(category.Priority);
+  const order = optionalFiniteNumber(category?.Order);
+  const priority = optionalFiniteNumber(category?.Priority);
+  if (order === null || priority === null) return [];
   const dupes = (allCategories || []).filter(other => (
     other !== category
-    && isFiniteValue(other?.Order)
-    && isFiniteValue(other?.Priority)
-    && Number(other.Order) === order
-    && Number(other.Priority) === priority
+    && optionalFiniteNumber(other?.Order) === order
+    && optionalFiniteNumber(other?.Priority) === priority
   ));
   return dupes.length ? [finding('warning', 'SortPosition', `Duplicate sort position: Order ${order} / Priority ${priority}.`)] : [];
 }
@@ -52,9 +49,9 @@ export function validateCategorySortPosition(category, allCategories = []) {
 export function groupedDuplicateSortPositionFindings(categories = []) {
   const groups = new Map();
   for (const [index, category] of (categories || []).entries()) {
-    if (!isFiniteValue(category?.Order) || !isFiniteValue(category?.Priority)) continue;
-    const order = Number(category.Order);
-    const priority = Number(category.Priority);
+    const order = optionalFiniteNumber(category?.Order);
+    const priority = optionalFiniteNumber(category?.Priority);
+    if (order === null || priority === null) continue;
     const key = `${order}:${priority}`;
     const group = groups.get(key) || { order, priority, names: [] };
     group.names.push(label(category, index));
@@ -158,8 +155,10 @@ function duplicateFindings(values, field, labelText) {
 }
 
 function sortPositionKey(category) {
-  if (!isFiniteValue(category?.Order) || !isFiniteValue(category?.Priority)) return '';
-  return `${Number(category.Order)}:${Number(category.Priority)}`;
+  const order = optionalFiniteNumber(category?.Order);
+  const priority = optionalFiniteNumber(category?.Priority);
+  if (order === null || priority === null) return '';
+  return `${order}:${priority}`;
 }
 
 function getCategoryIssueCountWithoutSortPosition(category) {
