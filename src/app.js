@@ -17,6 +17,7 @@ import { analyzeImportedConfig, countFindings } from './validation.js';
 import { PRESETS } from './presets.js';
 import { createLookupCacheOperationCoordinator, clearLookupCacheIfIdle } from './lookupCacheOperations.js';
 import { applyFullConfigCandidate, renumberCategories as applyCategoryRenumber, sortCategoriesPreservingSelection } from './categoryChanges.js';
+import { makeRevisionedExportSnapshot, saveSnapshotIfCurrent } from './exportSnapshots.js';
 import {
   reviewableImportRepairs,
   reviewableImportFindings,
@@ -30,6 +31,7 @@ import {
 let data = JSON.parse(JSON.stringify(INITIAL_DATA));
 let selectedIndex = -1;
 let dirty = false;
+let dataRevision = 0;
 let draggedIndex = null;
 let lookupCache = loadLookupCache();
 let editorPreferences = loadEditorPreferences();
@@ -69,6 +71,7 @@ function defaultCategory() {
 }
 function renumberCategories() { return applyCategoryRenumber(getCategories()); }
 function markDirty(options = {}) {
+  dataRevision += 1;
   dirty = true;
   setSaveState('Changes not exported', 'warn');
   if (options.renderList) renderList();
@@ -432,11 +435,16 @@ function bindAppEvents() {
     showBusy('Generating export', 'Compressing JSON to gzip+Base64...', null);
     let busyShown = true;
     try {
-      const b64 = await makeBase64Export(data); hideBusy(); busyShown = false;
+      const snapshot = await makeRevisionedExportSnapshot(data, () => dataRevision, makeBase64Export);
+      const b64 = snapshot.value;
+      hideBusy(); busyShown = false;
       const wrap = document.createElement('div');
       wrap.innerHTML = `<p class="hint">Current gzip+Base64 export. This was automatically copied to your clipboard if the browser allowed it.</p><div id="exportError" class="modal-error hidden" role="alert"></div><textarea id="exportText" class="raw" readonly>${escapeHtml(b64)}</textarea><div class="row modal-action-row"><button id="copyExportAgain" class="primary">Copy again</button></div><p class="hint" id="exportCopyStatus"></p>`;
       openModal('Export / Copy', wrap);
-      markSaved('Exported');
+      saveSnapshotIfCurrent(snapshot.revision, dataRevision, {
+        onSaved: () => markSaved('Exported'),
+        onStale: () => { if (dirty) setStatus('Generated export snapshot succeeded, but newer changes remain unexported.', 'warn'); }
+      });
       const copied = await copyTextToClipboard(b64);
       const exportCopyStatus = requireScopedEl(wrap, '#exportCopyStatus', 'export');
       const exportText = requireScopedEl(wrap, '#exportText', 'export');
@@ -455,7 +463,15 @@ function bindAppEvents() {
     commitActiveField();
     if (getCategories().length === 0) { updateExportControls(); setStatus('Add or import at least one category before downloading.', 'warn'); return; }
     showBusy('Generating download', 'Compressing JSON to gzip+Base64...', null);
-    try { downloadText(EXPORT_FILENAME, await makeBase64Export(data), 'text/plain', { onDownloaded(filename) { markSaved('Downloaded'); setStatus(`Downloaded ${filename}`, 'ok'); } }); }
+    try {
+      const snapshot = await makeRevisionedExportSnapshot(data, () => dataRevision, makeBase64Export);
+      downloadText(EXPORT_FILENAME, snapshot.value, 'text/plain', { onDownloaded(filename) {
+        saveSnapshotIfCurrent(snapshot.revision, dataRevision, {
+          onSaved() { markSaved('Downloaded'); setStatus(`Downloaded ${filename}`, 'ok'); },
+          onStale() { if (dirty) setStatus(`Downloaded ${filename}, but newer changes remain unexported.`, 'warn'); }
+        });
+      } });
+    }
     catch (err) { setStatus(errorMessage('Download failed', err), 'err'); }
     finally { hideBusy(); }
   });

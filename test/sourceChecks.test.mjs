@@ -310,11 +310,11 @@ test('number input blank blur restores previous value instead of committing zero
   const blurBlock = numberBlock.match(/input\.onblur = e => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
 
   assert.match(blurBlock, /String\(e\.target\.value\)\.trim\(\) === ''/);
-  assert.match(blurBlock, /e\.target\.value = String\(lastCommitted\);/);
-  assert.match(blurBlock, /setValidation\(options\.validate \? options\.validate\(lastCommitted\) : \[\]\);/);
+  assert.match(blurBlock, /restoreCommittedValue\(\);/);
+  assert.match(numberBlock, /options\.validate\(committed\.jsonValue\)/);
 
   const blankIndex = blurBlock.indexOf("String(e.target.value).trim() === ''");
-  const commitIndex = blurBlock.indexOf('commitValue(next)');
+  const commitIndex = blurBlock.indexOf('commitInput(e.target.value, { min, max })');
   assert.ok(blankIndex !== -1);
   assert.ok(commitIndex !== -1);
   assert.ok(blankIndex < commitIndex, 'blank restore should run before commitValue');
@@ -495,16 +495,35 @@ test('automatic lookup and export failures release only their own busy operation
   assert.match(exportHandler, /if \(busyShown\) hideBusy\(\);/);
 });
 
-test('export marks the generated snapshot saved before awaiting automatic clipboard copy', () => {
+test('export guards the generated snapshot before awaiting automatic clipboard copy', () => {
   const app = read('src/app.js');
   const handler = app.match(/bindClick\('showExportCopy', async \(\) => \{(?<body>[\s\S]*?)\n  \}\);/)?.groups.body ?? '';
   const openIndex = handler.indexOf("openModal('Export / Copy', wrap)");
-  const savedIndex = handler.indexOf("markSaved('Exported')");
+  const savedIndex = handler.indexOf('saveSnapshotIfCurrent(snapshot.revision, dataRevision');
   const clipboardIndex = handler.indexOf('await copyTextToClipboard(b64)');
 
   assert.ok(openIndex !== -1 && savedIndex !== -1 && clipboardIndex !== -1);
   assert.ok(openIndex < savedIndex, 'the generated export must be shown before it counts as exported');
   assert.ok(savedIndex < clipboardIndex, 'saved state must not be cleared after the clipboard await');
+  assert.doesNotMatch(handler.slice(clipboardIndex), /markSaved\(|saveSnapshotIfCurrent\(/);
+});
+
+test('dirty revisions guard both asynchronous export snapshot completion paths', () => {
+  const app = read('src/app.js');
+  const snapshots = read('src/exportSnapshots.js');
+  const markDirty = app.match(/function markDirty\(options = \{\}\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
+  const exportHandler = app.match(/bindClick\('showExportCopy', async \(\) => \{(?<body>[\s\S]*?)\n  \}\);/)?.groups.body ?? '';
+  const downloadHandler = app.match(/bindClick\('downloadBase64', async \(\) => \{(?<body>[\s\S]*?)\n  \}\);/)?.groups.body ?? '';
+
+  assert.match(app, /let dataRevision = 0;/);
+  assert.match(markDirty, /dataRevision \+= 1;/);
+  assert.match(snapshots, /const revision = getRevision\(\);\s*const value = await makeSnapshot\(data\);/);
+  for (const handler of [exportHandler, downloadHandler]) {
+    assert.match(handler, /makeRevisionedExportSnapshot\(data, \(\) => dataRevision, makeBase64Export\)/);
+    assert.match(handler, /saveSnapshotIfCurrent\(snapshot\.revision, dataRevision/);
+  }
+  assert.match(exportHandler, /newer changes remain unexported\./);
+  assert.match(downloadHandler, /newer changes remain unexported\./);
 });
 
 test('lookup cache modal displays useful and unresolved cache stats', () => {
@@ -683,9 +702,10 @@ test('number blur handlers avoid unchanged dirty commits', () => {
   const numberBlock = source.match(/export function numberInput[\s\S]*?\n}\n\nexport function textInput/)?.[0] ?? '';
   const rangeCommitBlock = source.match(/function commitNumber\(key, input\) \{[\s\S]*?\n  }\n  function commitFiniteNumberInput/)?.[0] ?? '';
 
-  assert.match(numberBlock, /let lastCommitted = Number\(value\) \|\| 0;/);
-  assert.match(numberBlock, /Object\.is\(next, lastCommitted\)/);
-  assert.doesNotMatch(numberBlock, /input\.onblur[\s\S]*?onChange\(next\);/);
+  assert.match(numberBlock, /let committed = createNumberCommitState\(value, input\.value\);/);
+  assert.match(numberBlock, /applyNumberCommit\(committed, rawValue, onChange, bounds\)/);
+  assert.match(numberBlock, /options\.validate\(committed\.jsonValue\)/);
+  assert.doesNotMatch(numberBlock, /Number\(value\) \|\| 0/);
   assert.match(rangeCommitBlock, /applyRangeValueChange\(rangeObj, key, next, onChange\)/);
   assert.doesNotMatch(rangeCommitBlock, /rangeObj\[key\] = next/);
 });

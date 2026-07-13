@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 42 is merged at `ab8997ae53b1136fab56b445fa3c811cf0bd25a9`. Its post-merge review confirmed import-repair, strict sort-number, manual-search cache coordination, range no-op, and export saved-state defects; Phase 43 resolves them on `agent/phase-43-import-async-dirty-integrity` and is locally validated but not published or browser-tested.
+> **Current state:** Phase 43 is merged at `1790f13b9ed26b23de4cabea3fe9387a11990936`. Its post-merge review confirmed asynchronous export-snapshot save-state and invalid number-control fallback defects; Phase 44 resolves them on `agent/phase-44-export-snapshot-number-fidelity` and is locally validated but not published, browser-tested, or CI-validated.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -312,6 +312,30 @@ These became Phase 43.
 - Export marks the generated snapshot saved immediately after opening the export modal and before awaiting automatic clipboard work.
 - Unused local `rangeFiltersSummary` and `stateFiltersSummary` imports were removed while public re-exports remain.
 - `npm run check` passed: syntax check, static relative-import check, and all 22 test files (298 tests).
+- `git diff --check` passed.
+- Browser QA and CI were not run.
+
+Phase 43 was merged at `1790f13b9ed26b23de4cabea3fe9387a11990936`.
+
+### Post-Phase-43 deep review
+
+Confirmed two integrity defects:
+
+- Export/Copy and Download snapshotted JSON before asynchronous gzip work but later cleared dirty state unconditionally, so edits made during compression could be absent from the generated snapshot yet marked saved.
+- Order/Priority controls initialized committed fallback state with `Number(value) || 0`, so blank blur after an invalid import could validate a synthetic zero while leaving the invalid JSON value unchanged.
+
+These became Phase 44.
+
+### Phase 44
+
+- Every real dirty transition advances a monotonic data revision, including edits made while the document is already dirty.
+- Export/Copy and Download capture the current revision immediately before snapshot generation and call the saved-state transition only when that revision remains current after compression.
+- Stale snapshot completions retain dirty state and report that the generated or downloaded snapshot succeeded while newer changes remain unexported; overlapping or out-of-order completions cannot save a newer revision incorrectly.
+- Export/Copy retains the Phase 43 boundary: the modal opens before a current snapshot is marked saved, and automatic clipboard completion has no save-state authority.
+- Number-control commit state retains the original JSON value, its strict `optionalFiniteNumber(...)` interpretation, and displayed-input divergence. Invalid imported values remain untouched and validated from the original value on blank or non-committing blur; one deliberate finite edit replaces the invalid value once.
+- Valid finite values and accepted numeric strings preserve numeric no-op behavior, blank restore, and min/max clamping without rewriting an unchanged numeric string in the model.
+- Focused regression tests passed: 77 tests across export snapshot, form-control, and source-wiring coverage.
+- `npm run check` passed: syntax check, static relative-import check, and all 23 test files (307 tests).
 - `git diff --check` passed.
 - Browser QA and CI were not run.
 

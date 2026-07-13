@@ -32,6 +32,7 @@ Primary layers:
 
 7. **Import/export and clipboard/download**
    - `src/importExport.js`
+   - `src/exportSnapshots.js`
 
 8. **XIVAPI and lookup**
    - `src/xivapi.js`
@@ -74,6 +75,7 @@ Primary layers:
 - current config data,
 - selected category index,
 - dirty state,
+- monotonic data revision for asynchronous snapshot authority,
 - dragged category index,
 - lookup cache,
 - active lookup-cache producer coordination,
@@ -115,7 +117,7 @@ This avoids unnecessary rerenders and focus disruption.
 
 Full Raw JSON compares the final validated, repaired, normalized, and sorted candidate before destructive confirmation. An identical result closes the editor and reports validation/repair context without replacing data, resetting selection, changing dirty state, or launching automatic lookup.
 
-Phase 40 was merged at `478545235debae9a1dc064b972acc2181cd5a0e1`. Phase 40.1 was merged at `beda975e087bd012f33270b7f1574c6822340bda`; it routes the finalized candidate through `configValidationSummaryText(...)`, so both changed and no-op paths report `validation.config.Categories.length` while replacement remains after confirmation. The Phase 40 change-decision and no-op boundaries are otherwise unchanged. Phase 41 was merged at `2926dc35dbda24fa07beb5b92477feeea47ea23f`. Phase 42 was merged at `ab8997ae53b1136fab56b445fa3c811cf0bd25a9`.
+Phase 40 was merged at `478545235debae9a1dc064b972acc2181cd5a0e1`. Phase 40.1 was merged at `beda975e087bd012f33270b7f1574c6822340bda`; it routes the finalized candidate through `configValidationSummaryText(...)`, so both changed and no-op paths report `validation.config.Categories.length` while replacement remains after confirmation. The Phase 40 change-decision and no-op boundaries are otherwise unchanged. Phase 41 was merged at `2926dc35dbda24fa07beb5b92477feeea47ea23f`. Phase 42 was merged at `ab8997ae53b1136fab56b445fa3c811cf0bd25a9`. Phase 43 was merged at `1790f13b9ed26b23de4cabea3fe9387a11990936`.
 
 Category drag/drop uses only application-owned source state established by `dragstart`. `text/plain` remains optional browser metadata and is never authoritative. `dragover` does not enable a target or alter indicators until the active source is a finite in-range integer. Drop decisions delegate to the identity-aware helper, so adjacent and same-target no-ops have no structural side effects; real changes select the moved object and then apply optional renumbering, one dirty transition, and one structural render.
 
@@ -349,7 +351,11 @@ Do not decrement shared busy state for an operation that returned before `showBu
 - unchanged blur does not dirty,
 - blank blur restores last committed value,
 - min/max clamping remains functional,
-- validation refreshes even on restore.
+- validation refreshes even on restore,
+- committed state keeps the original JSON value separate from its strict finite-number interpretation,
+- accepted numeric strings remain unchanged in the model on numeric no-ops,
+- invalid imported nullish, blank, boolean, array, object, and nonnumeric values remain untouched and visibly invalid on blank or non-committing blur,
+- one deliberate finite edit replaces an invalid committed value once and refreshes validation from the corrected model value.
 
 ### Range input contract
 
@@ -504,9 +510,13 @@ Future localization preferences should integrate here rather than inventing sepa
 - base64 conversion,
 - raw import parsing.
 
+`src/exportSnapshots.js` owns DOM-free revision capture and snapshot-current save decisions.
+
 Clipboard fallback must remove temporary textarea nodes in `finally`.
 
-A generated export shown in the modal counts as exported before automatic clipboard work begins. This ordering prevents an older clipboard promise from clearing dirty state after a newer edit while retaining clipboard fallback behavior.
+Every real `markDirty(...)` call advances the application data revision even when the document is already dirty. Export/Copy and Download capture that revision immediately before `makeBase64Export(...)` snapshots the data. After compression, only a matching current revision may call the saved-state transition; stale completions retain dirty state and report that newer changes remain unexported. This also prevents overlapping or out-of-order snapshot work from saving a newer revision incorrectly.
+
+A current generated export shown in the modal counts as exported before automatic clipboard work begins. Clipboard success or failure never decides save state, preserving the Phase 43 ordering while the revision guard covers edits made during compression.
 
 Browser support errors should be explicit for missing `CompressionStream`/`DecompressionStream`.
 
