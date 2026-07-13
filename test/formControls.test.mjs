@@ -4,7 +4,16 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
 import { RARITIES } from '../src/constants.js';
-import { applyRangeValueChange, decideRangeValueChange, STATE_FILTER_OPTIONS, rangeSliderBounds, stateFilterLabel } from '../src/ui/formControls.js';
+import { validateCategoryOrder } from '../src/validation.js';
+import {
+  applyNumberCommit,
+  applyRangeValueChange,
+  createNumberCommitState,
+  decideRangeValueChange,
+  STATE_FILTER_OPTIONS,
+  rangeSliderBounds,
+  stateFilterLabel
+} from '../src/ui/formControls.js';
 
 test('rarity labels hide internal numeric values', () => {
   assert.deepEqual(RARITIES.map(rarity => rarity.label), ['Common', 'Uncommon', 'Rare', 'Relic', 'Aetherial']);
@@ -54,6 +63,69 @@ test('range value application is a no-op for same values and notifies once for a
   assert.equal(notifications, 1);
 });
 
+test('number commit state preserves valid JSON values and accepted numeric strings on numeric no-ops', () => {
+  for (const value of [0, 12.5, -3, '0', '0012', '  +7  ']) {
+    let commits = 0;
+    const state = createNumberCommitState(value, String(value));
+    const decision = applyNumberCommit(state, String(state.numberValue), () => { commits++; });
+    assert.equal(decision.inputValid, true);
+    assert.equal(decision.changed, false);
+    assert.strictEqual(decision.state.jsonValue, value);
+    assert.equal(commits, 0);
+  }
+});
+
+test('invalid committed number values stay untouched on blank and non-committing input', () => {
+  const cases = [null, undefined, '', '   ', true, false, [], [1], {}, 'nope'];
+  for (const value of cases) {
+    const displayed = Array.isArray(value) && value.length === 1 ? String(value[0]) : '';
+    let commits = 0;
+    const initial = createNumberCommitState(value, displayed);
+    const blank = applyNumberCommit(initial, '', () => { commits++; });
+    const unchangedDisplay = applyNumberCommit(initial, displayed, () => { commits++; });
+
+    assert.equal(blank.changed, false);
+    assert.strictEqual(blank.state.jsonValue, value);
+    assert.equal(unchangedDisplay.changed, false);
+    assert.strictEqual(unchangedDisplay.state.jsonValue, value);
+    assert.equal(commits, 0);
+  }
+});
+
+test('a deliberate finite correction replaces an invalid number once and makes later blur a no-op', () => {
+  const invalid = { preserved: true };
+  const category = { Order: invalid };
+  let commits = 0;
+  let committedValue = invalid;
+  assert.equal(validateCategoryOrder(category).length, 1);
+  const first = applyNumberCommit(createNumberCommitState(invalid, ''), '42', value => {
+    commits++;
+    committedValue = value;
+    category.Order = value;
+  });
+  const blur = applyNumberCommit(first.state, '42', () => { commits++; });
+
+  assert.equal(first.changed, true);
+  assert.equal(first.state.numberValue, 42);
+  assert.equal(committedValue, 42);
+  assert.deepEqual(validateCategoryOrder(category), []);
+  assert.equal(blur.changed, false);
+  assert.equal(commits, 1);
+});
+
+test('editing away from an invalid numeric-looking array makes a same-display finite correction deliberate', () => {
+  const invalid = [1];
+  let commits = 0;
+  const initial = createNumberCommitState(invalid, '1');
+  const cleared = applyNumberCommit(initial, '', () => { commits++; });
+  const corrected = applyNumberCommit(cleared.state, '1', () => { commits++; });
+
+  assert.equal(cleared.changed, false);
+  assert.equal(corrected.changed, true);
+  assert.equal(corrected.state.jsonValue, 1);
+  assert.equal(commits, 1);
+});
+
 
 test('switch markup relies on native checked state instead of mirrored aria-checked', () => {
   const indexHtml = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
@@ -84,10 +156,10 @@ test('number controls commit finite input events without committing empty partia
   const formControlsSource = fs.readFileSync(new URL('../src/ui/formControls.js', import.meta.url), 'utf8');
   const categoryEditorSource = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
   assert.match(formControlsSource, /input\.oninput = e =>/);
-  assert.match(formControlsSource, /String\(rawValue\)\.trim\(\) === ''/);
-  assert.match(formControlsSource, /let lastCommitted = Number\(value\) \|\| 0/);
-  assert.match(formControlsSource, /lastCommitted = next/);
-  assert.match(formControlsSource, /const fallback = lastCommitted/);
+  assert.match(formControlsSource, /createNumberCommitState\(value, input\.value\)/);
+  assert.match(formControlsSource, /applyNumberCommit\(committed, rawValue, onChange, bounds\)/);
+  assert.match(formControlsSource, /options\.validate\(committed\.jsonValue\)/);
+  assert.doesNotMatch(formControlsSource, /Number\(value\) \|\| 0/);
   assert.match(formControlsSource, /minNumber\.oninput = \(\) => commitFiniteNumberInput/);
   assert.match(categoryEditorSource, /input\.oninput = e =>/);
 });

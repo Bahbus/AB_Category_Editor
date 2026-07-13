@@ -738,7 +738,7 @@ Confirmed defects:
 - range number live input and sliders notified on same-value events,
 - export awaited automatic clipboard copy before marking the generated snapshot saved, allowing an older completion to clear dirty state after a newer edit.
 
-Phase 43 resolution on `agent/phase-43-import-async-dirty-integrity`:
+Phase 43 resolution, merged at `1790f13b9ed26b23de4cabea3fe9387a11990936`:
 
 - plain Color objects are snapshotted by value and component normalization emits one material warning without quantizing valid numeric components; malformed whole values keep distinct messaging,
 - a shared strict optional-number helper accepts finite numbers and non-empty finite numeric strings, rejects coercion-only values, and is used consistently by validation, duplicate grouping, import sorting, next-sort calculation, and category duplication,
@@ -754,6 +754,30 @@ Validation actually run:
 - `git diff --check` passed,
 - browser QA and CI were not run.
 
+## Post-Phase-43 review and Phase 44
+
+Confirmed defects:
+
+- Export/Copy and Download synchronously snapshotted JSON before asynchronous gzip work but unconditionally marked the document saved after compression, so intervening edits could remain absent from the generated snapshot while losing dirty-state protection,
+- Order/Priority controls seeded their committed fallback with `Number(value) || 0`, so blank or otherwise non-committing blur after an invalid import could validate synthetic zero while preserving the invalid value in the model and export.
+
+Phase 44 resolution on `agent/phase-44-export-snapshot-number-fidelity`:
+
+- every real dirty transition advances a monotonic application data revision, including additional edits while already dirty,
+- shared DOM-free export helpers capture the revision immediately before snapshot generation and authorize save state only when the completion still matches the current revision,
+- Export/Copy and Download retain dirty state and show non-error stale-snapshot status when newer edits remain unexported; overlapping and out-of-order completions cannot save a newer revision incorrectly,
+- Export/Copy still opens the modal before saving a current snapshot and before awaiting automatic clipboard work; clipboard completion remains outside save-state authority,
+- number-control commit state retains the original committed JSON value, its strict `optionalFiniteNumber(...)` interpretation, and whether the displayed input deliberately diverged,
+- accepted numeric values and strings remain numeric no-ops without model rewriting, while invalid nullish, blank, boolean, array, object, and nonnumeric values stay untouched and invalid on blank or non-committing blur,
+- one deliberate finite correction replaces an invalid value, refreshes validation, dirties once, and makes the following blur a no-op.
+
+Validation actually run:
+
+- focused snapshot, form-control, and source-wiring regressions passed: 77 tests,
+- `npm run check` passed: JavaScript syntax check, static relative-import check, and all 23 test files (307 tests),
+- `git diff --check` passed,
+- browser QA and CI were not run.
+
 # Current next step
 
-Review Phase 43 locally. Publish it only when requested; after merge, perform the next post-merge review before defining another implementation phase.
+Review Phase 44 locally. Publish it only when requested; after merge, perform the next post-merge review before defining another implementation phase.

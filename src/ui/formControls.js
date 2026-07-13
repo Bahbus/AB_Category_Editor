@@ -1,4 +1,5 @@
 import { escapeHtml } from '../dom.js';
+import { optionalFiniteNumber } from '../optionalNumbers.js';
 
 let nextControlId = 0;
 
@@ -44,6 +45,45 @@ export function applyRangeValueChange(rangeObj, key, nextValue, onChange = () =>
   return true;
 }
 
+export function createNumberCommitState(jsonValue, displayValue = String(jsonValue ?? '')) {
+  return {
+    jsonValue,
+    numberValue: optionalFiniteNumber(jsonValue),
+    displayValue: String(displayValue),
+    diverged: false
+  };
+}
+
+export function decideNumberCommit(state, rawValue, options = {}) {
+  const inputValue = String(rawValue);
+  const diverged = state.diverged || inputValue !== state.displayValue;
+  let numberValue = optionalFiniteNumber(rawValue);
+  if (numberValue === null) return { inputValid: false, changed: false, state: { ...state, diverged } };
+
+  const minValue = optionalFiniteNumber(options.min);
+  const maxValue = optionalFiniteNumber(options.max);
+  if (minValue !== null) numberValue = Math.max(minValue, numberValue);
+  if (maxValue !== null) numberValue = Math.min(maxValue, numberValue);
+
+  if (state.numberValue === null && !diverged) {
+    return { inputValid: true, changed: false, state: { ...state, diverged } };
+  }
+  if (state.numberValue !== null && Object.is(numberValue, state.numberValue)) {
+    return { inputValid: true, changed: false, state: { ...state, diverged } };
+  }
+  return {
+    inputValid: true,
+    changed: true,
+    state: createNumberCommitState(numberValue, String(numberValue))
+  };
+}
+
+export function applyNumberCommit(state, rawValue, onChange = () => {}, options = {}) {
+  const decision = decideNumberCommit(state, rawValue, options);
+  if (decision.changed) onChange(decision.state.jsonValue);
+  return decision;
+}
+
 export function numberInput(label, value, onChange, step='1', min=null, max=null, options = {}) {
   const wrap = document.createElement('div');
   const id = makeControlId('number-input');
@@ -60,39 +100,37 @@ export function numberInput(label, value, onChange, step='1', min=null, max=null
     if (findings.length) { input.setAttribute('aria-describedby', messageId); message.hidden = false; message.innerHTML = findings.map(item => `<span class="field-${item.severity}">${escapeHtml(item.message)}</span>`).join(''); }
     else { input.removeAttribute('aria-describedby'); message.hidden = true; message.textContent = ''; }
   }
-  setValidation(options.validate ? options.validate(value) : []);
-  let lastCommitted = Number(value) || 0;
-  function commitValue(next) {
-    if (!Number.isFinite(next)) return false;
-    if (Object.is(next, lastCommitted)) {
-      setValidation(options.validate ? options.validate(next) : []);
-      return false;
-    }
-    lastCommitted = next;
-    onChange(next);
-    setValidation(options.validate ? options.validate(next) : []);
-    return true;
+  let committed = createNumberCommitState(value, input.value);
+  function setCommittedValidation() {
+    setValidation(options.validate ? options.validate(committed.jsonValue) : []);
   }
-  function commitFiniteInput(rawValue) {
-    if (String(rawValue).trim() === '') return false;
-    return commitValue(Number(rawValue));
+  function restoreCommittedValue() {
+    input.value = String(committed.jsonValue ?? '');
+    committed = createNumberCommitState(committed.jsonValue, input.value);
+    setCommittedValidation();
   }
+  function commitInput(rawValue, bounds = {}) {
+    const decision = applyNumberCommit(committed, rawValue, onChange, bounds);
+    committed = decision.state;
+    if (decision.inputValid) setCommittedValidation();
+    return decision;
+  }
+  setCommittedValidation();
   input.oninput = e => {
-    commitFiniteInput(e.target.value);
+    commitInput(e.target.value);
   };
   input.onblur = e => {
-    const fallback = lastCommitted;
     if (String(e.target.value).trim() === '') {
-      e.target.value = String(lastCommitted);
-      setValidation(options.validate ? options.validate(lastCommitted) : []);
+      restoreCommittedValue();
       return;
     }
-    let next = Number(e.target.value);
-    if (Number.isNaN(next)) next = fallback;
-    if (min !== null) next = Math.max(Number(min), next);
-    if (max !== null) next = Math.min(Number(max), next);
-    e.target.value = String(next);
-    commitValue(next);
+    const decision = commitInput(e.target.value, { min, max });
+    if (!decision.inputValid) restoreCommittedValue();
+    else {
+      e.target.value = String(committed.jsonValue ?? '');
+      committed = createNumberCommitState(committed.jsonValue, e.target.value);
+      setCommittedValidation();
+    }
   };
   input.addEventListener('keydown', e => {
     if (e.key === 'Enter') e.currentTarget.blur();
