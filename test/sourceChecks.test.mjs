@@ -257,11 +257,11 @@ test('modal open and close keeps background app inert and aria-hidden only while
   assert.match(closeBody, /restoreAppModalInert\(\)/);
 });
 
-test('package scripts include test and combined check commands', () => {
+test('package scripts include test and exhaustive combined check commands', () => {
   const pkg = JSON.parse(read('package.json'));
   assert.equal(pkg.scripts?.test, 'node --test');
   assert.ok(pkg.scripts?.check);
-  assert.match(pkg.scripts.check, /node --check src\/app\.js/);
+  assert.match(pkg.scripts.check, /node scripts\/check-javascript-syntax\.mjs/);
   assert.match(pkg.scripts.check, /node scripts\/check-imports\.mjs/);
   assert.match(pkg.scripts.check, /node --test/);
 });

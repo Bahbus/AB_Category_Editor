@@ -786,7 +786,7 @@ Confirmed defects:
 - accepted finite numeric strings such as `"  +7  "` and `"0x10"` could be sanitized to a blank native number-input value even though the model and `optionalFiniteNumber(...)` validation retained accepted nonblank data,
 - Export/Copy generation could finish after another modal opened and replace that modal through `openModal(...)`; overwriting `activeCloseHandler` could leave an awaiting confirmation promise unresolved.
 
-Phase 44.1 resolution on `agent/phase-44-1-snapshot-identity-number-display`:
+Phase 44.1 resolution, merged at `80c1e2e8f0194420a06cbde1b3feeb19bbbceaee`:
 
 - one centralized revision advancement function is used by both real dirty mutations and real validated-config replacement,
 - the replacement boundary compares JSON semantics, assigns and advances only for a changed config, and is shared by normal import, file import, preset import, and changed full Raw JSON,
@@ -805,6 +805,34 @@ Validation actually run:
 - focused in-app browser QA was attempted twice, but the browser connection was unavailable; no substitute browser mechanism was used,
 - CI was not run.
 
+## Post-Phase-44.1 review and Phase 45
+
+The post-merge review found no application-runtime follow-up. It confirmed verification and CI drift:
+
+- `npm run check` syntax-checked only `src/app.js`, so it did not parse every DOM-only production module that source checks read as text,
+- two push/pull-request workflows repeated syntax, import, and full-test commands,
+- only one of the workflows explicitly pinned Node 22.
+
+Phase 45 resolution on `agent/phase-45-unified-verification-ci`:
+
+- added a dependency-free Node syntax checker that resolves the repository root from its script location,
+- regular `.js` and `.mjs` files are discovered recursively in deterministic relative-path order, including untracked files,
+- `.git`, `node_modules`, non-JavaScript files, and symlink traversal are excluded,
+- every discovered file is checked by the current Node executable; any failed invocation produces a failed result and nonzero direct-invocation exit without printing the success summary,
+- `npm run check` now runs the exhaustive checker, existing relative-import checker, and complete Node test suite; `npm test` remains unchanged,
+- direct temporary-fixture tests cover nested discovery, ordering, every required exclusion, and real valid/invalid checker outcomes,
+- the duplicate workflows were replaced with one push/pull-request `Project verification` workflow that grants `contents: read`, uses checkout v4 and setup-node v4, pins Node 22, and invokes only `npm run check`,
+- no application-runtime source, dependencies, package lock, build system, or generated output changed.
+
+Validation actually run:
+
+- focused syntax-checker tests passed: 2 tests,
+- `npm run check` passed: 56 JavaScript files syntax-checked, all static relative imports resolved, and all 25 test files / 319 tests passed,
+- `git diff --check` passed,
+- workflow inspection confirmed a single workflow with one `npm run check` invocation on Node 22,
+- phase diff inspection confirmed only verification tooling, workflow, tests, package metadata, and durable documentation changed,
+- CI and browser QA were not run.
+
 # Current next step
 
-Review Phase 44.1 locally. Publish it only when requested; after merge, perform the next post-merge review before defining another implementation phase.
+Review Phase 45 locally. Publish it only when requested; after merge, perform the next post-merge review before defining another implementation phase.

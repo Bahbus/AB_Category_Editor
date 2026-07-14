@@ -63,6 +63,7 @@ Primary layers:
 
 15. **Tests and guardrails**
    - `test/*.test.mjs`
+   - `scripts/check-javascript-syntax.mjs`
    - `scripts/check-imports.mjs`
    - source checks in `test/sourceChecks.test.mjs`
 
@@ -119,7 +120,7 @@ Full Raw JSON compares the final validated, repaired, normalized, and sorted can
 
 Phase 40 was merged at `478545235debae9a1dc064b972acc2181cd5a0e1`. Phase 40.1 was merged at `beda975e087bd012f33270b7f1574c6822340bda`; it routes the finalized candidate through `configValidationSummaryText(...)`, so both changed and no-op paths report `validation.config.Categories.length` while replacement remains after confirmation. The Phase 40 change-decision and no-op boundaries are otherwise unchanged. Phase 41 was merged at `2926dc35dbda24fa07beb5b92477feeea47ea23f`. Phase 42 was merged at `ab8997ae53b1136fab56b445fa3c811cf0bd25a9`. Phase 43 was merged at `1790f13b9ed26b23de4cabea3fe9387a11990936`. Phase 44 was merged at `888a5838a062ea34ec279d7a423edbd88d45e66e`.
 
-Post-Phase-44 acceptance confirmed that validated config replacement did not advance snapshot identity, accepted numeric strings could be hidden by native number-input sanitization, and a late Export/Copy result could overwrite a newer modal and its close handler. Phase 44.1 centralizes revision advancement across dirty edits and real whole-config replacement, normalizes only number-input display text, and guards Export/Copy completion with shared modal visibility before any result presentation, save transition, or clipboard work. `npm run check` passes all 24 test files / 317 tests, and `git diff --check` passes. Focused in-app browser QA was attempted, but the browser connection was unavailable; CI was not run.
+Post-Phase-44 acceptance confirmed that validated config replacement did not advance snapshot identity, accepted numeric strings could be hidden by native number-input sanitization, and a late Export/Copy result could overwrite a newer modal and its close handler. Phase 44.1 centralizes revision advancement across dirty edits and real whole-config replacement, normalizes only number-input display text, and guards Export/Copy completion with shared modal visibility before any result presentation, save transition, or clipboard work. Phase 44.1 was merged at `80c1e2e8f0194420a06cbde1b3feeb19bbbceaee`; its post-merge review found no application-runtime follow-up and instead confirmed local/hosted verification drift that became Phase 45.
 
 Category drag/drop uses only application-owned source state established by `dragstart`. `text/plain` remains optional browser metadata and is never authoritative. `dragover` does not enable a target or alter indicators until the active source is a finite in-range integer. Drop decisions delegate to the identity-aware helper, so adjacent and same-target no-ops have no structural side effects; real changes select the moved object and then apply optional renumbering, one dirty transition, and one structural render.
 
@@ -542,10 +543,16 @@ npm run check
 Typical lower-level checks:
 
 ```bash
-node --check src/app.js
+node scripts/check-javascript-syntax.mjs
 node scripts/check-imports.mjs
 node --test
 ```
+
+`scripts/check-javascript-syntax.mjs` resolves the repository root from the script location rather than the caller's working directory. It recursively discovers regular `.js` and `.mjs` files in deterministic relative-path order, including untracked files, while skipping `.git`, `node_modules`, non-JavaScript files, and symlink traversal. Each discovered file is passed to the current Node executable with `--check`; the script reports the checked count only on success and exits nonzero after any failure.
+
+The single GitHub Actions workflow is `.github/workflows/project-verification.yml`. Pushes and pull requests run the same `npm run check` contract once with read-only repository contents, checkout v4, setup-node v4, and Node 22. The workflow does not duplicate the syntax, import, or test commands.
+
+Phase 45 adds temporary-fixture behavior tests for nested discovery, ordering, exclusions, directory symlinks, valid files, and an invalid-file failure. Its local `npm run check` run syntax-checked 56 files, resolved all static relative imports, and passed all 25 test files / 319 tests. `git diff --check` also passed. CI and browser QA were not run.
 
 Testing styles:
 
