@@ -22,7 +22,7 @@ test('getCategoryIssueCount counts errors and warnings but not notes', () => {
     Order: 'not-a-number',
     Rules: {
       ...cleanCategory().Rules,
-      AllowedItemNamePatterns: ['[']
+      AllowedItemNamePatterns: ['   ']
     }
   });
 

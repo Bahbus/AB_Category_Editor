@@ -2,6 +2,7 @@ import { escapeHtml, requireScopedEl, setStatus, showBusy, updateBusy, hideBusy 
 import { openModal, closeModal } from '../modals.js';
 import { fetchItemRowsPage, extractSheetRows, extractNextCursor, rowId, rowName } from '../xivapi.js';
 import { normalizeRowIdValue } from '../rowIds.js';
+import { compileBrowserPattern, removeSavedPatternAtSourceIndex, selectUsableSavedPatterns } from '../patternSemantics.js';
 
 function uniqueById(items) {
   const seen = new Set();
@@ -20,26 +21,27 @@ export function openRegexToItemIdsTool(deps) {
   if (!cat) return;
   ensureShape(cat);
   const patterns = cat.Rules.AllowedItemNamePatterns || [];
+  const savedPatternSelection = selectUsableSavedPatterns(patterns);
+  const savedPatternOptions = savedPatternSelection.options;
+  const firstSavedPattern = savedPatternOptions[0] || null;
   const wrap = document.createElement('div');
-  const options = patterns.map((pattern, index) => `<option value="${index}">${escapeHtml(pattern)}</option>`).join('');
+  const options = savedPatternOptions.map(({ pattern, sourceIndex }) => `<option value="${sourceIndex}">${escapeHtml(pattern)}</option>`).join('');
+  const omittedPatternCopy = savedPatternSelection.omittedCount
+    ? `<p class="field-warning">${savedPatternSelection.omittedCount.toLocaleString()} saved pattern(s) were omitted because they are non-string, empty, or whitespace-only. Correct them in Allowed Item Name Patterns or Raw JSON.</p>`
+    : '';
   wrap.innerHTML = `
-    <p class="hint">Select an existing regex or type a custom one. The scan matches JavaScript regex against English Item names from XIVAPI.</p>
-    <div class="grid cols-2">
-      <div>
-        <label for="regexPatternSelect">Existing pattern</label>
-        <select id="regexPatternSelect">
-          <option value="custom">Custom regex</option>
-          ${options}
-        </select>
-      </div>
-      <div>
-        <label for="regexFlags">Regex flags</label>
-        <input id="regexFlags" value="i" placeholder="Example: i">
-      </div>
+    <p class="hint">AetherBags matches patterns with case-insensitive, culture-invariant .NET regex. This browser converter approximates that behavior with fixed case-insensitive JavaScript regex against English Item names from XIVAPI; some valid AetherBags patterns cannot be scanned here.</p>
+    ${omittedPatternCopy}
+    <div>
+      <label for="regexPatternSelect">Saved pattern or custom regex</label>
+      <select id="regexPatternSelect">
+        <option value="custom">Custom regex</option>
+        ${options}
+      </select>
     </div>
     <div class="modal-action-row">
       <label for="regexPatternInput">Regex</label>
-      <input id="regexPatternInput" value="${escapeHtml(patterns[0] || '')}" placeholder="Example: ^Augmented .*">
+      <input id="regexPatternInput" value="${escapeHtml(firstSavedPattern?.pattern || '')}" placeholder="Example: ^Augmented .*">
     </div>
     <div class="grid cols-3 modal-action-row">
       <div>
@@ -80,7 +82,6 @@ export function openRegexToItemIdsTool(deps) {
   const input = requireScopedEl(wrap, '#regexPatternInput', 'regex scan');
   const runButton = requireScopedEl(wrap, '#runRegexScan', 'regex scan');
   const cancelButton = requireScopedEl(wrap, '#cancelRegexScan', 'regex scan');
-  const flagsInput = requireScopedEl(wrap, '#regexFlags', 'regex scan');
   const maxMatchesInput = requireScopedEl(wrap, '#regexMaxMatches', 'regex scan');
   const pageSizeInput = requireScopedEl(wrap, '#regexPageSize', 'regex scan');
   const removePatternSelect = requireScopedEl(wrap, '#regexRemovePattern', 'regex scan');
@@ -96,7 +97,6 @@ export function openRegexToItemIdsTool(deps) {
     cancelButton.hidden = !running;
     select.disabled = running;
     input.disabled = running;
-    flagsInput.disabled = running;
     maxMatchesInput.disabled = running;
     pageSizeInput.disabled = running;
     removePatternSelect.disabled = running;
@@ -122,9 +122,10 @@ export function openRegexToItemIdsTool(deps) {
 
   select.onchange = () => {
     if (select.value === 'custom') return;
-    input.value = patterns[Number(select.value)] || '';
+    const selected = savedPatternOptions.find(option => option.sourceIndex === Number(select.value));
+    input.value = selected?.pattern || '';
   };
-  if (patterns.length) select.value = '0';
+  if (firstSavedPattern) select.value = String(firstSavedPattern.sourceIndex);
 
   cancelButton.onclick = () => {
     if (!activeScan) return;
@@ -138,24 +139,21 @@ export function openRegexToItemIdsTool(deps) {
   runButton.onclick = async () => {
     if (activeScan) return;
 
+    const compilation = compileBrowserPattern(input.value);
+    if (compilation.status === 'blank') {
+      setStatus('Enter a nonblank AetherBags pattern before scanning.', 'err');
+      return;
+    }
+    if (compilation.status === 'incompatible') {
+      setStatus(`This AetherBags/.NET pattern cannot be scanned by the browser converter because JavaScript regex syntax is incompatible: ${compilation.error.message}`, 'err');
+      return;
+    }
+    const regex = compilation.regex;
+
     matches = [];
     addButton.disabled = true;
     resultsBox.innerHTML = '';
     summary.textContent = '';
-
-    let regex;
-    try {
-      const flags = flagsInput.value || '';
-      if (/[^iumgy]/.test(flags)) throw new Error('Only i, u, m, g, and y flags are supported for scans.');
-      if (/(.).*\1/.test(flags)) throw new Error('Regex flags must not contain duplicates.');
-      if (/[gy]/.test(flags)) {
-        summary.textContent = 'Note: global/sticky flags can be surprising during repeated tests; lastIndex will be reset for each item.';
-      }
-      regex = new RegExp(input.value, flags);
-    } catch (err) {
-      setStatus('Invalid regex: ' + err.message, 'err');
-      return;
-    }
 
     const maxMatches = Math.max(1, Number(maxMatchesInput.value) || 5000);
     const pageSize = Math.max(100, Math.min(5000, Number(pageSizeInput.value) || 3000));
@@ -259,11 +257,8 @@ export function openRegexToItemIdsTool(deps) {
     }
 
     if (removePatternSelect.value === 'remove' && select.value !== 'custom') {
-      const idx = Number(select.value);
-      if (!Number.isNaN(idx) && idx >= 0 && idx < cat.Rules.AllowedItemNamePatterns.length) {
-        cat.Rules.AllowedItemNamePatterns.splice(idx, 1);
-        removedPattern = true;
-      }
+      const sourceIndex = Number(select.value);
+      removedPattern = removeSavedPatternAtSourceIndex(cat.Rules.AllowedItemNamePatterns, sourceIndex);
     }
 
     if (!added && !removedPattern) {
