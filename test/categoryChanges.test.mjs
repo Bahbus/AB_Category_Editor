@@ -1,12 +1,29 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyCategoryReorder, applyFullConfigCandidate, applyGeneratedDescriptionChange, applySelectedCategoryCandidate, jsonSemanticEqual, renumberCategories, reorderCategories, sortCategoriesPreservingSelection } from '../src/categoryChanges.js';
+import { applyCategoryReorder, applyConfigReplacement, applyFullConfigCandidate, applyGeneratedDescriptionChange, applySelectedCategoryCandidate, jsonSemanticEqual, renumberCategories, reorderCategories, sortCategoriesPreservingSelection } from '../src/categoryChanges.js';
 import { ensureShape, validateConfig } from '../src/config.js';
 
 test('JSON semantic equality ignores object key order but preserves array order and types', () => {
   assert.equal(jsonSemanticEqual({ a: 1, b: { c: true } }, { b: { c: true }, a: 1 }), true);
   assert.equal(jsonSemanticEqual([1, 2], [2, 1]), false);
   assert.equal(jsonSemanticEqual({ value: 1 }, { value: '1' }), false);
+});
+
+test('config replacement applies changed data once and skips JSON-semantic no-ops', () => {
+  let currentData = { Categories: [{ Name: 'A' }] };
+  let replacements = 0;
+  const replace = candidate => applyConfigReplacement(currentData, candidate, nextData => {
+    currentData = nextData;
+    replacements++;
+  });
+
+  assert.equal(replace({ Categories: [{ Name: 'B' }] }), true);
+  assert.deepEqual(currentData, { Categories: [{ Name: 'B' }] });
+  assert.equal(replacements, 1);
+
+  assert.equal(replace({ Categories: [{ Name: 'B' }] }), false);
+  assert.deepEqual(currentData, { Categories: [{ Name: 'B' }] });
+  assert.equal(replacements, 1);
 });
 
 test('identical generated description performs no assignment or callback', () => {

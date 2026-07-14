@@ -54,6 +54,13 @@ export function createNumberCommitState(jsonValue, displayValue = String(jsonVal
   };
 }
 
+export function numberInputDisplayValue(jsonValue, browserValue = '') {
+  const displayValue = String(browserValue ?? '');
+  if (displayValue.trim() !== '') return displayValue;
+  const numberValue = optionalFiniteNumber(jsonValue);
+  return numberValue === null ? displayValue : String(numberValue);
+}
+
 export function decideNumberCommit(state, rawValue, options = {}) {
   const inputValue = String(rawValue);
   const diverged = state.diverged || inputValue !== state.displayValue;
@@ -93,6 +100,7 @@ export function numberInput(label, value, onChange, step='1', min=null, max=null
   wrap.innerHTML = `<label for="${id}">${escapeHtml(label)}</label><input id="${id}" type="number" step="${step}"${minAttr}${maxAttr} value="${escapeHtml(value)}"><p id="${messageId}" class="validation-list" hidden></p>`;
   const input = wrap.querySelector('input');
   const message = wrap.querySelector(`#${messageId}`);
+  input.value = numberInputDisplayValue(value, input.value);
   function setValidation(findings = []) {
     const errors = findings.filter(item => item.severity === 'error' || item.severity === 'warning');
     input.classList.toggle('invalid', errors.length > 0);
@@ -106,6 +114,7 @@ export function numberInput(label, value, onChange, step='1', min=null, max=null
   }
   function restoreCommittedValue() {
     input.value = String(committed.jsonValue ?? '');
+    input.value = numberInputDisplayValue(committed.jsonValue, input.value);
     committed = createNumberCommitState(committed.jsonValue, input.value);
     setCommittedValidation();
   }
@@ -128,6 +137,7 @@ export function numberInput(label, value, onChange, step='1', min=null, max=null
     if (!decision.inputValid) restoreCommittedValue();
     else {
       e.target.value = String(committed.jsonValue ?? '');
+      e.target.value = numberInputDisplayValue(committed.jsonValue, e.target.value);
       committed = createNumberCommitState(committed.jsonValue, e.target.value);
       setCommittedValidation();
     }

@@ -10,6 +10,7 @@ import {
   applyRangeValueChange,
   createNumberCommitState,
   decideRangeValueChange,
+  numberInputDisplayValue,
   STATE_FILTER_OPTIONS,
   rangeSliderBounds,
   stateFilterLabel
@@ -61,6 +62,36 @@ test('range value application is a no-op for same values and notifies once for a
   assert.equal(applyRangeValueChange(range, 'Min', 12, notify), false);
   assert.deepEqual(range, { Min: 12, Max: 20 });
   assert.equal(notifications, 1);
+});
+
+test('native-sanitized accepted numeric strings receive canonical display values without model rewrites', () => {
+  for (const [jsonValue, expectedDisplay] of [['  +7  ', '7'], ['0x10', '16']]) {
+    let commits = 0;
+    const displayValue = numberInputDisplayValue(jsonValue, '');
+    const decision = applyNumberCommit(
+      createNumberCommitState(jsonValue, displayValue),
+      displayValue,
+      () => { commits++; }
+    );
+
+    assert.equal(displayValue, expectedDisplay);
+    assert.equal(decision.changed, false);
+    assert.strictEqual(decision.state.jsonValue, jsonValue);
+    assert.equal(commits, 0);
+  }
+});
+
+test('browser-representable accepted numeric strings retain the browser display', () => {
+  for (const displayValue of ['7', '0012', '-3.5', '1e3']) {
+    assert.equal(numberInputDisplayValue(displayValue, displayValue), displayValue);
+  }
+});
+
+test('invalid committed number values retain the browser blank or invalid display', () => {
+  for (const value of [null, undefined, '', '   ', true, false, [], {}, 'nope']) {
+    assert.equal(numberInputDisplayValue(value, ''), '');
+  }
+  assert.equal(numberInputDisplayValue([1], '1'), '1');
 });
 
 test('number commit state preserves valid JSON values and accepted numeric strings on numeric no-ops', () => {
@@ -156,9 +187,11 @@ test('number controls commit finite input events without committing empty partia
   const formControlsSource = fs.readFileSync(new URL('../src/ui/formControls.js', import.meta.url), 'utf8');
   const categoryEditorSource = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
   assert.match(formControlsSource, /input\.oninput = e =>/);
+  assert.match(formControlsSource, /const input = wrap\.querySelector\('input'\);[\s\S]*?input\.value = numberInputDisplayValue\(value, input\.value\);/);
   assert.match(formControlsSource, /createNumberCommitState\(value, input\.value\)/);
   assert.match(formControlsSource, /applyNumberCommit\(committed, rawValue, onChange, bounds\)/);
   assert.match(formControlsSource, /options\.validate\(committed\.jsonValue\)/);
+  assert.match(formControlsSource, /function restoreCommittedValue\(\) \{[\s\S]*?input\.value = numberInputDisplayValue\(committed\.jsonValue, input\.value\);/);
   assert.doesNotMatch(formControlsSource, /Number\(value\) \|\| 0/);
   assert.match(formControlsSource, /minNumber\.oninput = \(\) => commitFiniteNumberInput/);
   assert.match(categoryEditorSource, /input\.oninput = e =>/);

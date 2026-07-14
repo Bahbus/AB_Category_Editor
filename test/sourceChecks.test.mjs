@@ -119,6 +119,9 @@ test('importText does not keep an unused importSummary binding', () => {
   const source = read('src/app.js');
   assert.doesNotMatch(source, /const\s+importSummary\s*=/);
   assert.match(source, /applyValidatedConfig\(validation\);/);
+  assert.match(source, /function loadPreset\(preset\)[\s\S]*?return importText\(preset\.data, preset\.sourceLabel \|\| 'Preset'\);/);
+  assert.match(source, /bindChange\('fileInput',[\s\S]*?await importText\(await file\.text\(\), file\.name\);/);
+  assert.match(source, /if \(!\(await importText\(text, ''\)\)\)/);
 });
 
 test('generated description UI wiring stays safe and source-consistent', () => {
@@ -392,7 +395,7 @@ test('legacy import summary and appearance modal alias stay retired', () => {
   assert.doesNotMatch(config, /buildImportSummary/);
   assert.doesNotMatch(config, /summary:\s*buildImportSummary|\bsummary\b/);
   assert.match(config, /Mutates obj in place:/);
-  assert.match(app, /function applyValidatedConfig\(validation\) \{ data = validation\.config; \}/);
+  assert.match(app, /function applyValidatedConfig\(validation\) \{[\s\S]*?applyConfigReplacement\(data, validation\.config,[\s\S]*?data = candidate;[\s\S]*?advanceDataRevision\(\);/);
   assert.doesNotMatch(preferences, /showAppearanceModal/);
 });
 
@@ -498,32 +501,50 @@ test('automatic lookup and export failures release only their own busy operation
 test('export guards the generated snapshot before awaiting automatic clipboard copy', () => {
   const app = read('src/app.js');
   const handler = app.match(/bindClick\('showExportCopy', async \(\) => \{(?<body>[\s\S]*?)\n  \}\);/)?.groups.body ?? '';
+  const modalGuardIndex = handler.indexOf('if (isModalOpen())');
+  const wrapIndex = handler.indexOf("document.createElement('div')");
   const openIndex = handler.indexOf("openModal('Export / Copy', wrap)");
   const savedIndex = handler.indexOf('saveSnapshotIfCurrent(snapshot.revision, dataRevision');
   const clipboardIndex = handler.indexOf('await copyTextToClipboard(b64)');
 
-  assert.ok(openIndex !== -1 && savedIndex !== -1 && clipboardIndex !== -1);
+  assert.ok(modalGuardIndex !== -1 && wrapIndex !== -1 && openIndex !== -1 && savedIndex !== -1 && clipboardIndex !== -1);
+  assert.ok(modalGuardIndex < wrapIndex, 'active modal guard must run before creating export modal content');
+  assert.ok(modalGuardIndex < openIndex, 'active modal guard must run before opening the export modal');
+  assert.ok(modalGuardIndex < savedIndex, 'active modal guard must run before changing save state');
+  assert.ok(modalGuardIndex < clipboardIndex, 'active modal guard must run before automatic clipboard work');
+  assert.match(handler, /if \(isModalOpen\(\)\) \{[\s\S]*?another dialog was active[\s\S]*?return;[\s\S]*?\}/);
   assert.ok(openIndex < savedIndex, 'the generated export must be shown before it counts as exported');
   assert.ok(savedIndex < clipboardIndex, 'saved state must not be cleared after the clipboard await');
   assert.doesNotMatch(handler.slice(clipboardIndex), /markSaved\(|saveSnapshotIfCurrent\(/);
+  assert.match(handler, /snapshotCurrent[\s\S]*?Current gzip\+Base64 export[\s\S]*?represents earlier editor data and is not the current config/);
 });
 
-test('dirty revisions guard both asynchronous export snapshot completion paths', () => {
+test('all live config identity revisions guard both asynchronous export snapshot completion paths', () => {
   const app = read('src/app.js');
   const snapshots = read('src/exportSnapshots.js');
+  const advanceRevision = app.match(/function advanceDataRevision\(\) \{(?<body>[\s\S]*?)\}/)?.groups.body ?? '';
   const markDirty = app.match(/function markDirty\(options = \{\}\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
+  const applyValidatedConfig = app.match(/function applyValidatedConfig\(validation\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
   const exportHandler = app.match(/bindClick\('showExportCopy', async \(\) => \{(?<body>[\s\S]*?)\n  \}\);/)?.groups.body ?? '';
   const downloadHandler = app.match(/bindClick\('downloadBase64', async \(\) => \{(?<body>[\s\S]*?)\n  \}\);/)?.groups.body ?? '';
 
   assert.match(app, /let dataRevision = 0;/);
-  assert.match(markDirty, /dataRevision \+= 1;/);
+  assert.doesNotMatch(app, /function getCategories\(\) \{[^}]*data\.Categories\s*=/);
+  assert.match(advanceRevision, /dataRevision \+= 1;/);
+  assert.match(markDirty, /advanceDataRevision\(\);/);
+  assert.match(applyValidatedConfig, /applyConfigReplacement\(data, validation\.config/);
+  assert.match(applyValidatedConfig, /advanceDataRevision\(\);/);
   assert.match(snapshots, /const revision = getRevision\(\);\s*const value = await makeSnapshot\(data\);/);
   for (const handler of [exportHandler, downloadHandler]) {
     assert.match(handler, /makeRevisionedExportSnapshot\(data, \(\) => dataRevision, makeBase64Export\)/);
     assert.match(handler, /saveSnapshotIfCurrent\(snapshot\.revision, dataRevision/);
   }
   assert.match(exportHandler, /newer changes remain unexported\./);
+  assert.match(exportHandler, /represents earlier editor data and is not the current config\./);
   assert.match(downloadHandler, /newer changes remain unexported\./);
+  assert.match(downloadHandler, /represents earlier editor data and is not the current config\./);
+  assert.doesNotMatch(exportHandler, /onStale:\s*\(\) => \{\s*if \(dirty\)/);
+  assert.doesNotMatch(downloadHandler, /onStale\(\) \{\s*if \(dirty\)/);
 });
 
 test('lookup cache modal displays useful and unresolved cache stats', () => {

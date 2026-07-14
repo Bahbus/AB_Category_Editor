@@ -761,7 +761,7 @@ Confirmed defects:
 - Export/Copy and Download synchronously snapshotted JSON before asynchronous gzip work but unconditionally marked the document saved after compression, so intervening edits could remain absent from the generated snapshot while losing dirty-state protection,
 - Order/Priority controls seeded their committed fallback with `Number(value) || 0`, so blank or otherwise non-committing blur after an invalid import could validate synthetic zero while preserving the invalid value in the model and export.
 
-Phase 44 resolution on `agent/phase-44-export-snapshot-number-fidelity`:
+Phase 44 resolution, merged at `888a5838a062ea34ec279d7a423edbd88d45e66e`:
 
 - every real dirty transition advances a monotonic application data revision, including additional edits while already dirty,
 - shared DOM-free export helpers capture the revision immediately before snapshot generation and authorize save state only when the completion still matches the current revision,
@@ -778,6 +778,33 @@ Validation actually run:
 - `git diff --check` passed,
 - browser QA and CI were not run.
 
+## Post-Phase-44 acceptance and Phase 44.1
+
+Confirmed defects:
+
+- normal JSON, gzip+Base64, file, and preset imports replaced the validated live config and marked it saved without advancing `dataRevision`, so an export started from the previous config could still pass the snapshot-current check and suppress stale reporting while `dirty === false`,
+- accepted finite numeric strings such as `"  +7  "` and `"0x10"` could be sanitized to a blank native number-input value even though the model and `optionalFiniteNumber(...)` validation retained accepted nonblank data,
+- Export/Copy generation could finish after another modal opened and replace that modal through `openModal(...)`; overwriting `activeCloseHandler` could leave an awaiting confirmation promise unresolved.
+
+Phase 44.1 resolution on `agent/phase-44-1-snapshot-identity-number-display`:
+
+- one centralized revision advancement function is used by both real dirty mutations and real validated-config replacement,
+- the replacement boundary compares JSON semantics, assigns and advances only for a changed config, and is shared by normal import, file import, preset import, and changed full Raw JSON,
+- saved normal imports and presets invalidate all earlier snapshots, while cancelled, failed, and semantic no-op replacements do not advance snapshot identity,
+- snapshot completion decisions depend only on captured/current revision identity; stale callbacks run for dirty and saved-current states, never call the saved transition, and report the correct reason,
+- Export/Copy determines revision currency before presenting the result, so a stale modal never calls its snapshot `Current`,
+- shared `isModalOpen()` reports backdrop visibility; a late Export/Copy completion releases only its busy operation, then refuses to replace a newer active dialog before result creation, modal opening, save-state work, or automatic clipboard work,
+- number-input display normalization keeps any nonblank browser-accepted representation and otherwise shows the canonical finite interpretation of an accepted JSON value,
+- normalized focus/blur remains a no-op that preserves accepted string spelling and validates the original JSON value; invalid values remain preserved and invalid, and one deliberate finite correction commits once.
+
+Validation actually run:
+
+- focused application syntax and regression verification passed 107 tests across category-change, export-snapshot, number-control, modal, and source-wiring coverage,
+- `npm run check` passed: JavaScript syntax check, static relative-import check, and all 24 test files (317 tests),
+- `git diff --check` passed,
+- focused in-app browser QA was attempted twice, but the browser connection was unavailable; no substitute browser mechanism was used,
+- CI was not run.
+
 # Current next step
 
-Review Phase 44 locally. Publish it only when requested; after merge, perform the next post-merge review before defining another implementation phase.
+Review Phase 44.1 locally. Publish it only when requested; after merge, perform the next post-merge review before defining another implementation phase.

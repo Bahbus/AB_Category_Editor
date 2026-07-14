@@ -11,6 +11,12 @@ export function jsonSemanticEqual(left, right) {
   return leftKeys.every(key => Object.hasOwn(right, key) && jsonSemanticEqual(left[key], right[key]));
 }
 
+export function applyConfigReplacement(currentData, candidate, onChanged = () => {}) {
+  if (jsonSemanticEqual(currentData, candidate)) return false;
+  onChanged(candidate);
+  return true;
+}
+
 export function applyGeneratedDescriptionChange(category, generated, onChanged = () => {}) {
   if (category.Description === generated) return false;
   category.Description = generated;

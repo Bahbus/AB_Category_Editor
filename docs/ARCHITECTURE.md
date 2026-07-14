@@ -117,7 +117,9 @@ This avoids unnecessary rerenders and focus disruption.
 
 Full Raw JSON compares the final validated, repaired, normalized, and sorted candidate before destructive confirmation. An identical result closes the editor and reports validation/repair context without replacing data, resetting selection, changing dirty state, or launching automatic lookup.
 
-Phase 40 was merged at `478545235debae9a1dc064b972acc2181cd5a0e1`. Phase 40.1 was merged at `beda975e087bd012f33270b7f1574c6822340bda`; it routes the finalized candidate through `configValidationSummaryText(...)`, so both changed and no-op paths report `validation.config.Categories.length` while replacement remains after confirmation. The Phase 40 change-decision and no-op boundaries are otherwise unchanged. Phase 41 was merged at `2926dc35dbda24fa07beb5b92477feeea47ea23f`. Phase 42 was merged at `ab8997ae53b1136fab56b445fa3c811cf0bd25a9`. Phase 43 was merged at `1790f13b9ed26b23de4cabea3fe9387a11990936`.
+Phase 40 was merged at `478545235debae9a1dc064b972acc2181cd5a0e1`. Phase 40.1 was merged at `beda975e087bd012f33270b7f1574c6822340bda`; it routes the finalized candidate through `configValidationSummaryText(...)`, so both changed and no-op paths report `validation.config.Categories.length` while replacement remains after confirmation. The Phase 40 change-decision and no-op boundaries are otherwise unchanged. Phase 41 was merged at `2926dc35dbda24fa07beb5b92477feeea47ea23f`. Phase 42 was merged at `ab8997ae53b1136fab56b445fa3c811cf0bd25a9`. Phase 43 was merged at `1790f13b9ed26b23de4cabea3fe9387a11990936`. Phase 44 was merged at `888a5838a062ea34ec279d7a423edbd88d45e66e`.
+
+Post-Phase-44 acceptance confirmed that validated config replacement did not advance snapshot identity, accepted numeric strings could be hidden by native number-input sanitization, and a late Export/Copy result could overwrite a newer modal and its close handler. Phase 44.1 centralizes revision advancement across dirty edits and real whole-config replacement, normalizes only number-input display text, and guards Export/Copy completion with shared modal visibility before any result presentation, save transition, or clipboard work. `npm run check` passes all 24 test files / 317 tests, and `git diff --check` passes. Focused in-app browser QA was attempted, but the browser connection was unavailable; CI was not run.
 
 Category drag/drop uses only application-owned source state established by `dragstart`. `text/plain` remains optional browser metadata and is never authoritative. `dragover` does not enable a target or alter indicators until the active source is a finite in-range integer. Drop decisions delegate to the identity-aware helper, so adjacent and same-target no-ops have no structural side effects; real changes select the moved object and then apply optional renumbering, one dirty transition, and one structural render.
 
@@ -148,7 +150,7 @@ Typical import flow:
 4. Analyze repaired config.
 5. Merge findings.
 6. Ask for replacement confirmation if dirty.
-7. Apply validated config.
+7. Apply the validated config through the live replacement boundary only when the finalized candidate is JSON-semantically different; a real replacement advances the centralized data revision.
 8. Reset selection.
 9. Mark saved for normal import or dirty for editable Raw JSON replacement as appropriate.
 10. Render.
@@ -354,6 +356,8 @@ Do not decrement shared busy state for an operation that returned before `showBu
 - validation refreshes even on restore,
 - committed state keeps the original JSON value separate from its strict finite-number interpretation,
 - accepted numeric strings remain unchanged in the model on numeric no-ops,
+- the browser-accepted number-input display is retained when nonblank; if native sanitization blanks an accepted numeric string, its canonical finite interpretation is displayed instead,
+- display normalization runs at control creation and committed-value restoration without rewriting the original JSON value,
 - invalid imported nullish, blank, boolean, array, object, and nonnumeric values remain untouched and visibly invalid on blank or non-committing blur,
 - one deliberate finite edit replaces an invalid committed value once and refreshes validation from the corrected model value.
 
@@ -479,6 +483,9 @@ Key guarantees:
 - stale delayed focus is guarded,
 - close restores background state,
 - previous focus is restored when appropriate.
+- `isModalOpen()` exposes read-only backdrop visibility for callers that must not replace an active dialog.
+
+Export/Copy completion checks `isModalOpen()` after releasing only its own busy state and before creating result content, opening the result modal, saving the snapshot, or attempting automatic clipboard work. If another modal is active, the generated presentation attempt is discarded and a retry warning is reported without changing the active close handler, focus, inert state, or save state.
 
 Avoid bypassing the shared modal infrastructure.
 
@@ -514,7 +521,9 @@ Future localization preferences should integrate here rather than inventing sepa
 
 Clipboard fallback must remove temporary textarea nodes in `finally`.
 
-Every real `markDirty(...)` call advances the application data revision even when the document is already dirty. Export/Copy and Download capture that revision immediately before `makeBase64Export(...)` snapshots the data. After compression, only a matching current revision may call the saved-state transition; stale completions retain dirty state and report that newer changes remain unexported. This also prevents overlapping or out-of-order snapshot work from saving a newer revision incorrectly.
+Centralized revision advancement is used by every real `markDirty(...)` call and every JSON-semantically changed validated-config replacement. Normal import and preset replacement can therefore remain saved documents while still invalidating snapshots created from an earlier live config. Cancelled, failed, or semantic no-op replacements do not advance the revision. Changed full Raw JSON still advances through replacement and dirty paths; callers must rely only on monotonic invalidation, not an exact increment count.
+
+Export/Copy and Download capture the current revision immediately before `makeBase64Export(...)` snapshots the data. After compression, only a matching revision may call the saved-state transition. Every stale completion reports whether newer dirty edits remain unexported or whether a later saved import/preset made the snapshot represent earlier editor data. A stale Export/Copy modal uses the revision decision before presentation and never labels its content `Current`.
 
 A current generated export shown in the modal counts as exported before automatic clipboard work begins. Clipboard success or failure never decides save state, preserving the Phase 43 ordering while the revision guard covers edits made during compression.
 

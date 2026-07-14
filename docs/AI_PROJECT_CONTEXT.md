@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 43 is merged at `1790f13b9ed26b23de4cabea3fe9387a11990936`. Its post-merge review confirmed asynchronous export-snapshot save-state and invalid number-control fallback defects; Phase 44 resolves them on `agent/phase-44-export-snapshot-number-fidelity` and is locally validated but not published, browser-tested, or CI-validated.
+> **Current state:** Phase 44 is merged at `888a5838a062ea34ec279d7a423edbd88d45e66e`. Post-merge acceptance confirmed replacement-revision, numeric-string display, and asynchronous export-modal ownership gaps. Phase 44.1 resolves them on `agent/phase-44-1-snapshot-identity-number-display`; `npm run check` passes all 24 test files / 317 tests. Focused in-app browser QA was attempted, but the browser connection was unavailable. CI was not run.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -338,6 +338,33 @@ These became Phase 44.
 - `npm run check` passed: syntax check, static relative-import check, and all 23 test files (307 tests).
 - `git diff --check` passed.
 - Browser QA and CI were not run.
+
+Phase 44 was merged at `888a5838a062ea34ec279d7a423edbd88d45e66e`.
+
+### Post-Phase-44 acceptance findings
+
+Confirmed three tightly related integrity gaps:
+
+- Normal import and preset replacement assigned a new validated live config and marked it saved without advancing the data revision, allowing an older in-flight snapshot to appear current.
+- Native number-input sanitization could display accepted numeric strings such as `"  +7  "` and `"0x10"` as blank even though validation and the model retained accepted nonblank values.
+- Export/Copy completion could replace a newer active modal, overwrite its close handler, and strand an awaiting confirmation workflow.
+
+These became Phase 44.1.
+
+### Phase 44.1
+
+- Revision advancement is centralized and used by both real dirty mutations and changed validated-config replacement. JSON-semantic replacement no-ops do not assign or advance the revision.
+- Normal JSON, gzip+Base64, file, and bundled-preset imports retain their saved-document behavior while invalidating every older in-flight snapshot after a real config replacement.
+- Stale Export/Copy and Download completions always report an accurate warning for both dirty and saved-current documents and never invoke the saved transition.
+- Export/Copy computes snapshot currency before building its inline explanation, so a stale snapshot is never labeled `Current`.
+- Shared modal state exposes read-only `isModalOpen()`. Export/Copy completion checks it before creating result content, opening a modal, changing save state, or attempting automatic clipboard work; a newer dialog remains untouched and the user receives a retry warning.
+- Number controls normalize only their displayed representation: browser-sanitized accepted strings receive canonical finite text while the original JSON spelling, validation source, no-op behavior, and dirty state remain unchanged until deliberate input.
+- Invalid committed values remain preserved and visibly invalid, and one deliberate finite correction still commits once.
+- Focused syntax and behavior verification passed 107 tests across the touched helper and wiring files.
+- `npm run check` passed: JavaScript syntax check, static relative-import check, and all 24 test files (317 tests).
+- `git diff --check` passed.
+- Focused in-app browser QA was attempted twice, but the browser connection was unavailable; no substitute browser mechanism was used.
+- CI was not run.
 
 ---
 
