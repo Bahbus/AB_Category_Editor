@@ -466,6 +466,36 @@ test('numeric list editors use strict row-ID dedupe without deduping name patter
   assert.doesNotMatch(patternCall, /dedupeKey:\s*normalizeRowIdValue/);
 });
 
+test('name-pattern entry preserves commas while numeric ID editors retain comma-separated input', () => {
+  const listEditor = read('src/ui/listEditor.js');
+  const categoryEditor = read('src/ui/categoryEditor.js');
+  const addHandler = listEditor.match(/add\.onclick = \(\) => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
+
+  assert.match(listEditor, /splitInputOnCommas\s*=\s*true/);
+  assert.match(listEditor, /inputPlaceholder\s*=\s*'Add one value, or comma-separated values'/);
+  assert.match(listEditor, /tokenizeListInput\(raw, splitInputOnCommas\)/);
+
+  const uiStart = categoryEditor.indexOf("listEditor('Allowed UI Category IDs'");
+  const itemStart = categoryEditor.indexOf("listEditor('Allowed Item IDs'", uiStart);
+  const patternsAppend = categoryEditor.indexOf('patternsCard,', itemStart);
+  const patternStart = categoryEditor.indexOf("const patternsCard = listEditor('Allowed Item Name Patterns'");
+  const converterStart = categoryEditor.indexOf('const converterButton', patternStart);
+  const uiCall = categoryEditor.slice(uiStart, itemStart);
+  const itemCall = categoryEditor.slice(itemStart, patternsAppend);
+  const patternCall = categoryEditor.slice(patternStart, converterStart);
+
+  assert.doesNotMatch(uiCall, /splitInputOnCommas:\s*false/);
+  assert.doesNotMatch(itemCall, /splitInputOnCommas:\s*false/);
+  assert.doesNotMatch(uiCall, /inputPlaceholder:/);
+  assert.doesNotMatch(itemCall, /inputPlaceholder:/);
+  assert.match(patternCall, /splitInputOnCommas:\s*false/);
+  assert.match(patternCall, /inputPlaceholder:\s*'Add one regex\/name pattern'/);
+  assert.match(patternCall, /validateValue:\s*validateRegexPattern/);
+  assert.match(addHandler, /if \(findingList\.some\(item => item\.severity === 'error'\)\) \{\s*renderValidation\(findingList\);\s*return;/);
+  assert.ok(addHandler.indexOf('renderValidation(findingList)') < addHandler.indexOf('arr.push(part)'));
+  assert.ok(addHandler.indexOf('renderValidation(findingList)') < addHandler.indexOf("input.value = ''"));
+});
+
 test('regex converter action is composed into the name-pattern list row', () => {
   const categoryEditor = read('src/ui/categoryEditor.js');
   const styles = read('styles.css');

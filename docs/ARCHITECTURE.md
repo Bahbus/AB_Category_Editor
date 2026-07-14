@@ -301,7 +301,8 @@ Invalid preserved imported values must not become lookup targets.
 Features:
 
 - typed add,
-- comma-separated input,
+- comma-separated input by default with a per-editor opt-out,
+- reusable input placeholders,
 - parser/formatter hooks,
 - validation hooks,
 - optional dedupe,
@@ -313,6 +314,8 @@ Features:
 
 Important options include:
 
+- `splitInputOnCommas`
+- `inputPlaceholder`
 - `dedupeValues`
 - `dedupeKey`
 - `validateValue`
@@ -324,11 +327,16 @@ Important options include:
 
 Numeric ID editors:
 
+- retain default comma-separated batch entry and the default numeric-oriented placeholder,
 - reject invalid typed values,
 - dedupe numerically,
 - normalize lookup result IDs,
 - report all-duplicate no-op,
 - report partial duplicate skips calmly.
+
+### Name-pattern entry
+
+Allowed Item Name Patterns opts out of comma splitting and uses the placeholder `Add one regex/name pattern`. The DOM-free `tokenizeListInput(...)` helper trims only surrounding input whitespace in this mode and returns the complete value as one token, preserving regex quantifiers and literal commas. The existing add handler validates and parses that one token before mutation or input clearing, so invalid patterns remain atomic and correctable.
 
 ### Lookup busy behavior
 
@@ -558,6 +566,8 @@ The single GitHub Actions workflow is `.github/workflows/project-verification.ym
 Phase 45 adds temporary-fixture behavior tests for nested discovery, ordering, exclusions, directory symlinks, valid files, and an invalid-file failure. Its local `npm run check` run syntax-checked 56 files, resolved all static relative imports, and passed all 25 test files / 319 tests. `git diff --check` also passed. CI and browser QA were not run.
 
 Phase 46 adds focused source coverage for composing the converter action into the patterns list row, its explicit button type and label, direct dependency wiring, right-alignment/wrapping class, standalone-card removal, and stable independent extraction of the three list-editor calls for dedupe assertions. Its local `npm run check` run syntax-checked 56 files, resolved all static relative imports, and passed all 25 test files / 320 tests. `git diff --check origin/main` passed. In-app browser QA was attempted but unavailable because the browser transport closed; CI was not run.
+
+Phase 46 was merged at `26dd5564830ec7d5f6209d7a37077e4836a25a47`. Its post-merge review confirmed that unconditional comma splitting corrupted valid name patterns. Phase 47 adds direct tests for default numeric-style comma tokenization, preserved comma-bearing pattern tokens, blank input, and surrounding-whitespace trimming, plus focused source coverage for the pattern-only options and unchanged numeric defaults. Its local `npm run check` run syntax-checked 57 files, resolved all static relative imports, and passed all 26 test files / 325 tests. `git diff --check origin/main` passed. In-app browser QA was attempted but unavailable because the browser transport closed during connection; CI was not run.
 
 Testing styles:
 
