@@ -854,6 +854,33 @@ Validation actually run:
 - in-app browser QA was attempted, but the browser transport closed before connection; wide desktop, the 840px stack boundary, and narrow phone runtime checks were unavailable,
 - CI was not run.
 
+Phase 46 was merged at `26dd5564830ec7d5f6209d7a37077e4836a25a47` through PR #82.
+
+## Post-Phase-46 review and Phase 47
+
+The post-merge review confirmed one structured-entry integrity defect:
+
+- the reusable list editor unconditionally split typed input on commas, which retained the intended numeric ID batch behavior but corrupted valid Allowed Item Name Patterns such as `^A{1,3}$` and `^Foo, Bar$`.
+
+Phase 47 resolution on `agent/phase-47-pattern-entry-integrity`:
+
+- exported DOM-free `tokenizeListInput(...)` trims outer whitespace and defaults to comma-separated tokenization,
+- a narrow `splitInputOnCommas` option lets one editor preserve the complete trimmed input as a single token while keeping the established default enabled,
+- a reusable `inputPlaceholder` option defaults to `Add one value, or comma-separated values`,
+- Allowed Item Name Patterns disables comma splitting and uses `Add one regex/name pattern`,
+- Allowed UI Category IDs and Allowed Item IDs retain the default comma-separated batch contract and placeholder,
+- the existing validation-before-mutation flow keeps invalid pattern submission atomic and leaves the typed value available for correction,
+- converter placement, explicit button type, label, right alignment, callback wiring, standalone-card absence, and the no-numeric-row-ID-dedupe rule for patterns remain covered.
+
+Validation actually run:
+
+- focused list-editor behavior and source checks passed: 64 tests,
+- `npm run check` passed: 57 JavaScript files syntax-checked, all static relative imports resolved, and all 26 test files / 325 tests passed,
+- `git diff --check origin/main` passed,
+- final diff inspection confirmed changes are limited to list tokenization and placeholder options, pattern-editor configuration, focused tests, and durable documentation,
+- in-app browser QA was attempted, but the browser transport closed during connection; wide desktop, the 840px stacking boundary, narrow phone, and interactive comma-bearing pattern checks were unavailable,
+- CI was not run.
+
 # Current next step
 
-Review Phase 46 locally. Publish it only when requested; after merge, perform the next post-merge review before defining another implementation phase.
+Review Phase 47 locally. Commit or publish it only when separately requested.

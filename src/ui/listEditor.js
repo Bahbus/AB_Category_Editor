@@ -3,6 +3,13 @@ import { sheetLabel, normalizeLookupIds, rowId, rowName } from '../xivapi.js';
 import { normalizeRowIdValue } from '../rowIds.js';
 import { isUsefulLookupName } from '../lookupNames.js';
 
+export function tokenizeListInput(rawInput, splitOnCommas = true) {
+  const trimmedInput = rawInput.trim();
+  if (!trimmedInput) return [];
+  if (!splitOnCommas) return [trimmedInput];
+  return trimmedInput.split(',').map(value => value.trim()).filter(Boolean);
+}
+
 export function listEditor(title, arr, parser, formatter, options = {}) {
   const {
     hint = '',
@@ -18,7 +25,9 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     validateList = null,
     onItemsChanged = null,
     dedupeValues = false,
-    dedupeKey = value => value
+    dedupeKey = value => value,
+    splitInputOnCommas = true,
+    inputPlaceholder = 'Add one value, or comma-separated values'
   } = options;
 
   const card = document.createElement('div');
@@ -104,7 +113,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
   const input = document.createElement('input');
   input.id = inputId;
   input.className = 'inline-input';
-  input.placeholder = 'Add one value, or comma-separated values';
+  input.placeholder = inputPlaceholder;
 
   const add = document.createElement('button');
   add.textContent = 'Add';
@@ -112,9 +121,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     const raw = input.value.trim();
     if (!raw) return;
 
-    const parts = raw.includes(',')
-      ? raw.split(',').map(x => x.trim()).filter(Boolean)
-      : [raw];
+    const parts = tokenizeListInput(raw, splitInputOnCommas);
 
     try {
       const parsedParts = [];
