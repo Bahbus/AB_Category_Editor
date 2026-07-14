@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 46 is merged at `26dd5564830ec7d5f6209d7a37077e4836a25a47`. The post-merge review confirmed that the shared list editor split every typed comma, corrupting valid Allowed Item Name Patterns such as `^A{1,3}$` and `^Foo, Bar$`. Phase 47 on `agent/phase-47-pattern-entry-integrity` adds opt-out comma tokenization and a pattern-specific placeholder while retaining comma-separated numeric ID entry. `npm run check` passes after checking 57 JavaScript files and running all 26 test files / 325 tests. `git diff --check origin/main` passes. In-app browser QA was attempted but unavailable because the browser transport closed; CI was not run.
+> **Current state:** Phase 47 merged through PR #83 at `8340c9f8417865242a0bf1faba7b3dd156614cc5`, verified against freshly fetched `origin/main` at Phase 48 startup. Its post-merge review passed `npm run check` with 57 JavaScript files, 26 test files, and 325 tests; exact tree/diff verification, GitHub CI, and GitHub Pages passed; deployed `listEditor.js` matched merged source; browser QA was unavailable because the browser transport closed. Phase 48 on `agent/phase-48-aetherbags-pattern-semantics` separates AetherBags/.NET stored-pattern semantics from JavaScript-only converter compatibility. Local `npm run check` passes with 59 JavaScript files, 27 test files, and 336 tests; `git diff --check origin/main` passes. In-app browser QA was attempted but unavailable because the browser transport closed; Phase 48 CI and Pages were not run.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -125,6 +125,14 @@ Rules:
 - Duplicate list values are reported once per affected field.
 - Invalid numeric-ID warnings are grouped once per affected field.
 - Duplicate and invalid issues may both count when both conditions apply.
+
+### Allowed Item Name Patterns
+
+- AetherBags stores `AllowedItemNamePatterns` as `List<string>` and evaluates nonblank entries with case-insensitive, culture-invariant .NET regex.
+- Browser validation enforces only reliable structural requirements: every element must be a string and must not be empty or whitespace-only.
+- Nonblank .NET-only syntax such as `(?>a)` is valid structured input even when JavaScript cannot compile it.
+- Structurally invalid imported elements are reported individually and preserved for explicit correction.
+- The browser converter is an approximation using fixed case-insensitive JavaScript regex; converter incompatibility is not an AetherBags-invalid finding.
 
 ### Lookup behavior
 
@@ -431,6 +439,28 @@ Validation actually run:
 - `git diff --check origin/main` passed,
 - in-app browser QA was attempted, but the browser transport closed during connection; wide desktop, the 840px stacking boundary, narrow phone, and interactive comma-bearing pattern checks were unavailable,
 - CI was not run.
+
+Phase 47 merged through PR #83 at `8340c9f8417865242a0bf1faba7b3dd156614cc5`. The post-merge review passed `npm run check` with 57 JavaScript files, 26 test files, and 325 tests; exact tree/diff verification passed; GitHub CI and Pages were verified successful; deployed `listEditor.js` matched merged source; browser QA was unavailable because the browser transport closed.
+
+### Phase 48
+
+The pinned AetherBags commit `368bd4677b16594d9d4624efc8269ada7408d4f5` confirms that `AllowedItemNamePatterns` is `List<string>`, `UserCategoryMatcher` skips null/empty/whitespace patterns, and `RegexCache` uses `RegexOptions.CultureInvariant | RegexOptions.IgnoreCase` while returning `null` for invalid .NET patterns.
+
+- Stored-pattern validation now accepts every nonblank string without using JavaScript compilation as AetherBags authority.
+- Non-string, empty, and whitespace-only elements produce indexed errors without coercion, deletion, mutation, or duplicate invalid-element findings.
+- `src/patternSemantics.js` owns DOM-free storage classification, usable converter-option selection, fixed case-insensitive browser compilation, and original-index removal.
+- The converter has no flags field, clearly describes .NET versus JavaScript behavior, rejects blank and JavaScript-incompatible input before scan state, leases, busy UI, fetches, or data mutation, and retains custom entry.
+- Saved converter choices omit unusable elements with corrective guidance while retaining original source indices for optional removal.
+- Phase 46 placement and Phase 47 comma/numeric tokenization contracts remain covered.
+
+Validation actually run:
+
+- focused behavior and source coverage passed all 119 tests across the touched suites,
+- `npm run check` passed: 59 JavaScript files syntax-checked, all static relative imports resolved, and all 27 test files / 336 tests passed,
+- `git diff --check origin/main` passed with no output,
+- complete diff inspection found no dependency, import/export, dirty-state, modal/focus, responsive, or unrelated architecture changes,
+- in-app browser QA was attempted, but the browser transport closed before discovery; desktop, 840px, phone, and interactive runtime checks were unavailable,
+- CI and GitHub Pages were not run for this unpublished phase.
 
 ---
 

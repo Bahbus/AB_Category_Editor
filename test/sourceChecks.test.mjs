@@ -290,7 +290,7 @@ test('regex add matched IDs does not dirty or say Added 0 when nothing changed',
   const addHandler = source.match(/addButton\.onclick = \(\) => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
 
   assert.match(addHandler, /let\s+removedPattern\s*=\s*false/);
-  assert.match(addHandler, /removedPattern\s*=\s*true/);
+  assert.match(addHandler, /removedPattern\s*=\s*removeSavedPatternAtSourceIndex/);
   assert.match(addHandler, /if\s*\(\s*!added\s*&&\s*!removedPattern\s*\)/);
   assert.match(addHandler, /No new item IDs added; all matches were already present\./);
 
@@ -510,6 +510,45 @@ test('regex converter action is composed into the name-pattern list row', () => 
   assert.doesNotMatch(categoryEditor, /<h3>Regex → Item IDs<\/h3>/);
   assert.doesNotMatch(categoryEditor, /id="openRegexToItemIds"/);
   assert.match(styles, /\.pattern-converter-action\s*\{[\s\S]*?margin-left:\s*auto;[\s\S]*?max-width:\s*100%;[\s\S]*?white-space:\s*normal;/);
+});
+
+test('regex converter distinguishes AetherBags storage from fixed JavaScript compatibility', () => {
+  const converter = read('src/tools/regexToItemIds.js');
+  const semantics = read('src/patternSemantics.js');
+  const runBody = converter.match(/runButton\.onclick = async \(\) => \{(?<body>[\s\S]*?)\n  \};\n\n  addButton\.onclick/)?.groups.body ?? '';
+
+  assert.doesNotMatch(converter, /regexFlags|Regex flags/);
+  assert.match(semantics, /new RegExp\(pattern, 'i'\)/);
+  assert.match(converter, /case-insensitive, culture-invariant \.NET regex/);
+  assert.match(converter, /fixed case-insensitive JavaScript regex/);
+  assert.match(converter, /valid AetherBags patterns cannot be scanned here/);
+  assert.match(converter, /AetherBags\/\.NET pattern cannot be scanned by the browser converter/);
+
+  const compileIndex = runBody.indexOf('compileBrowserPattern(input.value)');
+  assert.ok(compileIndex >= 0);
+  for (const laterWork of [
+    'matches = []',
+    'acquireLookupCacheProducer()',
+    "showBusy('Scanning items'",
+    'fetchItemRowsPage(',
+    'lookupCache.Item'
+  ]) {
+    assert.ok(compileIndex < runBody.indexOf(laterWork), `compatibility decision must precede ${laterWork}`);
+  }
+  assert.match(runBody, /compilation\.status === 'blank'[\s\S]*?return;/);
+  assert.match(runBody, /compilation\.status === 'incompatible'[\s\S]*?return;/);
+});
+
+test('regex converter filters saved choices while preserving removal source indices', () => {
+  const converter = read('src/tools/regexToItemIds.js');
+  const semantics = read('src/patternSemantics.js');
+
+  assert.match(converter, /selectUsableSavedPatterns\(patterns\)/);
+  assert.match(converter, /\{ pattern, sourceIndex \}/);
+  assert.match(converter, /option\.sourceIndex === Number\(select\.value\)/);
+  assert.match(converter, /Correct them in Allowed Item Name Patterns or Raw JSON/);
+  assert.match(converter, /removeSavedPatternAtSourceIndex\(cat\.Rules\.AllowedItemNamePatterns, sourceIndex\)/);
+  assert.match(semantics, /values\.splice\(sourceIndex, 1\)/);
 });
 
 test('RGB blur restores committed values and only dirties actual component changes', () => {

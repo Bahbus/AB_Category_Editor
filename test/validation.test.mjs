@@ -69,11 +69,11 @@ test('shared category issue counts handle sort-position duplicates only for matc
   assert.equal(getCategoryIssueCount(samePair[1], samePair), 1);
 });
 
-test('shared category issue counts include duplicate list values and invalid regex patterns', () => {
+test('shared category issue counts include duplicate lists and structurally invalid patterns', () => {
   const category = cleanCategory();
   category.Rules.AllowedItemIds = [1, 1];
   category.Rules.AllowedUiCategoryIds = [2, 2];
-  category.Rules.AllowedItemNamePatterns = ['foo', 'foo', '['];
+  category.Rules.AllowedItemNamePatterns = ['foo', 'foo', '   '];
 
   assert.equal(getCategoryIssueCount(category), 4);
 });
@@ -103,13 +103,13 @@ test('different duplicate list fields still create separate warnings', () => {
   assert.equal(duplicateFields.includes('AllowedItemNamePatterns'), true);
 });
 
-test('category issue counts group duplicate list fields while counting invalid regex separately', () => {
+test('category issue counts group duplicate list fields while counting invalid patterns separately', () => {
   const category = cleanCategory();
   category.Rules.AllowedItemIds = [1, 1, 2, 2];
   assert.equal(getCategoryIssueCount(category), 1);
 
   category.Rules.AllowedItemIds = [];
-  category.Rules.AllowedItemNamePatterns = ['foo', 'foo', '['];
+  category.Rules.AllowedItemNamePatterns = ['foo', 'foo', ''];
   assert.equal(getCategoryIssueCount(category), 2);
 });
 
@@ -125,11 +125,42 @@ test('blank category names are reported', () => {
   assert.ok(validateCategoryName(cleanCategory({ Name: '  ' })).some(item => item.field === 'Name'));
 });
 
-test('invalid regex patterns are reported without rewriting input', () => {
-  const pattern = '[';
-  const findings = validateRegexPattern(pattern);
-  assert.equal(pattern, '[');
-  assert.equal(findings[0].severity, 'error');
+test('stored pattern validation accepts nonblank .NET-only syntax without JavaScript compilation', () => {
+  assert.deepEqual(validateRegexPattern('(?>a)'), []);
+  assert.deepEqual(validateRegexPattern('^Foo, Bar$'), []);
+});
+
+test('non-string, empty, and whitespace-only stored patterns are reported without mutation', () => {
+  const values = [42, '', '   '];
+  const before = structuredClone(values);
+  const category = cleanCategory();
+  category.Rules.AllowedItemNamePatterns = values;
+
+  const analysis = analyzeImportedConfig({ Categories: [category] });
+  const findings = analysis.findings.filter(item => item.field === 'AllowedItemNamePatterns');
+  const validation = validateConfig({ Categories: [category] });
+  const postImportFindings = analyzeImportedConfig(validation.config).findings
+    .filter(item => item.field === 'AllowedItemNamePatterns');
+
+  assert.equal(findings.length, 3);
+  assert.equal(analysis.counts.error, 3);
+  assert.match(findings[0].message, /Pattern 1 must be a string/);
+  assert.match(findings[1].message, /Pattern 2 must not be empty/);
+  assert.match(findings[2].message, /Pattern 3 must not be empty/);
+  assert.deepEqual(values, before);
+  assert.deepEqual(validation.config.Categories[0].Rules.AllowedItemNamePatterns, before);
+  assert.equal(postImportFindings.length, 3);
+  assert.equal(getCategoryIssueCount(category), 3);
+});
+
+test('invalid stored elements do not create duplicate-pattern findings', () => {
+  const category = cleanCategory();
+  category.Rules.AllowedItemNamePatterns = [null, null, ' ', ' '];
+  const findings = analyzeImportedConfig({ Categories: [category] }).findings
+    .filter(item => item.field === 'AllowedItemNamePatterns');
+
+  assert.equal(findings.length, 4);
+  assert.equal(findings.some(item => /Duplicate regex patterns/.test(item.message)), false);
 });
 
 test('Min greater than Max is reported for range filters', () => {

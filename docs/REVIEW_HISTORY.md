@@ -881,6 +881,44 @@ Validation actually run:
 - in-app browser QA was attempted, but the browser transport closed during connection; wide desktop, the 840px stacking boundary, narrow phone, and interactive comma-bearing pattern checks were unavailable,
 - CI was not run.
 
+Phase 47 merged through PR #83 at `8340c9f8417865242a0bf1faba7b3dd156614cc5`. Phase 48 startup verified freshly fetched `origin/main` at that exact commit.
+
+Post-Phase-47 review evidence:
+
+- `npm run check` passed with 57 JavaScript files checked, 26 test files, and 325 tests,
+- exact tree/diff verification passed,
+- GitHub CI and GitHub Pages were verified successful,
+- deployed `listEditor.js` matched the merged source,
+- browser QA was unavailable because the browser transport closed.
+
+## Phase 48
+
+The pinned AetherBags commit `368bd4677b16594d9d4624efc8269ada7408d4f5` confirms:
+
+- `CategoryRuleSet.AllowedItemNamePatterns` is `List<string>`,
+- `UserCategoryMatcher` skips null, empty, and whitespace-only patterns while a nonempty list still participates in identification filtering,
+- `RegexCache` uses `RegexOptions.CultureInvariant | RegexOptions.IgnoreCase`, adds `Compiled` when requested, and returns `null` when .NET compilation fails.
+
+Resolution on `agent/phase-48-aetherbags-pattern-semantics`:
+
+- stored configuration validation no longer treats JavaScript compilation as AetherBags authority,
+- all nonblank strings, including .NET-only `(?>a)`, remain valid structured entries,
+- non-string, empty, and whitespace-only imported elements receive one indexed error each without coercion, deletion, mutation, or duplicate invalid-element findings,
+- a shared DOM-free module classifies stored values, selects usable saved converter options, compiles fixed case-insensitive JavaScript approximations, and removes by original source index,
+- the converter flags field is removed and UI copy distinguishes AetherBags/.NET behavior from JavaScript compatibility,
+- blank and JavaScript-incompatible input returns before scan state, lookup-cache leases, busy UI, fetches, or configuration mutation,
+- saved choices omit structurally unusable elements with clear correction guidance while retaining custom regex entry and safe original-index removal,
+- scanning, pagination, cancellation, cache leases, matched-ID addition, no-op/dirty behavior, modal placement, and Phase 47 tokenization remain unchanged except for the deliberate dialect, flags, blank, and choice-filter changes.
+
+Validation actually run:
+
+- focused behavior and source coverage passed all 119 tests across the touched suites,
+- `npm run check` passed: 59 JavaScript files syntax-checked, all static relative imports resolved, and all 27 test files / 336 tests passed,
+- `git diff --check origin/main` passed with no output,
+- complete diff inspection found no accidental dependency, import/export, dirty-state, modal/focus, responsive, or unrelated architecture changes,
+- in-app browser QA was attempted, but the browser transport closed before discovery; desktop, 840px, phone, and interactive runtime checks were unavailable,
+- CI and GitHub Pages were not run because Phase 48 remains unpublished.
+
 # Current next step
 
-Review Phase 47 locally. Commit or publish it only when separately requested.
+Review Phase 48 locally. Commit or publish it only when separately requested.

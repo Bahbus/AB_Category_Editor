@@ -1,6 +1,7 @@
 import { ALLOWED_RARITY_IDS, RANGE_FILTERS, RANGE_FILTER_KEYS, STATE_FILTERS, STATE_FILTER_KEYS } from './constants.js';
 import { invalidRowIds, normalizeRowIdValue } from './rowIds.js';
 import { optionalFiniteNumber } from './optionalNumbers.js';
+import { classifyStoredPattern } from './patternSemantics.js';
 
 const VALID_STATE_VALUES = new Set([0, 1, 2]);
 const RANGE_FILTER_LABELS = Object.fromEntries(RANGE_FILTERS.map(filter => [filter.key, filter.label]));
@@ -81,10 +82,18 @@ export function groupedDuplicateSortPositionFindings(categories = []) {
     });
 }
 
-export function validateRegexPattern(pattern) {
-  try { new RegExp(String(pattern)); return []; }
-  catch (err) { return [finding('error', 'AllowedItemNamePatterns', `Invalid regex pattern: ${err.message}`)]; }
+export function validateAllowedItemNamePattern(pattern, sourceIndex = null) {
+  const classification = classifyStoredPattern(pattern);
+  if (classification.usable) return [];
+  const position = Number.isInteger(sourceIndex) ? `Pattern ${sourceIndex + 1}` : 'Pattern';
+  if (classification.reason === 'non-string') {
+    return [finding('error', 'AllowedItemNamePatterns', `${position} must be a string.`)];
+  }
+  return [finding('error', 'AllowedItemNamePatterns', `${position} must not be empty or whitespace-only because AetherBags skips blank patterns.`)];
 }
+
+// Compatibility alias retained for existing structured-editor wiring.
+export const validateRegexPattern = validateAllowedItemNamePattern;
 
 export function validateRangeFilter(field, range, labelText = field) {
   const findings = [];
@@ -127,6 +136,10 @@ function hasDuplicateValues(values) {
     seen.add(key);
   }
   return false;
+}
+
+function usableStoredPatterns(values) {
+  return Array.isArray(values) ? values.filter(value => classifyStoredPattern(value).usable) : [];
 }
 
 function hasDuplicateRowIds(values) {
@@ -174,10 +187,12 @@ function getCategoryIssueCountWithoutSortPosition(category) {
   if (hasDuplicateRowIds(rules.AllowedUiCategoryIds)) count++;
   if (invalidRowIds(rules.AllowedItemIds).length) count++;
   if (invalidRowIds(rules.AllowedUiCategoryIds).length) count++;
-  if (hasDuplicateValues(rules.AllowedItemNamePatterns)) count++;
+  if (hasDuplicateValues(usableStoredPatterns(rules.AllowedItemNamePatterns))) count++;
 
   if (Array.isArray(rules.AllowedItemNamePatterns)) {
-    for (const pattern of rules.AllowedItemNamePatterns) count += validateRegexPattern(pattern).filter(isIssueFinding).length;
+    for (const [index, pattern] of rules.AllowedItemNamePatterns.entries()) {
+      count += validateAllowedItemNamePattern(pattern, index).filter(isIssueFinding).length;
+    }
   }
   for (const key of RANGE_FILTER_KEYS) count += validateRangeFilter(key, rules[key], RANGE_FILTER_LABELS[key]).filter(isIssueFinding).length;
   for (const key of STATE_FILTER_KEYS) count += validateStateFilter(key, rules[key], STATE_FILTER_LABELS[key]).filter(isIssueFinding).length;
@@ -213,10 +228,12 @@ export function validateCategory(category, allCategories = []) {
     ...duplicateFindings(rules.AllowedUiCategoryIds, 'AllowedUiCategoryIds', 'UI Category ID'),
     ...invalidRowIdFindings(rules.AllowedItemIds, 'AllowedItemIds'),
     ...invalidRowIdFindings(rules.AllowedUiCategoryIds, 'AllowedUiCategoryIds'),
-    ...duplicateFindings(rules.AllowedItemNamePatterns, 'AllowedItemNamePatterns', 'regex pattern')
+    ...duplicateFindings(usableStoredPatterns(rules.AllowedItemNamePatterns), 'AllowedItemNamePatterns', 'regex pattern')
   ];
   if (Array.isArray(rules.AllowedItemNamePatterns)) {
-    for (const pattern of rules.AllowedItemNamePatterns) findings.push(...validateRegexPattern(pattern));
+    for (const [index, pattern] of rules.AllowedItemNamePatterns.entries()) {
+      findings.push(...validateAllowedItemNamePattern(pattern, index));
+    }
   }
   for (const key of RANGE_FILTER_KEYS) findings.push(...validateRangeFilter(key, rules[key], RANGE_FILTER_LABELS[key]));
   for (const key of STATE_FILTER_KEYS) findings.push(...validateStateFilter(key, rules[key], STATE_FILTER_LABELS[key]));

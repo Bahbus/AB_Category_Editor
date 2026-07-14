@@ -30,38 +30,41 @@ Primary layers:
 6. **Shared optional-number semantics**
    - `src/optionalNumbers.js`
 
-7. **Import/export and clipboard/download**
+7. **Shared pattern semantics**
+   - `src/patternSemantics.js`
+
+8. **Import/export and clipboard/download**
    - `src/importExport.js`
    - `src/exportSnapshots.js`
 
-8. **XIVAPI and lookup**
+9. **XIVAPI and lookup**
    - `src/xivapi.js`
    - `src/lookupNames.js`
 
-9. **UI rendering**
+10. **UI rendering**
    - `src/ui/categoryList.js`
    - `src/ui/categoryEditor.js`
    - `src/ui/listEditor.js`
    - `src/ui/formControls.js`
    - modal-specific UI modules
 
-10. **Modal infrastructure**
+11. **Modal infrastructure**
    - `src/modals.js`
 
-11. **Persistent state**
+12. **Persistent state**
    - `src/state.js`
 
-12. **Tools**
+13. **Tools**
    - `src/tools/regexToItemIds.js`
 
-13. **Description generation**
+14. **Description generation**
    - `src/descriptionGenerator.js`
 
-14. **Static assets and layout**
+15. **Static assets and layout**
    - `index.html`
    - `styles.css`
 
-15. **Tests and guardrails**
+16. **Tests and guardrails**
    - `test/*.test.mjs`
    - `scripts/check-javascript-syntax.mjs`
    - `scripts/check-imports.mjs`
@@ -173,7 +176,7 @@ Important rule:
 - category-name checks,
 - Order/Priority finite-number checks,
 - grouped duplicate sort-position detection,
-- regex validation,
+- structural Allowed Item Name Pattern validation,
 - range validation,
 - state-filter validation,
 - rarity validation,
@@ -200,6 +203,12 @@ For each affected list field:
 - duplicate warning counts once,
 - invalid numeric-ID warning counts once,
 - both can count separately.
+
+### Stored pattern semantics
+
+The pinned AetherBags implementation is authoritative: `AllowedItemNamePatterns` is `List<string>`; the matcher skips null/empty/whitespace entries; and `RegexCache` uses case-insensitive, culture-invariant .NET regex and returns `null` when .NET compilation fails.
+
+The dependency-free browser cannot execute or fully validate .NET syntax. `src/patternSemantics.js` therefore classifies only the structural facts the browser knows: a stored element is usable when it is a nonblank string. `src/validation.js` reports every non-string or blank element at its original position and preserves imported data. Duplicate-pattern warnings consider only structurally usable entries, preventing duplicate findings for repeated invalid elements. The legacy `validateRegexPattern` export remains as a compatibility alias to the structural validator.
 
 ---
 
@@ -336,7 +345,7 @@ Numeric ID editors:
 
 ### Name-pattern entry
 
-Allowed Item Name Patterns opts out of comma splitting and uses the placeholder `Add one regex/name pattern`. The DOM-free `tokenizeListInput(...)` helper trims only surrounding input whitespace in this mode and returns the complete value as one token, preserving regex quantifiers and literal commas. The existing add handler validates and parses that one token before mutation or input clearing, so invalid patterns remain atomic and correctable.
+Allowed Item Name Patterns opts out of comma splitting and uses the placeholder `Add one regex/name pattern`. The DOM-free `tokenizeListInput(...)` helper trims only surrounding input whitespace in this mode and returns the complete value as one token, preserving regex quantifiers and literal commas. The existing add handler validates and parses that one token before mutation or input clearing. Nonblank strings, including .NET-only syntax such as `(?>a)`, are accepted; blank input remains atomic and correctable.
 
 ### Lookup busy behavior
 
@@ -437,8 +446,9 @@ Do not split it casually. Refactor when future feature work creates real frictio
 
 `src/tools/regexToItemIds.js`:
 
-- selects an existing or custom regex,
-- validates flags,
+- selects a structurally usable saved pattern or custom regex,
+- explains that AetherBags uses case-insensitive, culture-invariant .NET regex while browser scanning is a JavaScript approximation,
+- compiles browser-compatible input with a fixed case-insensitive JavaScript flag,
 - scans paginated Item rows,
 - supports cancellation,
 - normalizes row IDs strictly,
@@ -452,6 +462,10 @@ Important behavior:
 - the launch action is composed by `src/ui/categoryEditor.js` into the existing Allowed Item Name Patterns list input/Add row; `listEditor(...)` has no converter-specific API,
 - `.pattern-converter-action` right-aligns the launch control when row space permits and allows wrapping within the card,
 - the action remains present when the saved pattern list is empty because the modal accepts a custom regex,
+- no editable regex-flags control exists,
+- blank or JavaScript-incompatible input returns before match state, lookup-cache lease acquisition, busy UI, network access, or configuration mutation,
+- incompatibility is described as a browser-converter limitation rather than an invalid AetherBags regex,
+- non-string and blank saved elements are omitted from choices with correction guidance, and each usable choice retains its original array index for safe optional removal,
 - no-op add must not mark dirty,
 - status must distinguish:
   - IDs added,
@@ -568,6 +582,10 @@ Phase 45 adds temporary-fixture behavior tests for nested discovery, ordering, e
 Phase 46 adds focused source coverage for composing the converter action into the patterns list row, its explicit button type and label, direct dependency wiring, right-alignment/wrapping class, standalone-card removal, and stable independent extraction of the three list-editor calls for dedupe assertions. Its local `npm run check` run syntax-checked 56 files, resolved all static relative imports, and passed all 25 test files / 320 tests. `git diff --check origin/main` passed. In-app browser QA was attempted but unavailable because the browser transport closed; CI was not run.
 
 Phase 46 was merged at `26dd5564830ec7d5f6209d7a37077e4836a25a47`. Its post-merge review confirmed that unconditional comma splitting corrupted valid name patterns. Phase 47 adds direct tests for default numeric-style comma tokenization, preserved comma-bearing pattern tokens, blank input, and surrounding-whitespace trimming, plus focused source coverage for the pattern-only options and unchanged numeric defaults. Its local `npm run check` run syntax-checked 57 files, resolved all static relative imports, and passed all 26 test files / 325 tests. `git diff --check origin/main` passed. In-app browser QA was attempted but unavailable because the browser transport closed during connection; CI was not run.
+
+Phase 47 merged through PR #83 at `8340c9f8417865242a0bf1faba7b3dd156614cc5`. Its post-merge review passed exact tree/diff verification, GitHub CI, and Pages; deployed `listEditor.js` matched merged source; browser QA remained unavailable because the browser transport closed.
+
+Phase 48 adds direct storage-classification, browser-compatibility, saved-option, original-index removal, import-fidelity, issue-count, and tokenization tests plus DOM source guardrails. Its local `npm run check` run syntax-checked 59 files, resolved all static relative imports, and passed all 27 test files / 336 tests. `git diff --check origin/main` passed with no output. In-app browser QA was attempted but unavailable because the browser transport closed before discovery. CI and Pages were not run for the unpublished phase.
 
 Testing styles:
 
