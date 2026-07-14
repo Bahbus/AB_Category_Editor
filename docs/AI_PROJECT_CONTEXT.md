@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 44 is merged at `888a5838a062ea34ec279d7a423edbd88d45e66e`. Post-merge acceptance confirmed replacement-revision, numeric-string display, and asynchronous export-modal ownership gaps. Phase 44.1 resolves them on `agent/phase-44-1-snapshot-identity-number-display`; `npm run check` passes all 24 test files / 317 tests. Focused in-app browser QA was attempted, but the browser connection was unavailable. CI was not run.
+> **Current state:** Phase 44.1 is merged at `80c1e2e8f0194420a06cbde1b3feeb19bbbceaee`. Its post-merge review found no application-runtime follow-up and confirmed that local and hosted verification had drifted: `npm run check` parsed only `src/app.js`, while two workflows duplicated the remaining commands. Phase 45 unifies that contract on `agent/phase-45-unified-verification-ci`; `npm run check` passes after checking 56 JavaScript files and running all 25 test files / 319 tests. `git diff --check` passes. CI and browser QA were not run.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -366,6 +366,34 @@ These became Phase 44.1.
 - Focused in-app browser QA was attempted twice, but the browser connection was unavailable; no substitute browser mechanism was used.
 - CI was not run.
 
+Phase 44.1 was merged at `80c1e2e8f0194420a06cbde1b3feeb19bbbceaee`.
+
+### Post-Phase-44.1 review and Phase 45
+
+The post-merge review confirmed a verification-contract gap rather than an application-runtime defect:
+
+- the documented `npm run check` command syntax-checked only `src/app.js`, leaving DOM-only production modules to hosted CI's independent file walk,
+- two push/pull-request workflows duplicated syntax, import, and test commands,
+- only one workflow explicitly pinned Node 22.
+
+Phase 45 resolves the verification and CI drift without changing runtime source:
+
+- `scripts/check-javascript-syntax.mjs` resolves the repository root from its own location, walks regular directories without following symlinks, skips `.git` and `node_modules`, deterministically discovers every `.js` and `.mjs` file, and invokes the current Node executable with `--check` for each file,
+- syntax failures produce a failed result and nonzero direct-invocation exit; success reports the exact checked-file count,
+- `npm run check` now runs the exhaustive syntax checker, the existing relative-import checker, and the full Node test suite; `npm test` remains `node --test`,
+- focused temporary-fixture tests cover nested `.js`/`.mjs` discovery, deterministic ordering, exclusions, directory-symlink handling, and real valid/invalid syntax-check results,
+- the duplicate workflows are replaced by one `Project verification` push/pull-request workflow with `contents: read`, `actions/checkout@v4`, `actions/setup-node@v4`, Node 22, and one `npm run check` step,
+- no dependency, package lock, build system, or application-runtime source change was introduced.
+
+Validation actually run:
+
+- `npm run check` passed: 56 JavaScript files syntax-checked, all static relative imports resolved, and all 25 test files / 319 tests passed,
+- `git diff --check` passed,
+- workflow inspection confirmed one workflow and one `npm run check` invocation on Node 22,
+- diff inspection confirmed changes are limited to verification tooling, workflow configuration, tests, package metadata, and durable documentation.
+
+CI and browser QA were not run.
+
 ---
 
 ## 6. Known future concerns
@@ -462,7 +490,7 @@ npm run check
 Also acceptable individually:
 
 ```bash
-node --check src/app.js
+node scripts/check-javascript-syntax.mjs
 node scripts/check-imports.mjs
 node --test
 ```
