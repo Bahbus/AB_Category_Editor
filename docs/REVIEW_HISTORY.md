@@ -916,9 +916,38 @@ Validation actually run:
 - `npm run check` passed: 59 JavaScript files syntax-checked, all static relative imports resolved, and all 27 test files / 336 tests passed,
 - `git diff --check origin/main` passed with no output,
 - complete diff inspection found no accidental dependency, import/export, dirty-state, modal/focus, responsive, or unrelated architecture changes,
-- in-app browser QA was attempted, but the browser transport closed before discovery; desktop, 840px, phone, and interactive runtime checks were unavailable,
-- CI and GitHub Pages were not run because Phase 48 remains unpublished.
+- Phase 48 merged through PR #84 at `4aa67ed97b89f35e0bf468628536d2993819b182`; its branch tree exactly matched merged `origin/main`,
+- desktop-keyring GitHub authentication was verified; PR checks, post-merge Project verification, and GitHub Pages succeeded,
+- deployed `patternSemantics.js` and `regexToItemIds.js` exactly matched merged local source,
+- browser QA succeeded for storing `(?>a)`, early JavaScript-incompatibility handling, blank custom rejection, and overflow-free desktop, 840px, and 390px layouts,
+- Phase 48 required no 48.1.
+
+## Post-Phase-48 review and Phase 49
+
+The post-merge review confirmed a separate range/state scalar integrity defect, not a Phase 48 acceptance miss:
+
+- range and state repair used broad `Number(...)`/truthiness coercion,
+- range validation accepted fractional integer-backed values and negative/fractional Vendor Price,
+- State Filter accepted fractional values,
+- Vendor Price number input committed values such as `1.5` and `-1` despite the upstream `uint` contract, with misleading slider and accessibility state.
+
+Phase 49 resolution on `agent/phase-49-range-state-scalar-integrity`:
+
+- `src/filterScalars.js` defines shared DOM-free boolean, integer, uint-compatible range, State 0/1/2, and integer Filter classification,
+- validation reports incompatible Enabled, Min, Max, State, and Filter components without accepting numeric strings, blanks, booleans, nullish values, arrays, objects, fractions, or non-finite values,
+- import repair independently restores invalid range components to their filter defaults and invalid state components to zero, while preserving valid signed Level/Item Level integers and unusual integer Filter values,
+- validation finding merge moved to the DOM-free validation module and retains stable dedupe without collapsing distinct scalar findings,
+- typed range decisions reject fractions and enforce Vendor Price `uint` bounds without mutation or notification; invalid live input exposes associated validation and blur restores committed text and slider state,
+- valid integer input and sliders retain exact one-change/no-op behavior, reversed integer ranges retain the existing warning, and State rendering no longer mutates Filter.
+
+Validation actually run:
+
+- focused scalar, configuration, validation, form-control, and source coverage passed 162 tests,
+- `npm run check` passed: 61 JavaScript files syntax-checked, all static relative imports resolved, and all 28 test files / 347 tests passed,
+- `git diff --check origin/main` passed with no output,
+- in-app browser QA was attempted twice, but the browser transport closed before connection; desktop, 840px, phone, and interactive runtime checks were unavailable,
+- CI and GitHub Pages were not run because publication is outside Phase 49.
 
 # Current next step
 
-Review Phase 48 locally. Commit or publish it only when separately requested.
+Review Phase 49 locally. Commit or publish it only when separately requested.

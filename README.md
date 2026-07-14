@@ -39,7 +39,9 @@ Published page: <https://bahbus.github.io/AB_Category_Editor/>
 
 ## Development checks
 
+- Run the complete local verification contract with `npm run check`.
 - Run regression tests with `node --test`.
+- Check JavaScript syntax with `node scripts/check-javascript-syntax.mjs`.
 - Check relative module imports with `node scripts/check-imports.mjs`.
 
 ## Manual QA checklist

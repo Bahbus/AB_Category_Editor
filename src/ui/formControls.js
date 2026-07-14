@@ -1,5 +1,6 @@
 import { escapeHtml } from '../dom.js';
 import { optionalFiniteNumber } from '../optionalNumbers.js';
+import { isIntegerScalar } from '../filterScalars.js';
 
 let nextControlId = 0;
 
@@ -15,30 +16,39 @@ export const STATE_FILTER_OPTIONS = [
 ];
 
 export function stateFilterLabel(value) {
-  return STATE_FILTER_OPTIONS.find(option => option.value === Number(value))?.label ?? 'Ignored';
+  return STATE_FILTER_OPTIONS.find(option => option.value === value)?.label ?? 'Ignored';
 }
 
 export function rangeSliderBounds(min, max, defaults = {}) {
   const defaultMin = Number.isFinite(defaults.min) ? defaults.min : 0;
   const defaultMax = Number.isFinite(defaults.max) ? defaults.max : 100;
-  const rawMin = Number(min);
-  const rawMax = Number(max);
   const values = [defaultMin, defaultMax];
-  if (Number.isFinite(rawMin)) values.push(rawMin);
-  if (Number.isFinite(rawMax)) values.push(rawMax);
+  if (isIntegerScalar(min)) values.push(min);
+  if (isIntegerScalar(max)) values.push(max);
   let lower = Math.min(...values);
   let upper = Math.max(...values);
   if (lower === upper) upper = lower + 1;
   return { min: Math.floor(lower), max: Math.ceil(upper) };
 }
 
-export function decideRangeValueChange(storedValue, nextValue) {
-  if (!Number.isFinite(nextValue)) return { valid: false, changed: false, value: storedValue };
+export function decideRangeValueChange(storedValue, nextValue, options = {}) {
+  const minimum = options.minimum ?? null;
+  const maximum = options.maximum ?? null;
+  const valid = isIntegerScalar(nextValue)
+    && (minimum === null || nextValue >= minimum)
+    && (maximum === null || nextValue <= maximum);
+  if (!valid) return { valid: false, changed: false, value: storedValue };
   return { valid: true, changed: !Object.is(storedValue, nextValue), value: nextValue };
 }
 
-export function applyRangeValueChange(rangeObj, key, nextValue, onChange = () => {}) {
-  const decision = decideRangeValueChange(rangeObj[key], nextValue);
+export function decideRangeInputChange(storedValue, rawValue, options = {}) {
+  const text = String(rawValue);
+  if (text.trim() === '') return { valid: false, changed: false, value: storedValue };
+  return decideRangeValueChange(storedValue, Number(text), options);
+}
+
+export function applyRangeValueChange(rangeObj, key, nextValue, onChange = () => {}, options = {}) {
+  const decision = decideRangeValueChange(rangeObj[key], nextValue, options);
   if (!decision.valid || !decision.changed) return false;
   rangeObj[key] = decision.value;
   onChange();
@@ -196,7 +206,7 @@ export function segmentedControl(label, value, options, onChange) {
   const group = field.querySelector('.segmented-control');
   for (const option of options) {
     const id = makeControlId('segment');
-    const checked = Number(value) === option.value;
+    const checked = value === option.value;
     const segment = document.createElement('label');
     segment.className = `segment segment-${option.tone || 'neutral'}`;
     segment.innerHTML = `
@@ -219,6 +229,11 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
   const minSliderId = makeControlId('range-min-slider');
   const maxSliderId = makeControlId('range-max-slider');
   const validationId = makeControlId('range-validation');
+  const minimum = defaults.minimum ?? null;
+  const maximum = defaults.maximum ?? null;
+  const valueOptions = { minimum, maximum };
+  const minAttr = minimum === null ? '' : ` min="${minimum}"`;
+  const maxAttr = maximum === null ? '' : ` max="${maximum}"`;
   const bounds = rangeSliderBounds(rangeObj.Min, rangeObj.Max, defaults);
   wrap.innerHTML = `
     <div class="range-slider-stack">
@@ -228,8 +243,8 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
       <input id="${maxSliderId}" class="range-max-slider" type="range" min="${bounds.min}" max="${bounds.max}" step="1" value="${escapeHtml(rangeObj.Max)}" aria-label="${escapeHtml(label)} maximum slider">
     </div>
     <div class="range-number-grid">
-      <div><label for="${minInputId}">Minimum</label><input id="${minInputId}" type="number" step="1" value="${escapeHtml(rangeObj.Min)}"></div>
-      <div><label for="${maxInputId}">Maximum</label><input id="${maxInputId}" type="number" step="1" value="${escapeHtml(rangeObj.Max)}"></div>
+      <div><label for="${minInputId}">Minimum</label><input id="${minInputId}" type="number" step="1"${minAttr}${maxAttr} value="${escapeHtml(rangeObj.Min)}"></div>
+      <div><label for="${maxInputId}">Maximum</label><input id="${maxInputId}" type="number" step="1"${minAttr}${maxAttr} value="${escapeHtml(rangeObj.Max)}"></div>
     </div>
     <p id="${validationId}" class="hint range-validation" hidden>Minimum is greater than maximum. Values are preserved until you edit them.</p>
   `;
@@ -238,33 +253,42 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
   const minSlider = wrap.querySelector(`#${minSliderId}`);
   const maxSlider = wrap.querySelector(`#${maxSliderId}`);
   const validation = wrap.querySelector('.range-validation');
+  const inputErrors = { Min: '', Max: '' };
+
+  function invalidInputMessage(key) {
+    const component = key === 'Min' ? 'Minimum' : 'Maximum';
+    return minimum === 0
+      ? `${component} must be a non-negative integer.`
+      : `${component} must be an integer.`;
+  }
 
   function syncValidity() {
-    const minValue = Number(rangeObj.Min);
-    const maxValue = Number(rangeObj.Max);
+    const minValue = rangeObj.Min;
+    const maxValue = rangeObj.Max;
     const lowerBound = Number(minSlider.min);
     const upperBound = Number(minSlider.max);
     const span = upperBound - lowerBound || 1;
-    const nonFinite = !Number.isFinite(minValue) || !Number.isFinite(maxValue);
-    const reversed = Number.isFinite(minValue) && Number.isFinite(maxValue) && minValue > maxValue;
-    const hasRangeIssue = reversed || nonFinite;
-    const visualMin = Number.isFinite(minValue) ? minValue : lowerBound;
-    const visualMax = Number.isFinite(maxValue) ? maxValue : upperBound;
+    const incompatible = !decideRangeValueChange(minValue, minValue, valueOptions).valid || !decideRangeValueChange(maxValue, maxValue, valueOptions).valid;
+    const reversed = !incompatible && minValue > maxValue;
+    const inputError = inputErrors.Min || inputErrors.Max;
+    const hasRangeIssue = reversed || incompatible || Boolean(inputError);
+    const visualMin = isIntegerScalar(minValue) ? minValue : lowerBound;
+    const visualMax = isIntegerScalar(maxValue) ? maxValue : upperBound;
     const start = Math.max(0, Math.min(100, ((Math.min(visualMin, visualMax) - lowerBound) / span) * 100));
     const end = Math.max(0, Math.min(100, ((Math.max(visualMin, visualMax) - lowerBound) / span) * 100));
     wrap.style.setProperty('--range-start', `${start}%`);
     wrap.style.setProperty('--range-end', `${end}%`);
-    wrap.classList.toggle('has-range-issue', reversed || nonFinite);
-    wrap.classList.toggle('has-range-error', nonFinite);
-    wrap.classList.toggle('has-range-warning', !nonFinite && reversed);
-    minSlider.classList.toggle('range-active-slider', reversed || minValue >= maxValue);
-    minNumber.classList.toggle('invalid', reversed || !Number.isFinite(minValue));
-    maxNumber.classList.toggle('invalid', reversed || !Number.isFinite(maxValue));
-    validation.textContent = nonFinite ? 'Minimum and maximum must be finite numbers.' : 'Minimum is greater than maximum. Values are preserved until you edit them.';
+    wrap.classList.toggle('has-range-issue', hasRangeIssue);
+    wrap.classList.toggle('has-range-error', incompatible || Boolean(inputError));
+    wrap.classList.toggle('has-range-warning', !incompatible && !inputError && reversed);
+    minSlider.classList.toggle('range-active-slider', reversed || (!incompatible && minValue >= maxValue));
+    minNumber.classList.toggle('invalid', reversed || incompatible || Boolean(inputErrors.Min));
+    maxNumber.classList.toggle('invalid', reversed || incompatible || Boolean(inputErrors.Max));
+    validation.textContent = inputError || (incompatible ? 'Minimum and maximum must be compatible integers.' : 'Minimum is greater than maximum. Values are preserved until you edit them.');
     validation.classList.add('range-validation');
     validation.classList.toggle('validation-list', hasRangeIssue);
-    validation.classList.toggle('field-error', nonFinite);
-    validation.classList.toggle('field-warning', !nonFinite && reversed);
+    validation.classList.toggle('field-error', incompatible || Boolean(inputError));
+    validation.classList.toggle('field-warning', !incompatible && !inputError && reversed);
     validation.hidden = !hasRangeIssue;
     for (const input of [minNumber, maxNumber]) {
       input.setAttribute('aria-invalid', hasRangeIssue ? 'true' : 'false');
@@ -273,19 +297,16 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
     }
   }
   function commitNumber(key, input) {
-    if (input.value.trim() === '') {
+    const decision = decideRangeInputChange(rangeObj[key], input.value, valueOptions);
+    if (!decision.valid) {
       input.value = String(rangeObj[key]);
+      inputErrors[key] = '';
       syncValidity();
       return;
     }
-    const next = Number(input.value);
-    if (!Number.isFinite(next)) {
-      input.value = String(rangeObj[key]);
-      syncValidity();
-      return;
-    }
-    input.value = String(next);
-    const changed = applyRangeValueChange(rangeObj, key, next, onChange);
+    inputErrors[key] = '';
+    input.value = String(decision.value);
+    const changed = applyRangeValueChange(rangeObj, key, decision.value, onChange, valueOptions);
     const nextBounds = rangeSliderBounds(rangeObj.Min, rangeObj.Max, defaults);
     for (const slider of [minSlider, maxSlider]) {
       slider.min = String(nextBounds.min);
@@ -297,10 +318,14 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
     return changed;
   }
   function commitFiniteNumberInput(key, input) {
-    if (input.value.trim() === '') return;
-    const next = Number(input.value);
-    if (!Number.isFinite(next)) return;
-    const changed = applyRangeValueChange(rangeObj, key, next, onChange);
+    const decision = decideRangeInputChange(rangeObj[key], input.value, valueOptions);
+    if (!decision.valid) {
+      inputErrors[key] = invalidInputMessage(key);
+      syncValidity();
+      return false;
+    }
+    inputErrors[key] = '';
+    const changed = applyRangeValueChange(rangeObj, key, decision.value, onChange, valueOptions);
     const nextBounds = rangeSliderBounds(rangeObj.Min, rangeObj.Max, defaults);
     for (const slider of [minSlider, maxSlider]) {
       slider.min = String(nextBounds.min);
@@ -318,12 +343,14 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
   minNumber.addEventListener('keydown', e => { if (e.key === 'Enter') e.currentTarget.blur(); });
   maxNumber.addEventListener('keydown', e => { if (e.key === 'Enter') e.currentTarget.blur(); });
   minSlider.oninput = e => {
-    applyRangeValueChange(rangeObj, 'Min', Number(e.target.value), onChange);
+    inputErrors.Min = '';
+    applyRangeValueChange(rangeObj, 'Min', Number(e.target.value), onChange, valueOptions);
     minNumber.value = e.target.value;
     syncValidity();
   };
   maxSlider.oninput = e => {
-    applyRangeValueChange(rangeObj, 'Max', Number(e.target.value), onChange);
+    inputErrors.Max = '';
+    applyRangeValueChange(rangeObj, 'Max', Number(e.target.value), onChange, valueOptions);
     maxNumber.value = e.target.value;
     syncValidity();
   };

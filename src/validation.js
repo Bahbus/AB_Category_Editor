@@ -2,8 +2,8 @@ import { ALLOWED_RARITY_IDS, RANGE_FILTERS, RANGE_FILTER_KEYS, STATE_FILTERS, ST
 import { invalidRowIds, normalizeRowIdValue } from './rowIds.js';
 import { optionalFiniteNumber } from './optionalNumbers.js';
 import { classifyStoredPattern } from './patternSemantics.js';
+import { isBooleanScalar, isRangeBoundScalar, isStateFilterScalar, isStateScalar } from './filterScalars.js';
 
-const VALID_STATE_VALUES = new Set([0, 1, 2]);
 const RANGE_FILTER_LABELS = Object.fromEntries(RANGE_FILTERS.map(filter => [filter.key, filter.label]));
 const STATE_FILTER_LABELS = Object.fromEntries(STATE_FILTERS.map(filter => [filter.key, filter.label]));
 
@@ -97,17 +97,21 @@ export const validateRegexPattern = validateAllowedItemNamePattern;
 
 export function validateRangeFilter(field, range, labelText = field) {
   const findings = [];
-  const min = Number(range?.Min);
-  const max = Number(range?.Max);
-  if (!Number.isFinite(min)) findings.push(finding('error', field, `${labelText} minimum must be a finite number.`));
-  if (!Number.isFinite(max)) findings.push(finding('error', field, `${labelText} maximum must be a finite number.`));
-  if (Number.isFinite(min) && Number.isFinite(max) && min > max) findings.push(finding('warning', field, `${labelText} minimum is greater than maximum.`));
+  const min = range?.Min;
+  const max = range?.Max;
+  const boundType = field === 'VendorPrice' ? 'a non-negative integer compatible with uint' : 'an integer number';
+  if (!isBooleanScalar(range?.Enabled)) findings.push(finding('error', field, `${labelText} Enabled must be a JSON boolean.`));
+  if (!isRangeBoundScalar(field, min)) findings.push(finding('error', field, `${labelText} minimum must be ${boundType}.`));
+  if (!isRangeBoundScalar(field, max)) findings.push(finding('error', field, `${labelText} maximum must be ${boundType}.`));
+  if (isRangeBoundScalar(field, min) && isRangeBoundScalar(field, max) && min > max) findings.push(finding('warning', field, `${labelText} minimum is greater than maximum.`));
   return findings;
 }
 
 export function validateStateFilter(field, stateFilter, labelText = field) {
-  const state = Number(stateFilter?.State);
-  return Number.isFinite(state) && VALID_STATE_VALUES.has(state) ? [] : [finding('warning', field, `${labelText} uses an unsupported state and will be treated as Ignored.`)];
+  const findings = [];
+  if (!isStateScalar(stateFilter?.State)) findings.push(finding('warning', field, `${labelText} State must be the integer 0, 1, or 2 and will otherwise be treated as Ignored.`));
+  if (!isStateFilterScalar(stateFilter?.Filter)) findings.push(finding('error', field, `${labelText} Filter must be an integer number.`));
+  return findings;
 }
 
 export function validateRarities(category) {
@@ -268,4 +272,25 @@ export function countFindings(findings) {
     counts[item.severity] = (counts[item.severity] || 0) + 1;
     return counts;
   }, { error: 0, warning: 0, note: 0 });
+}
+
+function validationFindingKey(item) {
+  if (item?.field === 'SortPosition' && item.sortPositionKey) {
+    return `${item.severity}|${item.field}|${item.sortPositionKey}`;
+  }
+  return `${item?.severity}|${item?.field}|${item?.categoryId || ''}|${item?.message}`;
+}
+
+export function mergeValidationFindings(...analyses) {
+  const seen = new Set();
+  const findings = [];
+  for (const analysis of analyses) {
+    for (const item of analysis?.findings || []) {
+      const key = validationFindingKey(item);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      findings.push(item);
+    }
+  }
+  return { findings, counts: countFindings(findings) };
 }

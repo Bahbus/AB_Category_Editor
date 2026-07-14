@@ -13,7 +13,7 @@ import { EXPORT_FILENAME, copyTextToClipboard, downloadText, makeBase64Export, p
 import { sheetLabel, collectReferencedIds, countReferencedIds, countUncachedReferencedIds, fetchLookupBatch as xivapiFetchLookupBatch, searchXivapi } from './xivapi.js';
 import { generateCategoryDescription, isUsefulGeneratedDescription } from './descriptionGenerator.js';
 import { isUsefulLookupName } from './lookupNames.js';
-import { analyzeImportedConfig, countFindings } from './validation.js';
+import { analyzeImportedConfig, mergeValidationFindings } from './validation.js';
 import { PRESETS } from './presets.js';
 import { createLookupCacheOperationCoordinator, clearLookupCacheIfIdle } from './lookupCacheOperations.js';
 import { applyConfigReplacement, applyFullConfigCandidate, renumberCategories as applyCategoryRenumber, sortCategoriesPreservingSelection } from './categoryChanges.js';
@@ -84,27 +84,6 @@ function applyValidatedConfig(validation) {
     data = candidate;
     advanceDataRevision();
   });
-}
-
-function validationFindingKey(item) {
-  if (item?.field === 'SortPosition' && item.sortPositionKey) {
-    return `${item.severity}|${item.field}|${item.sortPositionKey}`;
-  }
-  return `${item?.severity}|${item?.field}|${item?.categoryId || ''}|${item?.message}`;
-}
-
-function mergeValidationFindings(...analyses) {
-  const seen = new Set();
-  const findings = [];
-  for (const analysis of analyses) {
-    for (const item of analysis?.findings || []) {
-      const key = validationFindingKey(item);
-      if (seen.has(key)) continue;
-      seen.add(key);
-      findings.push(item);
-    }
-  }
-  return { findings, counts: countFindings(findings) };
 }
 
 function shortRepairValue(value) {

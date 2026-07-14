@@ -33,38 +33,41 @@ Primary layers:
 7. **Shared pattern semantics**
    - `src/patternSemantics.js`
 
-8. **Import/export and clipboard/download**
+8. **Shared range/state scalar semantics**
+   - `src/filterScalars.js`
+
+9. **Import/export and clipboard/download**
    - `src/importExport.js`
    - `src/exportSnapshots.js`
 
-9. **XIVAPI and lookup**
+10. **XIVAPI and lookup**
    - `src/xivapi.js`
    - `src/lookupNames.js`
 
-10. **UI rendering**
+11. **UI rendering**
    - `src/ui/categoryList.js`
    - `src/ui/categoryEditor.js`
    - `src/ui/listEditor.js`
    - `src/ui/formControls.js`
    - modal-specific UI modules
 
-11. **Modal infrastructure**
+12. **Modal infrastructure**
    - `src/modals.js`
 
-12. **Persistent state**
+13. **Persistent state**
    - `src/state.js`
 
-13. **Tools**
+14. **Tools**
    - `src/tools/regexToItemIds.js`
 
-14. **Description generation**
+15. **Description generation**
    - `src/descriptionGenerator.js`
 
-15. **Static assets and layout**
+16. **Static assets and layout**
    - `index.html`
    - `styles.css`
 
-16. **Tests and guardrails**
+17. **Tests and guardrails**
    - `test/*.test.mjs`
    - `scripts/check-javascript-syntax.mjs`
    - `scripts/check-imports.mjs`
@@ -166,6 +169,7 @@ Important rule:
 - Invalid individual numeric IDs inside valid arrays are preserved and warned, not silently removed.
 - Category entries themselves must be JSON objects; `null`, arrays, and scalar entries fail validation rather than being repaired into categories.
 - Plain Color objects are snapshotted by value before normalization. Missing or non-number components are repaired to defaults with one material, reviewable Color warning; valid numeric components, including higher-precision values, remain exact. Malformed whole Color values retain separate repair messaging.
+- Range/state scalar repair delegates to `src/filterScalars.js`: Range Enabled accepts only booleans; Level/Item Level accept finite integers; Vendor Price accepts uint-compatible integers; State accepts only numeric 0/1/2; and Filter accepts finite integers. Invalid plain-object components fall back independently while valid unusual signed integers remain exact.
 
 ---
 
@@ -209,6 +213,10 @@ For each affected list field:
 The pinned AetherBags implementation is authoritative: `AllowedItemNamePatterns` is `List<string>`; the matcher skips null/empty/whitespace entries; and `RegexCache` uses case-insensitive, culture-invariant .NET regex and returns `null` when .NET compilation fails.
 
 The dependency-free browser cannot execute or fully validate .NET syntax. `src/patternSemantics.js` therefore classifies only the structural facts the browser knows: a stored element is usable when it is a nonblank string. `src/validation.js` reports every non-string or blank element at its original position and preserves imported data. Duplicate-pattern warnings consider only structurally usable entries, preventing duplicate findings for repeated invalid elements. The legacy `validateRegexPattern` export remains as a compatibility alias to the structural validator.
+
+### Range and state scalar semantics
+
+`src/filterScalars.js` is shared by import repair and validation so JSON numeric strings, blanks, booleans-as-numbers, nullish values, arrays, objects, fractions, and non-finite values cannot pass through JavaScript coercion. Vendor Price additionally rejects negative values and values above `uint` capacity. Validation messages identify Enabled, Min, Max, State, or Filter while keeping stable filter fields for category summaries. The pre/post import merge helper is DOM-free and dedupes identical findings without hiding distinct invalid components.
 
 ---
 
@@ -388,6 +396,8 @@ Do not decrement shared busy state for an operation that returned before `showBu
 - reversed range is preserved but warned,
 - sliders and numeric inputs remain synchronized,
 - same-value live number, blur, and slider events do not mutate or notify; a real change mutates once and notifies once,
+- typed range input commits only finite integers; Vendor Price also enforces `0..uint.MaxValue`,
+- invalid live text does not mutate, notify, move the paired slider, or dirty; it exposes a specific associated error and restores the committed value and slider state on blur,
 - reversed or non-finite ranges expose their validation message to both numeric inputs through `aria-describedby`; valid ranges remove that association.
 
 ---
@@ -586,6 +596,10 @@ Phase 46 was merged at `26dd5564830ec7d5f6209d7a37077e4836a25a47`. Its post-merg
 Phase 47 merged through PR #83 at `8340c9f8417865242a0bf1faba7b3dd156614cc5`. Its post-merge review passed exact tree/diff verification, GitHub CI, and Pages; deployed `listEditor.js` matched merged source; browser QA remained unavailable because the browser transport closed.
 
 Phase 48 adds direct storage-classification, browser-compatibility, saved-option, original-index removal, import-fidelity, issue-count, and tokenization tests plus DOM source guardrails. Its local `npm run check` run syntax-checked 59 files, resolved all static relative imports, and passed all 27 test files / 336 tests. `git diff --check origin/main` passed with no output. In-app browser QA was attempted but unavailable because the browser transport closed before discovery. CI and Pages were not run for the unpublished phase.
+
+Phase 48 then merged through PR #84 at `4aa67ed97b89f35e0bf468628536d2993819b182` with no 48.1. Its post-merge review reran the same 59-file / 27-file / 336-test check, confirmed an exact branch-tree match and clean `git diff --check origin/main`, verified desktop-keyring authentication, PR checks, post-merge Project verification, Pages, exact deployed `patternSemantics.js` and `regexToItemIds.js`, and browser behavior for `(?>a)`, early incompatibility handling, blank rejection, and desktop/840px/390px overflow.
+
+Phase 49 adds the shared scalar module and direct classification, repair, validation/merge, typed-input decision, no-op/notification, and focused DOM-wiring coverage. Its local `npm run check` run syntax-checked 61 files, resolved all static relative imports, and passed all 28 test files / 347 tests; `git diff --check origin/main` passed with no output. In-app browser QA was attempted twice but unavailable because the browser transport closed; CI and Pages were not run.
 
 Testing styles:
 

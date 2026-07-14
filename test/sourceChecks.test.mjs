@@ -327,19 +327,14 @@ test('range number blank blur restores previous value instead of committing zero
   const source = read('src/ui/formControls.js');
   const rangeCommitBlock = source.match(/function commitNumber\(key, input\) \{(?<body>[\s\S]*?)\n  \}\n  function commitFiniteNumberInput/)?.groups.body ?? '';
 
-  assert.match(rangeCommitBlock, /input\.value\.trim\(\) === ''/);
+  assert.match(source, /if \(text\.trim\(\) === ''\) return \{ valid: false, changed: false, value: storedValue \};/);
+  assert.match(rangeCommitBlock, /decideRangeInputChange\(rangeObj\[key\], input\.value, valueOptions\)/);
   assert.match(rangeCommitBlock, /input\.value = String\(rangeObj\[key\]\);/);
   assert.match(rangeCommitBlock, /syncValidity\(\);/);
-
-  const blankIndex = rangeCommitBlock.indexOf("input.value.trim() === ''");
-  const nextIndex = rangeCommitBlock.indexOf('const next = Number(input.value)');
-  const applyIndex = rangeCommitBlock.indexOf('applyRangeValueChange(rangeObj, key, next, onChange)');
-
-  assert.ok(blankIndex !== -1);
-  assert.ok(nextIndex !== -1);
-  assert.ok(applyIndex !== -1);
-  assert.ok(blankIndex < nextIndex, 'blank restore should happen before Number(input.value)');
-  assert.ok(blankIndex < applyIndex, 'blank restore should happen before applying a range value');
+  const invalidIndex = rangeCommitBlock.indexOf('if (!decision.valid)');
+  const restoreIndex = rangeCommitBlock.indexOf('input.value = String(rangeObj[key])');
+  const applyIndex = rangeCommitBlock.indexOf('applyRangeValueChange(rangeObj, key, decision.value, onChange, valueOptions)');
+  assert.ok(invalidIndex !== -1 && restoreIndex > invalidIndex && applyIndex > restoreIndex);
 });
 
 test('typed list add reports partial duplicate skips without changing all-duplicate behavior', () => {
@@ -728,16 +723,15 @@ test('app shell keeps 100vh fallback and adds dynamic viewport height', () => {
 
 
 test('duplicate sort-position import merge uses stable grouped keys', () => {
-  const app = read('src/app.js');
   const validation = read('src/validation.js');
 
   assert.match(validation, /sortPositionKey:\s*`\$\{group\.order\}:\$\{group\.priority\}`/);
   assert.match(validation, /categoryNames:\s*stableNames/);
   assert.match(validation, /stableNames\s*=\s*group\.names\.slice\(\)\.sort/);
-  assert.match(app, /function\s+validationFindingKey\(item\)/);
-  assert.match(app, /item\?\.field === 'SortPosition' && item\.sortPositionKey/);
-  assert.match(app, /return `\$\{item\.severity\}\|\$\{item\.field\}\|\$\{item\.sortPositionKey\}`/);
-  assert.match(app, /const key = validationFindingKey\(item\);/);
+  assert.match(validation, /function\s+validationFindingKey\(item\)/);
+  assert.match(validation, /item\?\.field === 'SortPosition' && item\.sortPositionKey/);
+  assert.match(validation, /return `\$\{item\.severity\}\|\$\{item\.field\}\|\$\{item\.sortPositionKey\}`/);
+  assert.match(validation, /const key = validationFindingKey\(item\);/);
 });
 
 test('numeric ID list parsers reject negatives and mention non-negative integers', () => {
@@ -817,7 +811,7 @@ test('number blur handlers avoid unchanged dirty commits', () => {
   assert.match(numberBlock, /applyNumberCommit\(committed, rawValue, onChange, bounds\)/);
   assert.match(numberBlock, /options\.validate\(committed\.jsonValue\)/);
   assert.doesNotMatch(numberBlock, /Number\(value\) \|\| 0/);
-  assert.match(rangeCommitBlock, /applyRangeValueChange\(rangeObj, key, next, onChange\)/);
+  assert.match(rangeCommitBlock, /applyRangeValueChange\(rangeObj, key, decision\.value, onChange, valueOptions\)/);
   assert.doesNotMatch(rangeCommitBlock, /rangeObj\[key\] = next/);
 });
 
@@ -825,7 +819,20 @@ test('range number and slider live events share the guarded change helper', () =
   const source = read('src/ui/formControls.js');
   const finiteInputBlock = source.match(/function commitFiniteNumberInput\(key, input\) \{(?<body>[\s\S]*?)\n  \}/)?.groups.body ?? '';
 
-  assert.match(finiteInputBlock, /applyRangeValueChange\(rangeObj, key, next, onChange\)/);
-  assert.match(source, /minSlider\.oninput = e => \{\s*applyRangeValueChange\(rangeObj, 'Min', Number\(e\.target\.value\), onChange\);/);
-  assert.match(source, /maxSlider\.oninput = e => \{\s*applyRangeValueChange\(rangeObj, 'Max', Number\(e\.target\.value\), onChange\);/);
+  assert.match(finiteInputBlock, /decideRangeInputChange\(rangeObj\[key\], input\.value, valueOptions\)/);
+  assert.match(finiteInputBlock, /applyRangeValueChange\(rangeObj, key, decision\.value, onChange, valueOptions\)/);
+  assert.match(source, /minSlider\.oninput = e => \{[\s\S]*?applyRangeValueChange\(rangeObj, 'Min', Number\(e\.target\.value\), onChange, valueOptions\);/);
+  assert.match(source, /maxSlider\.oninput = e => \{[\s\S]*?applyRangeValueChange\(rangeObj, 'Max', Number\(e\.target\.value\), onChange, valueOptions\);/);
+});
+
+test('range controls enforce integer input, Vendor Price bounds, and accessible live errors', () => {
+  const controls = read('src/ui/formControls.js');
+  const editor = read('src/ui/categoryEditor.js');
+  assert.match(controls, /type="number" step="1"\$\{minAttr\}\$\{maxAttr\}/);
+  assert.match(controls, /inputErrors\[key\] = invalidInputMessage\(key\);[\s\S]*?syncValidity\(\);[\s\S]*?return false;/);
+  assert.match(controls, /input\.setAttribute\('aria-invalid', hasRangeIssue \? 'true' : 'false'\)/);
+  assert.match(controls, /if \(hasRangeIssue\) input\.setAttribute\('aria-describedby', validationId\)/);
+  assert.match(editor, /minimum: key === 'VendorPrice' \? 0 : null/);
+  assert.match(editor, /maximum: key === 'VendorPrice' \? UINT32_MAX : null/);
+  assert.doesNotMatch(editor, /if \(typeof obj\.Filter !== 'number'\) obj\.Filter = 0/);
 });
