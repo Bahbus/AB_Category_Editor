@@ -448,9 +448,14 @@ test('numeric list editors use strict row-ID dedupe without deduping name patter
   assert.match(listEditor, /dedupeKey\s*=\s*value\s*=>\s*value/);
   assert.match(listEditor, /if \(dedupeValues\)/);
 
-  const uiCall = categoryEditor.match(new RegExp(String.raw`listEditor\('Allowed UI Category IDs',[\s\S]*?\}\),\n\s*listEditor\('Allowed Item IDs'`))?.[0] ?? '';
-  const itemCall = categoryEditor.match(new RegExp(String.raw`listEditor\('Allowed Item IDs',[\s\S]*?\}\),\n\s*listEditor\('Allowed Item Name Patterns'`))?.[0] ?? '';
-  const patternCall = categoryEditor.match(new RegExp(String.raw`listEditor\('Allowed Item Name Patterns',[\s\S]*?\}\),\n\s*renderAllowedRaritiesEditor`))?.[0] ?? '';
+  const uiStart = categoryEditor.indexOf("listEditor('Allowed UI Category IDs'");
+  const itemStart = categoryEditor.indexOf("listEditor('Allowed Item IDs'", uiStart);
+  const patternsAppend = categoryEditor.indexOf('patternsCard,', itemStart);
+  const patternStart = categoryEditor.indexOf("const patternsCard = listEditor('Allowed Item Name Patterns'");
+  const converterStart = categoryEditor.indexOf('const converterButton', patternStart);
+  const uiCall = categoryEditor.slice(uiStart, itemStart);
+  const itemCall = categoryEditor.slice(itemStart, patternsAppend);
+  const patternCall = categoryEditor.slice(patternStart, converterStart);
 
   assert.match(uiCall, /dedupeValues:\s*true/);
   assert.match(categoryEditor, /import \{ normalizeRowIdValue \} from ['"]\.\.\/rowIds\.js['"];/);
@@ -459,6 +464,22 @@ test('numeric list editors use strict row-ID dedupe without deduping name patter
   assert.match(itemCall, /dedupeKey:\s*normalizeRowIdValue/);
   assert.doesNotMatch(patternCall, /dedupeValues:\s*true/);
   assert.doesNotMatch(patternCall, /dedupeKey:\s*normalizeRowIdValue/);
+});
+
+test('regex converter action is composed into the name-pattern list row', () => {
+  const categoryEditor = read('src/ui/categoryEditor.js');
+  const styles = read('styles.css');
+
+  assert.match(categoryEditor, /const patternsCard = listEditor\('Allowed Item Name Patterns'/);
+  assert.match(categoryEditor, /converterButton\.type = 'button'/);
+  assert.match(categoryEditor, /converterButton\.textContent = 'Convert patterns to Item IDs'/);
+  assert.match(categoryEditor, /converterButton\.className = 'pattern-converter-action'/);
+  assert.match(categoryEditor, /converterButton\.onclick = openRegexToItemIdsTool/);
+  assert.match(categoryEditor, /requireScopedEl\(patternsCard, '\.list-editor-row', 'name patterns'\)\.appendChild\(converterButton\)/);
+  assert.match(categoryEditor, /ruleGrid\.append\([\s\S]*?patternsCard,[\s\S]*?renderAllowedRaritiesEditor/);
+  assert.doesNotMatch(categoryEditor, /<h3>Regex → Item IDs<\/h3>/);
+  assert.doesNotMatch(categoryEditor, /id="openRegexToItemIds"/);
+  assert.match(styles, /\.pattern-converter-action\s*\{[\s\S]*?margin-left:\s*auto;[\s\S]*?max-width:\s*100%;[\s\S]*?white-space:\s*normal;/);
 });
 
 test('RGB blur restores committed values and only dirties actual component changes', () => {

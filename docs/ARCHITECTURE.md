@@ -441,6 +441,9 @@ Do not split it casually. Refactor when future feature work creates real frictio
 
 Important behavior:
 
+- the launch action is composed by `src/ui/categoryEditor.js` into the existing Allowed Item Name Patterns list input/Add row; `listEditor(...)` has no converter-specific API,
+- `.pattern-converter-action` right-aligns the launch control when row space permits and allows wrapping within the card,
+- the action remains present when the saved pattern list is empty because the modal accepts a custom regex,
 - no-op add must not mark dirty,
 - status must distinguish:
   - IDs added,
@@ -553,6 +556,8 @@ node --test
 The single GitHub Actions workflow is `.github/workflows/project-verification.yml`. Pushes and pull requests run the same `npm run check` contract once with read-only repository contents, checkout v4, setup-node v4, and Node 22. The workflow does not duplicate the syntax, import, or test commands.
 
 Phase 45 adds temporary-fixture behavior tests for nested discovery, ordering, exclusions, directory symlinks, valid files, and an invalid-file failure. Its local `npm run check` run syntax-checked 56 files, resolved all static relative imports, and passed all 25 test files / 319 tests. `git diff --check` also passed. CI and browser QA were not run.
+
+Phase 46 adds focused source coverage for composing the converter action into the patterns list row, its explicit button type and label, direct dependency wiring, right-alignment/wrapping class, standalone-card removal, and stable independent extraction of the three list-editor calls for dedupe assertions. Its local `npm run check` run syntax-checked 56 files, resolved all static relative imports, and passed all 25 test files / 320 tests. `git diff --check origin/main` passed. In-app browser QA was attempted but unavailable because the browser transport closed; CI was not run.
 
 Testing styles:
 

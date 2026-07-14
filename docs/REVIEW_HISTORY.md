@@ -833,6 +833,27 @@ Validation actually run:
 - phase diff inspection confirmed only verification tooling, workflow, tests, package metadata, and durable documentation changed,
 - CI and browser QA were not run.
 
+## Phase 46
+
+Phase 46 integrates the existing Regex → Item IDs launch action into Allowed Item Name Patterns without changing the converter workflow:
+
+- the standalone full-width converter card and obsolete explanatory markup are removed,
+- `categoryEditor.js` retains the patterns list editor as `patternsCard` and appends a dedicated `type="button"` action to its existing input/Add row,
+- the four rule cards retain their established order and the existing two-column/mobile single-column grid,
+- the action directly invokes `openRegexToItemIdsTool` and remains available for an empty saved-pattern list,
+- `.pattern-converter-action` supplies right alignment plus bounded text wrapping without changing shared button or pill density,
+- `listEditor(...)` remains unchanged,
+- focused source checks cover composition, explicit type and label, dependency wiring, CSS, standalone-card removal, and independent stable extraction of UI-ID, Item-ID, and pattern calls while preserving the no-row-ID-dedupe assertion for patterns.
+
+Validation actually run:
+
+- focused source checks passed: 59 tests,
+- `npm run check` passed: 56 JavaScript files syntax-checked, all static relative imports resolved, and all 25 test files / 320 tests passed,
+- `git diff --check origin/main` passed,
+- final diff inspection confirmed changes are limited to category-editor composition, one semantic CSS rule, focused source coverage, and durable documentation,
+- in-app browser QA was attempted, but the browser transport closed before connection; wide desktop, the 840px stack boundary, and narrow phone runtime checks were unavailable,
+- CI was not run.
+
 # Current next step
 
-Review Phase 45 locally. Publish it only when requested; after merge, perform the next post-merge review before defining another implementation phase.
+Review Phase 46 locally. Publish it only when requested; after merge, perform the next post-merge review before defining another implementation phase.

@@ -734,6 +734,11 @@ details.card > .details-body {
 .list-editor-row {
   margin-top: 10px;
 }
+.pattern-converter-action {
+  margin-left: auto;
+  max-width: 100%;
+  white-space: normal;
+}
 .lookup-search-block {
   margin-top: 10px;
 }

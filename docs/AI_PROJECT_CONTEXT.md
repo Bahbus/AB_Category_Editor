@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 44.1 is merged at `80c1e2e8f0194420a06cbde1b3feeb19bbbceaee`. Its post-merge review found no application-runtime follow-up and confirmed that local and hosted verification had drifted: `npm run check` parsed only `src/app.js`, while two workflows duplicated the remaining commands. Phase 45 unifies that contract on `agent/phase-45-unified-verification-ci`; `npm run check` passes after checking 56 JavaScript files and running all 25 test files / 319 tests. `git diff --check` passes. CI and browser QA were not run.
+> **Current state:** Phase 45 is merged at `70c391cea6fd32b00725311c4b6ef735258b87b1`. Phase 46 integrates the existing Regex → Item IDs launch action into the Allowed Item Name Patterns card on `agent/phase-46-pattern-converter-layout` without changing converter behavior or the rule-card grid. `npm run check` passes after checking 56 JavaScript files and running all 25 test files / 320 tests. `git diff --check origin/main` passes. In-app browser QA was attempted but unavailable because the browser transport closed; CI was not run.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -393,6 +393,22 @@ Validation actually run:
 - diff inspection confirmed changes are limited to verification tooling, workflow configuration, tests, package metadata, and durable documentation.
 
 CI and browser QA were not run.
+
+### Phase 46
+
+- The standalone full-width Regex → Item IDs card and its explanatory markup are removed.
+- The existing Allowed Item Name Patterns `listEditor(...)` result is retained as `patternsCard`, leaving the reusable list-editor API unchanged and preserving the four rule-card order and two-column responsive grid.
+- A `type="button"` action labeled `Convert patterns to Item IDs` is appended to the patterns card's existing input/Add row and directly invokes `openRegexToItemIdsTool`, so categories with no saved patterns can still open the custom-regex workflow.
+- The dedicated `.pattern-converter-action` class right-aligns the action when space permits and allows its text to wrap within the card without horizontal overflow.
+- Focused source coverage verifies row placement, type, label, dependency wiring, semantic class, removal of the standalone card, and the existing rule that name patterns do not use numeric row-ID deduplication.
+
+Validation actually run:
+
+- focused `test/sourceChecks.test.mjs` passed all 59 tests,
+- `npm run check` passed: 56 JavaScript files syntax-checked, all static relative imports resolved, and all 25 test files / 320 tests passed,
+- `git diff --check origin/main` passed,
+- in-app browser QA was attempted, but the browser transport closed before connection; wide, 840px-boundary, and phone-width runtime QA could not be completed,
+- CI was not run.
 
 ---
 
