@@ -421,6 +421,21 @@ test('range and state import repair uses component defaults without coercion', (
   assert.equal(result.repairs.some(repair => repair.field === 'Repairable'), false);
 });
 
+test('range and state import repair preserves width boundaries and repairs adjacent values component by component', () => {
+  const category = defaultCategory(0);
+  category.Rules.Level = { Enabled: true, Min: -2147483648, Max: 2147483648 };
+  category.Rules.ItemLevel = { Enabled: true, Min: -2147483649, Max: 2147483647 };
+  category.Rules.VendorPrice = { Enabled: true, Min: 0, Max: 4294967295 };
+  category.Rules.Dyeable = { State: 2, Filter: 2147483648 };
+  const result = validateConfig({ Categories: [category] });
+
+  assert.deepEqual(category.Rules.Level, { Enabled: true, Min: -2147483648, Max: 200 });
+  assert.deepEqual(category.Rules.ItemLevel, { Enabled: true, Min: 0, Max: 2147483647 });
+  assert.deepEqual(category.Rules.VendorPrice, { Enabled: true, Min: 0, Max: 4294967295 });
+  assert.deepEqual(category.Rules.Dyeable, { State: 2, Filter: 0 });
+  assert.deepEqual(result.repairs.filter(item => ['Level', 'ItemLevel', 'Dyeable'].includes(item.field)).map(item => item.field), ['Level', 'ItemLevel', 'Dyeable']);
+});
+
 test('validateConfig does not crash on malformed but repairable nested rules', () => {
   const config = {
     Categories: [{

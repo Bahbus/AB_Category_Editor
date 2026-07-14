@@ -125,9 +125,9 @@ test('title and summary CSS use shared alignment tokens', () => {
 test('range issue slider source and styles expose invalid fill state', () => {
   const source = fs.readFileSync(new URL('../src/ui/formControls.js', import.meta.url), 'utf8');
   const styles = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
-  assert.match(source, /wrap\.classList\.toggle\('has-range-issue',\s*hasRangeIssue\)/);
-  assert.match(source, /wrap\.classList\.toggle\('has-range-warning',\s*!incompatible && !inputError && reversed\)/);
-  assert.match(source, /wrap\.classList\.toggle\('has-range-error',\s*incompatible \|\| Boolean\(inputError\)\)/);
+  assert.match(source, /wrap\.classList\.toggle\('has-range-issue',\s*validity\.hasIssue\)/);
+  assert.match(source, /wrap\.classList\.toggle\('has-range-warning',\s*validity\.reversed\)/);
+  assert.match(source, /wrap\.classList\.toggle\('has-range-error',\s*validity\.hasError\)/);
   assert.match(styles, /\.range-slider-control\.has-range-issue \.range-slider-fill/);
   assert.match(styles, /\.range-slider-control\.has-range-warning \.range-slider-fill\s*{[^}]*var\(--warn\)/s);
   assert.match(styles, /\.range-slider-control\.has-range-error \.range-slider-fill\s*{[^}]*var\(--danger\)/s);
@@ -159,7 +159,7 @@ test('category editor uses shared range defaults and advanced stable summary pat
   const source = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
 
   assert.match(source, /for \(const filter of RANGE_FILTERS\)/);
-  assert.match(source, /const defaults = \{[\s\S]*?min: filter\.defaults\.Min,[\s\S]*?max: filter\.defaults\.Max,[\s\S]*?minimum: key === 'VendorPrice' \? 0 : null,[\s\S]*?maximum: key === 'VendorPrice' \? UINT32_MAX : null[\s\S]*?\};/);
+  assert.match(source, /const defaults = \{[\s\S]*?min: filter\.defaults\.Min,[\s\S]*?max: filter\.defaults\.Max,[\s\S]*?minimum: key === 'VendorPrice' \? 0 : INT32_MIN,[\s\S]*?maximum: key === 'VendorPrice' \? UINT32_MAX : INT32_MAX[\s\S]*?\};/);
   assert.doesNotMatch(source, /max:\s*100000/);
   assert.doesNotMatch(source, /max:\s*key === 'Level' \? 100 : 800/);
   assert.match(source, /setDetailsSummary\(advanced, \{ title: 'Advanced', badges: \[\], issueCount: 0 \}\)/);

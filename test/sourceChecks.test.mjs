@@ -728,10 +728,10 @@ test('duplicate sort-position import merge uses stable grouped keys', () => {
   assert.match(validation, /sortPositionKey:\s*`\$\{group\.order\}:\$\{group\.priority\}`/);
   assert.match(validation, /categoryNames:\s*stableNames/);
   assert.match(validation, /stableNames\s*=\s*group\.names\.slice\(\)\.sort/);
-  assert.match(validation, /function\s+validationFindingKey\(item\)/);
+  assert.match(validation, /function\s+validationFindingKey\(item, categoryTokens\)/);
   assert.match(validation, /item\?\.field === 'SortPosition' && item\.sortPositionKey/);
   assert.match(validation, /return `\$\{item\.severity\}\|\$\{item\.field\}\|\$\{item\.sortPositionKey\}`/);
-  assert.match(validation, /const key = validationFindingKey\(item\);/);
+  assert.match(validation, /const key = validationFindingKey\(item, categoryTokens\);/);
 });
 
 test('numeric ID list parsers reject negatives and mention non-negative integers', () => {
@@ -825,14 +825,14 @@ test('range number and slider live events share the guarded change helper', () =
   assert.match(source, /maxSlider\.oninput = e => \{[\s\S]*?applyRangeValueChange\(rangeObj, 'Max', Number\(e\.target\.value\), onChange, valueOptions\);/);
 });
 
-test('range controls enforce integer input, Vendor Price bounds, and accessible live errors', () => {
+test('range controls enforce width-aware input bounds and component-specific accessible live errors', () => {
   const controls = read('src/ui/formControls.js');
   const editor = read('src/ui/categoryEditor.js');
   assert.match(controls, /type="number" step="1"\$\{minAttr\}\$\{maxAttr\}/);
-  assert.match(controls, /inputErrors\[key\] = invalidInputMessage\(key\);[\s\S]*?syncValidity\(\);[\s\S]*?return false;/);
-  assert.match(controls, /input\.setAttribute\('aria-invalid', hasRangeIssue \? 'true' : 'false'\)/);
-  assert.match(controls, /if \(hasRangeIssue\) input\.setAttribute\('aria-describedby', validationId\)/);
-  assert.match(editor, /minimum: key === 'VendorPrice' \? 0 : null/);
-  assert.match(editor, /maximum: key === 'VendorPrice' \? UINT32_MAX : null/);
+  assert.match(controls, /inputErrors\[key\] = rangeInputErrorMessage\(key, input\.value, valueOptions\);[\s\S]*?syncValidity\(\);[\s\S]*?return false;/);
+  assert.match(controls, /input\.setAttribute\('aria-invalid', component\.invalid \? 'true' : 'false'\)/);
+  assert.match(controls, /if \(component\.describedBy\) input\.setAttribute\('aria-describedby', validationId\)/);
+  assert.match(editor, /minimum: key === 'VendorPrice' \? 0 : INT32_MIN/);
+  assert.match(editor, /maximum: key === 'VendorPrice' \? UINT32_MAX : INT32_MAX/);
   assert.doesNotMatch(editor, /if \(typeof obj\.Filter !== 'number'\) obj\.Filter = 0/);
 });

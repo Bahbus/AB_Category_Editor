@@ -13,7 +13,7 @@ import { generateCategoryDescription, isUsefulGeneratedDescription } from '../de
 import { rangeFiltersSummaryParts, stateFiltersSummaryParts } from './filterSummary.js';
 import { normalizeRowIdValue } from '../rowIds.js';
 import { applyGeneratedDescriptionChange, applySelectedCategoryCandidate } from '../categoryChanges.js';
-import { UINT32_MAX } from '../filterScalars.js';
+import { INT32_MAX, INT32_MIN, UINT32_MAX } from '../filterScalars.js';
 
 export { countRangeFilterIssues, countStateFilterIssues, rangeFiltersSummary, rangeFiltersSummaryParts, stateFiltersSummary, stateFiltersSummaryParts } from './filterSummary.js';
 
@@ -507,8 +507,8 @@ export function renderEditor(deps) {
     const defaults = {
       min: filter.defaults.Min,
       max: filter.defaults.Max,
-      minimum: key === 'VendorPrice' ? 0 : null,
-      maximum: key === 'VendorPrice' ? UINT32_MAX : null
+      minimum: key === 'VendorPrice' ? 0 : INT32_MIN,
+      maximum: key === 'VendorPrice' ? UINT32_MAX : INT32_MAX
     };
     const title = document.createElement('div');
     title.className = 'filter-card-title';

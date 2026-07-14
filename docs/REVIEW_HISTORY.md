@@ -948,6 +948,33 @@ Validation actually run:
 - in-app browser QA was attempted twice, but the browser transport closed before connection; desktop, 840px, phone, and interactive runtime checks were unavailable,
 - CI and GitHub Pages were not run because publication is outside Phase 49.
 
+## Post-Phase-49 review and Phase 49.1
+
+Confirmed acceptance misses:
+
+- the shared finite-integer classifier accepted values outside C# `int`, so Level, Item Level, and State Filter could retain or produce values AetherBags cannot deserialize,
+- one invalid live Vendor Price component used an incomplete non-negative message and marked both number inputs invalid,
+- merge dedupe used category ID as identity, collapsing separate findings for distinct categories with duplicate or absent IDs.
+
+Phase 49.1 resolution on `agent/phase-49-1-int32-scalar-findings`:
+
+- explicit signed Int32 bounds and a DOM-free classifier govern Level, Item Level, State, and State Filter while Vendor Price retains exact uint bounds,
+- validation, repair, typed range decisions, slider bounds, and HTML number constraints share the appropriate width limits,
+- invalid stored components repair independently to established defaults without coercion, and exact signed/unsigned boundary values remain unchanged,
+- DOM-free range validity state produces component- and bound-specific messages; live invalid input remains a model/slider/callback/dirty no-op and blur restores committed state,
+- component-specific errors apply `aria-invalid` and `aria-describedby` only to the affected input, while reversed valid ranges retain the established shared warning,
+- category findings carry private object identity through analysis and merge, preserving duplicate/blank/missing-ID category instances while repeated same-category findings and grouped SortPosition warnings retain stable dedupe,
+- no internal identity data is enumerable, serialized into configuration, or shown to users.
+
+Validation actually run:
+
+- focused scalar, configuration, validation, form-control, and source coverage passed 167 tests,
+- `npm run check` passed: 61 JavaScript files syntax-checked, all static relative imports resolved, and all 28 test files / 352 tests passed,
+- `git diff --check origin/main` passed with no output,
+- complete diff inspection found no dependency, import/export data-shape, dirty-state, modal/focus, lookup, responsive CSS, or unrelated architecture changes,
+- in-app browser QA was attempted twice, but the browser transport closed before initialization; desktop, 840px, phone, and interactive boundary/accessibility checks were unavailable,
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Review Phase 49 locally. Commit or publish it only when separately requested.
+Review Phase 49.1 locally. Commit or publish it only when separately requested.

@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 48 merged through PR #84 at `4aa67ed97b89f35e0bf468628536d2993819b182`. Its post-merge review passed `npm run check` with 59 JavaScript files, 27 test files, and 336 tests; the Phase 48 branch tree exactly matched merged `origin/main`; `git diff --check origin/main`, PR checks, post-merge Project verification, and GitHub Pages passed; desktop-keyring GitHub authentication was verified; deployed `patternSemantics.js` and `regexToItemIds.js` exactly matched merged local source; and browser QA passed storing `(?>a)`, early JavaScript-incompatibility handling, blank custom rejection, and overflow-free desktop/840px/390px layouts. Phase 48 required no 48.1. Phase 49 on `agent/phase-49-range-state-scalar-integrity` enforces AetherBags range/state scalar types during validation, import repair, and structured range edits. Local `npm run check` passes with 61 JavaScript files, 28 test files, and 347 tests. Browser QA was attempted twice but unavailable because the browser transport closed; CI and Pages were not run for Phase 49.
+> **Current state:** Phase 49 merged on `origin/main` at `c8d3da0`. Phase 49.1 on `agent/phase-49-1-int32-scalar-findings` adds exact C# Int32 limits for Level, Item Level, and State Filter; keeps Vendor Price at exact uint limits; makes live range errors accurate and component-specific; and preserves category-instance identity while merging validation findings. Local `npm run check` passes with 61 JavaScript files, 28 test files, and 352 tests. `git diff --check origin/main` passes. In-app browser QA was attempted twice but unavailable because the browser transport closed before initialization; CI and Pages were not run.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -467,7 +467,7 @@ Validation actually run:
 
 The same pinned AetherBags commit declares Level and Item Level bounds as `int`, Vendor Price bounds as `uint`, range Enabled as `bool`, and State/Filter as `int`.
 
-- `src/filterScalars.js` is the DOM-free authority for actual JSON booleans, finite integers, Vendor Price uint-compatible integers, State values 0/1/2, and integer Filter values.
+- `src/filterScalars.js` is the DOM-free authority for actual JSON booleans, finite JavaScript integers, signed Int32-compatible Level/Item Level and Filter values, exact uint-compatible Vendor Price values, and State values 0/1/2.
 - Import validation rejects coercion-only values, fractions, negative/out-of-range Vendor Price, unsupported State, and non-integer Filter values with component-specific findings.
 - Plain-object repair applies each component's established default without coercion; schema-valid signed Level/Item Level and unusual integer Filter values remain exact and reviewable repairs retain before/after context.
 - Range number input decisions accept only integers, enforce Vendor Price bounds, keep invalid live text out of the model and dirty path, expose accessible validation, and restore the committed value and sliders on blur.
@@ -480,6 +480,23 @@ Validation actually run:
 - `git diff --check origin/main` passed with no output,
 - in-app browser QA was attempted twice, but the browser transport closed before connection; desktop, 840px, phone, and interactive runtime checks were unavailable,
 - CI and GitHub Pages were not run because Phase 49 is not published.
+
+### Phase 49.1
+
+The post-merge Phase 49 review found three acceptance misses: finite JavaScript integers beyond C# `int` were accepted for Level, Item Level, and State Filter; one invalid live Vendor Price component produced an incomplete message and invalidated both inputs; and finding merge dedupe collapsed distinct category findings when IDs were duplicated or absent.
+
+- Explicit `INT32_MIN`/`INT32_MAX` constants and `isSignedInt32Scalar(...)` now govern Level, Item Level, State, and State Filter classification, validation, repair, and typed range decisions. Vendor Price retains exact `0..4294967295` uint compatibility.
+- Width-incompatible stored values repair independently to established component defaults without coercion, while exact signed Int32 and uint boundary values remain unchanged.
+- DOM-free range validity decisions provide bound-specific messages and per-component invalid/description state. Invalid live input remains non-mutating and restores on blur; reversed valid ranges retain the shared two-input warning.
+- Import findings carry private category-object identity for merge dedupe. Distinct duplicate-ID, blank-ID, and missing-ID categories retain separate findings, while repeated analyses of the same category and grouped SortPosition findings still dedupe stably.
+
+Validation actually run:
+
+- focused scalar, configuration, validation, form-control, and source coverage passed 167 tests,
+- `npm run check` passed: 61 JavaScript files syntax-checked, all static relative imports resolved, and all 28 test files / 352 tests passed,
+- `git diff --check origin/main` passed with no output,
+- in-app browser QA was attempted twice, but the browser transport closed before initialization; desktop, 840px, phone, and interactive boundary/accessibility checks were unavailable,
+- CI and GitHub Pages were not run because implementation and publication remain separate.
 
 ---
 
