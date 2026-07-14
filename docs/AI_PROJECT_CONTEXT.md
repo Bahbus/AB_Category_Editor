@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 47 merged through PR #83 at `8340c9f8417865242a0bf1faba7b3dd156614cc5`, verified against freshly fetched `origin/main` at Phase 48 startup. Its post-merge review passed `npm run check` with 57 JavaScript files, 26 test files, and 325 tests; exact tree/diff verification, GitHub CI, and GitHub Pages passed; deployed `listEditor.js` matched merged source; browser QA was unavailable because the browser transport closed. Phase 48 on `agent/phase-48-aetherbags-pattern-semantics` separates AetherBags/.NET stored-pattern semantics from JavaScript-only converter compatibility. Local `npm run check` passes with 59 JavaScript files, 27 test files, and 336 tests; `git diff --check origin/main` passes. In-app browser QA was attempted but unavailable because the browser transport closed; Phase 48 CI and Pages were not run.
+> **Current state:** Phase 48 merged through PR #84 at `4aa67ed97b89f35e0bf468628536d2993819b182`. Its post-merge review passed `npm run check` with 59 JavaScript files, 27 test files, and 336 tests; the Phase 48 branch tree exactly matched merged `origin/main`; `git diff --check origin/main`, PR checks, post-merge Project verification, and GitHub Pages passed; desktop-keyring GitHub authentication was verified; deployed `patternSemantics.js` and `regexToItemIds.js` exactly matched merged local source; and browser QA passed storing `(?>a)`, early JavaScript-incompatibility handling, blank custom rejection, and overflow-free desktop/840px/390px layouts. Phase 48 required no 48.1. Phase 49 on `agent/phase-49-range-state-scalar-integrity` enforces AetherBags range/state scalar types during validation, import repair, and structured range edits. Local `npm run check` passes with 61 JavaScript files, 28 test files, and 347 tests. Browser QA was attempted twice but unavailable because the browser transport closed; CI and Pages were not run for Phase 49.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -460,7 +460,26 @@ Validation actually run:
 - `git diff --check origin/main` passed with no output,
 - complete diff inspection found no dependency, import/export, dirty-state, modal/focus, responsive, or unrelated architecture changes,
 - in-app browser QA was attempted, but the browser transport closed before discovery; desktop, 840px, phone, and interactive runtime checks were unavailable,
-- CI and GitHub Pages were not run for this unpublished phase.
+- Phase 48 merged through PR #84 at `4aa67ed97b89f35e0bf468628536d2993819b182` and required no 48.1.
+- Its post-merge review passed `npm run check` with 59 JavaScript files, 27 test files, and 336 tests; the branch tree exactly matched merged `origin/main`; `git diff --check origin/main` passed; desktop-keyring authentication was verified; PR checks, post-merge Project verification, and GitHub Pages succeeded; deployed `patternSemantics.js` and `regexToItemIds.js` matched merged local source; and browser QA passed stored `(?>a)`, early JavaScript-incompatibility handling, blank custom rejection, and overflow-free desktop/840px/390px layouts.
+
+### Phase 49
+
+The same pinned AetherBags commit declares Level and Item Level bounds as `int`, Vendor Price bounds as `uint`, range Enabled as `bool`, and State/Filter as `int`.
+
+- `src/filterScalars.js` is the DOM-free authority for actual JSON booleans, finite integers, Vendor Price uint-compatible integers, State values 0/1/2, and integer Filter values.
+- Import validation rejects coercion-only values, fractions, negative/out-of-range Vendor Price, unsupported State, and non-integer Filter values with component-specific findings.
+- Plain-object repair applies each component's established default without coercion; schema-valid signed Level/Item Level and unusual integer Filter values remain exact and reviewable repairs retain before/after context.
+- Range number input decisions accept only integers, enforce Vendor Price bounds, keep invalid live text out of the model and dirty path, expose accessible validation, and restore the committed value and sliders on blur.
+- State rendering no longer mutates Filter values, and segmented State display/changes retain strict 0/1/2 behavior.
+
+Validation actually run:
+
+- focused scalar, configuration, validation, form-control, and source coverage passed 162 tests,
+- `npm run check` passed: 61 JavaScript files syntax-checked, all static relative imports resolved, and all 28 test files / 347 tests passed,
+- `git diff --check origin/main` passed with no output,
+- in-app browser QA was attempted twice, but the browser transport closed before connection; desktop, 840px, phone, and interactive runtime checks were unavailable,
+- CI and GitHub Pages were not run because Phase 49 is not published.
 
 ---
 

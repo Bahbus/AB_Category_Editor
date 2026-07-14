@@ -6,6 +6,7 @@ import {
   getCategoryIssueCount,
   getCategoryIssueCounts,
   groupedDuplicateSortPositionFindings,
+  mergeValidationFindings,
   validateCategoryName,
   validateRegexPattern,
   validateRangeFilter,
@@ -164,14 +165,57 @@ test('invalid stored elements do not create duplicate-pattern findings', () => {
 });
 
 test('Min greater than Max is reported for range filters', () => {
-  const findings = validateRangeFilter('Level', { Min: 10, Max: 2 });
+  const findings = validateRangeFilter('Level', { Enabled: false, Min: 10, Max: 2 });
+  assert.equal(findings.length, 1);
   assert.ok(findings.some(item => /minimum is greater than maximum/.test(item.message)));
 });
 
 test('default range filter values do not report Min greater than Max', () => {
-  assert.equal(validateRangeFilter('Level', { Min: 0, Max: 200 }).length, 0);
-  assert.equal(validateRangeFilter('ItemLevel', { Min: 0, Max: 2000 }).length, 0);
-  assert.equal(validateRangeFilter('VendorPrice', { Min: 0, Max: 9999999 }).length, 0);
+  assert.equal(validateRangeFilter('Level', { Enabled: false, Min: 0, Max: 200 }).length, 0);
+  assert.equal(validateRangeFilter('ItemLevel', { Enabled: false, Min: 0, Max: 2000 }).length, 0);
+  assert.equal(validateRangeFilter('VendorPrice', { Enabled: false, Min: 0, Max: 9999999 }).length, 0);
+});
+
+test('range validation rejects coercion and fractions while preserving signed integer ranges', () => {
+  const incompatible = [null, undefined, '', ' ', '7', false, true, [], [1], {}, 1.5, NaN, Infinity];
+  for (const value of incompatible) {
+    assert.ok(validateRangeFilter('Level', { Enabled: false, Min: value, Max: 10 }).some(item => /minimum must be an integer/.test(item.message)));
+  }
+  assert.deepEqual(validateRangeFilter('Level', { Enabled: true, Min: -10, Max: -2 }), []);
+  assert.deepEqual(validateRangeFilter('ItemLevel', { Enabled: false, Min: -20, Max: 30 }), []);
+  assert.ok(validateRangeFilter('Level', { Enabled: 'false', Min: 0, Max: 10 }).some(item => /Enabled must be a JSON boolean/.test(item.message)));
+});
+
+test('Vendor Price validation rejects negative, fractional, and out-of-uint values', () => {
+  for (const value of [-1, 1.5, 0x100000000]) {
+    assert.ok(validateRangeFilter('VendorPrice', { Enabled: false, Min: value, Max: 10 }).some(item => /non-negative integer compatible with uint/.test(item.message)));
+  }
+});
+
+test('state validation rejects incompatible State and Filter scalars while preserving integer Filter values', () => {
+  assert.deepEqual(validateStateFilter('Dyeable', { State: 2, Filter: -123 }), []);
+  for (const state of [-1, 3, 1.5, '1', null, true]) {
+    assert.ok(validateStateFilter('Dyeable', { State: state, Filter: 0 }).some(item => /State must be the integer 0, 1, or 2/.test(item.message)));
+  }
+  for (const filter of [1.5, '7', null, false, [], {}]) {
+    assert.ok(validateStateFilter('Dyeable', { State: 0, Filter: filter }).some(item => /Filter must be an integer/.test(item.message)));
+  }
+});
+
+test('pre-repair and post-repair findings merge without duplicates', () => {
+  const category = cleanCategory();
+  category.Rules.Level = { Enabled: false, Min: 10, Max: 2 };
+  const repeated = analyzeImportedConfig({ Categories: [category] });
+  const mergedRepeated = mergeValidationFindings(repeated, repeated);
+  assert.equal(mergedRepeated.findings.filter(item => item.field === 'Level').length, 1);
+
+  category.Rules.Level = { Enabled: 'false', Min: 0.5, Max: null };
+  const preRepair = analyzeImportedConfig({ Categories: [category] });
+  const validation = validateConfig({ Categories: [category] });
+  const postRepair = analyzeImportedConfig(validation.config);
+  const mergedRepair = mergeValidationFindings(preRepair, postRepair);
+  assert.equal(mergedRepair.findings.filter(item => item.field === 'Level').length, 3);
+  assert.equal(mergedRepair.counts.error, 3);
 });
 
 
@@ -188,7 +232,7 @@ test('category validation uses friendly Range and State labels while keeping sta
   assert.match(itemLevelFinding.message, /Item Level minimum is greater than maximum/);
   assert.doesNotMatch(itemLevelFinding.message, /ItemLevel/);
   assert.ok(highQualityFinding);
-  assert.match(highQualityFinding.message, /High Quality uses an unsupported state/);
+  assert.match(highQualityFinding.message, /High Quality State must be the integer 0, 1, or 2/);
   assert.doesNotMatch(highQualityFinding.message, /HighQuality/);
 });
 

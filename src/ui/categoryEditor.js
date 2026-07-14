@@ -13,6 +13,7 @@ import { generateCategoryDescription, isUsefulGeneratedDescription } from '../de
 import { rangeFiltersSummaryParts, stateFiltersSummaryParts } from './filterSummary.js';
 import { normalizeRowIdValue } from '../rowIds.js';
 import { applyGeneratedDescriptionChange, applySelectedCategoryCandidate } from '../categoryChanges.js';
+import { UINT32_MAX } from '../filterScalars.js';
 
 export { countRangeFilterIssues, countStateFilterIssues, rangeFiltersSummary, rangeFiltersSummaryParts, stateFiltersSummary, stateFiltersSummaryParts } from './filterSummary.js';
 
@@ -503,7 +504,12 @@ export function renderEditor(deps) {
     const obj = rules[key];
     const box = document.createElement('div');
     box.className = 'nested-card';
-    const defaults = { min: filter.defaults.Min, max: filter.defaults.Max };
+    const defaults = {
+      min: filter.defaults.Min,
+      max: filter.defaults.Max,
+      minimum: key === 'VendorPrice' ? 0 : null,
+      maximum: key === 'VendorPrice' ? UINT32_MAX : null
+    };
     const title = document.createElement('div');
     title.className = 'filter-card-title';
     title.innerHTML = `<h3>${escapeHtml(filter.label)}</h3>`;
@@ -528,8 +534,6 @@ export function renderEditor(deps) {
   boolGrid.className = 'grid cols-3';
 
   function renderStateFilterCard(filterName, obj) {
-    if (typeof obj.Filter !== 'number') obj.Filter = 0;
-
     const box = document.createElement('div');
     box.className = 'nested-card state-filter-card';
     const title = document.createElement('div');

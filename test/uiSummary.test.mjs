@@ -82,7 +82,7 @@ test('stateFiltersSummaryParts returns required and excluded badges', () => {
 });
 
 test('stateFiltersSummaryParts preserves state counts and issue count without adding issue badges', () => {
-  assert.deepEqual(stateFiltersSummaryParts({ Unique: { State: 1 }, Dyeable: { State: 7 }, Repairable: { State: 2 } }), {
+  assert.deepEqual(stateFiltersSummaryParts({ Unique: { State: 1, Filter: 0 }, Dyeable: { State: 7, Filter: 0 }, Repairable: { State: 2, Filter: 0 } }), {
     title: 'State Filters',
     badges: [
       { label: '1 required', tone: 'required' },
@@ -90,7 +90,7 @@ test('stateFiltersSummaryParts preserves state counts and issue count without ad
     ],
     issueCount: 1
   });
-  assert.deepEqual(stateFiltersSummaryParts({ Dyeable: { State: 7 } }), {
+  assert.deepEqual(stateFiltersSummaryParts({ Dyeable: { State: 7, Filter: 0 } }), {
     title: 'State Filters',
     badges: [],
     issueCount: 1
@@ -125,9 +125,9 @@ test('title and summary CSS use shared alignment tokens', () => {
 test('range issue slider source and styles expose invalid fill state', () => {
   const source = fs.readFileSync(new URL('../src/ui/formControls.js', import.meta.url), 'utf8');
   const styles = fs.readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
-  assert.match(source, /wrap\.classList\.toggle\('has-range-issue',\s*reversed \|\| nonFinite\)/);
-  assert.match(source, /wrap\.classList\.toggle\('has-range-warning',\s*!nonFinite && reversed\)/);
-  assert.match(source, /wrap\.classList\.toggle\('has-range-error',\s*nonFinite\)/);
+  assert.match(source, /wrap\.classList\.toggle\('has-range-issue',\s*hasRangeIssue\)/);
+  assert.match(source, /wrap\.classList\.toggle\('has-range-warning',\s*!incompatible && !inputError && reversed\)/);
+  assert.match(source, /wrap\.classList\.toggle\('has-range-error',\s*incompatible \|\| Boolean\(inputError\)\)/);
   assert.match(styles, /\.range-slider-control\.has-range-issue \.range-slider-fill/);
   assert.match(styles, /\.range-slider-control\.has-range-warning \.range-slider-fill\s*{[^}]*var\(--warn\)/s);
   assert.match(styles, /\.range-slider-control\.has-range-error \.range-slider-fill\s*{[^}]*var\(--danger\)/s);
@@ -159,7 +159,7 @@ test('category editor uses shared range defaults and advanced stable summary pat
   const source = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
 
   assert.match(source, /for \(const filter of RANGE_FILTERS\)/);
-  assert.match(source, /const defaults = \{ min: filter\.defaults\.Min, max: filter\.defaults\.Max \}/);
+  assert.match(source, /const defaults = \{[\s\S]*?min: filter\.defaults\.Min,[\s\S]*?max: filter\.defaults\.Max,[\s\S]*?minimum: key === 'VendorPrice' \? 0 : null,[\s\S]*?maximum: key === 'VendorPrice' \? UINT32_MAX : null[\s\S]*?\};/);
   assert.doesNotMatch(source, /max:\s*100000/);
   assert.doesNotMatch(source, /max:\s*key === 'Level' \? 100 : 800/);
   assert.match(source, /setDetailsSummary\(advanced, \{ title: 'Advanced', badges: \[\], issueCount: 0 \}\)/);

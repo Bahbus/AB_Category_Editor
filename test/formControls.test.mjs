@@ -9,6 +9,7 @@ import {
   applyNumberCommit,
   applyRangeValueChange,
   createNumberCommitState,
+  decideRangeInputChange,
   decideRangeValueChange,
   numberInputDisplayValue,
   STATE_FILTER_OPTIONS,
@@ -31,6 +32,7 @@ test('state filter options preserve numeric values with friendly labels', () => 
   assert.equal(stateFilterLabel(1), 'Required');
   assert.equal(stateFilterLabel(2), 'Excluded');
   assert.equal(stateFilterLabel(99), 'Ignored');
+  assert.equal(stateFilterLabel('1'), 'Ignored');
 });
 
 test('rangeSliderBounds includes current values without clamping unusual imports', () => {
@@ -42,8 +44,32 @@ test('rangeSliderBounds includes current values without clamping unusual imports
 
 test('range value decisions distinguish invalid, unchanged, and changed values', () => {
   assert.deepEqual(decideRangeValueChange(10, NaN), { valid: false, changed: false, value: 10 });
+  assert.deepEqual(decideRangeValueChange(10, 1.5), { valid: false, changed: false, value: 10 });
   assert.deepEqual(decideRangeValueChange(10, 10), { valid: true, changed: false, value: 10 });
   assert.deepEqual(decideRangeValueChange(10, 11), { valid: true, changed: true, value: 11 });
+});
+
+test('range typed-input decisions reject blank, fractions, and negative Vendor Price without mutation', () => {
+  for (const rawValue of ['', ' ', '1.5', '-1', 'not-a-number']) {
+    const decision = decideRangeInputChange(10, rawValue, { minimum: 0, maximum: 0xFFFFFFFF });
+    assert.deepEqual(decision, { valid: false, changed: false, value: 10 });
+  }
+  assert.deepEqual(decideRangeInputChange(10, '11', { minimum: 0 }), { valid: true, changed: true, value: 11 });
+  assert.deepEqual(decideRangeInputChange(-5, '-7'), { valid: true, changed: true, value: -7 });
+});
+
+test('invalid range applications do not mutate or notify and valid integers notify exactly once', () => {
+  const range = { Min: 10, Max: 20 };
+  let notifications = 0;
+  const notify = () => { notifications++; };
+  assert.equal(applyRangeValueChange(range, 'Min', 1.5, notify), false);
+  assert.equal(applyRangeValueChange(range, 'Min', -1, notify, { minimum: 0 }), false);
+  assert.deepEqual(range, { Min: 10, Max: 20 });
+  assert.equal(notifications, 0);
+  assert.equal(applyRangeValueChange(range, 'Min', 11, notify, { minimum: 0 }), true);
+  assert.equal(applyRangeValueChange(range, 'Min', 11, notify, { minimum: 0 }), false);
+  assert.deepEqual(range, { Min: 11, Max: 20 });
+  assert.equal(notifications, 1);
 });
 
 test('range value application is a no-op for same values and notifies once for a real change', () => {
@@ -207,6 +233,6 @@ test('range validation associates both number inputs with its generated message 
 
   assert.match(source, /const validationId = makeControlId\('range-validation'\);/);
   assert.match(source, /<p id="\$\{validationId\}" class="hint range-validation" hidden>/);
-  assert.match(source, /const hasRangeIssue = reversed \|\| nonFinite;/);
+  assert.match(source, /const hasRangeIssue = reversed \|\| incompatible \|\| Boolean\(inputError\);/);
   assert.match(source, /for \(const input of \[minNumber, maxNumber\]\) \{[\s\S]*?input\.setAttribute\('aria-invalid', hasRangeIssue \? 'true' : 'false'\);[\s\S]*?if \(hasRangeIssue\) input\.setAttribute\('aria-describedby', validationId\);[\s\S]*?else input\.removeAttribute\('aria-describedby'\);[\s\S]*?\}/);
 });

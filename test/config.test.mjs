@@ -378,10 +378,10 @@ test('ensureShape repairs malformed range, state, and array rules safely', () =>
   assert.deepEqual(category.Rules.Collectable, { State: 0, Filter: 0 });
   assert.deepEqual(category.Rules.Dyeable, { State: 0, Filter: 3 });
   assert.deepEqual(category.Rules.Repairable, { State: 1, Filter: 0 });
-  assert.deepEqual(category.Rules.HighQuality, { State: 2, Filter: 7 });
+  assert.deepEqual(category.Rules.HighQuality, { State: 0, Filter: 0 });
 });
 
-test('ensureShape repairs malformed range fields while preserving finite unusual values', () => {
+test('ensureShape repairs incompatible range fields while preserving schema-valid unusual integers', () => {
   const category = {
     Rules: {
       Level: { Enabled: 'yes', Min: -50, Max: 'bad' },
@@ -392,9 +392,33 @@ test('ensureShape repairs malformed range fields while preserving finite unusual
 
   ensureShape(category);
 
-  assert.deepEqual(category.Rules.Level, { Enabled: true, Min: -50, Max: 200 });
+  assert.deepEqual(category.Rules.Level, { Enabled: false, Min: -50, Max: 200 });
   assert.deepEqual(category.Rules.ItemLevel, { Enabled: false, Min: 0, Max: 12345 });
-  assert.deepEqual(category.Rules.VendorPrice, { Enabled: false, Min: 1.5, Max: 999999999 });
+  assert.deepEqual(category.Rules.VendorPrice, { Enabled: false, Min: 0, Max: 999999999 });
+});
+
+test('range and state import repair uses component defaults without coercion', () => {
+  const config = { Categories: [{
+    Name: 'Strict scalars',
+    Rules: {
+      Level: { Enabled: 'false', Min: '12', Max: null },
+      ItemLevel: { Enabled: false, Min: -7, Max: '' },
+      VendorPrice: { Enabled: false, Min: -1, Max: 1.5 },
+      Dyeable: { State: '2', Filter: 1.5 },
+      Repairable: { State: 2, Filter: -123 }
+    }
+  }] };
+
+  const result = validateConfig(config);
+  const rules = config.Categories[0].Rules;
+
+  assert.deepEqual(rules.Level, { Enabled: false, Min: 0, Max: 200 });
+  assert.deepEqual(rules.ItemLevel, { Enabled: false, Min: -7, Max: 2000 });
+  assert.deepEqual(rules.VendorPrice, { Enabled: false, Min: 0, Max: 9999999 });
+  assert.deepEqual(rules.Dyeable, { State: 0, Filter: 0 });
+  assert.deepEqual(rules.Repairable, { State: 2, Filter: -123 });
+  assert.deepEqual(result.repairs.filter(repair => ['Level', 'ItemLevel', 'VendorPrice', 'Dyeable'].includes(repair.field)).map(repair => repair.field), ['Level', 'ItemLevel', 'VendorPrice', 'Dyeable']);
+  assert.equal(result.repairs.some(repair => repair.field === 'Repairable'), false);
 });
 
 test('validateConfig does not crash on malformed but repairable nested rules', () => {

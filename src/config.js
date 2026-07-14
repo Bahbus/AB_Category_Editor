@@ -1,5 +1,6 @@
 import { ALLOWED_RARITY_IDS, RANGE_FILTERS, RANGE_FILTER_KEYS, STATE_FILTER_KEYS } from './constants.js';
 import { optionalFiniteNumber } from './optionalNumbers.js';
+import { isBooleanScalar, isRangeBoundScalar, isStateFilterScalar, isStateScalar } from './filterScalars.js';
 
 export function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
@@ -61,13 +62,6 @@ function isPlainObject(value) {
 const RANGE_RULE_KEYS = RANGE_FILTER_KEYS;
 const STATE_RULE_KEYS = STATE_FILTER_KEYS;
 const LIST_RULE_KEYS = ['AllowedItemIds','AllowedItemNamePatterns','AllowedUiCategoryIds','AllowedRarities'];
-const VALID_STATE_VALUES = new Set([0, 1, 2]);
-
-function finiteOrDefault(value, fallback) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : fallback;
-}
-
 export function ensureShape(cat) {
   if (!isPlainObject(cat)) throw new Error('A category must be a JSON object.');
   if (!isPlainObject(cat.Color)) cat.Color = { X: 1, Y: 1, Z: 1, W: 1 };
@@ -87,18 +81,17 @@ export function ensureShape(cat) {
     const fallback = defaults[key];
     if (!isPlainObject(r[key])) r[key] = clone(fallback);
     else {
-      r[key].Enabled = typeof r[key].Enabled === 'boolean' ? r[key].Enabled : Boolean(r[key].Enabled);
-      r[key].Min = finiteOrDefault(r[key].Min, fallback.Min);
-      r[key].Max = finiteOrDefault(r[key].Max, fallback.Max);
+      r[key].Enabled = isBooleanScalar(r[key].Enabled) ? r[key].Enabled : fallback.Enabled;
+      r[key].Min = isRangeBoundScalar(key, r[key].Min) ? r[key].Min : fallback.Min;
+      r[key].Max = isRangeBoundScalar(key, r[key].Max) ? r[key].Max : fallback.Max;
     }
   }
   for (const key of STATE_RULE_KEYS) {
     const fallback = defaults[key];
     if (!isPlainObject(r[key])) r[key] = clone(fallback);
     else {
-      const state = Number(r[key].State);
-      r[key].State = Number.isFinite(state) && VALID_STATE_VALUES.has(state) ? state : 0;
-      r[key].Filter = finiteOrDefault(r[key].Filter, fallback.Filter);
+      r[key].State = isStateScalar(r[key].State) ? r[key].State : fallback.State;
+      r[key].Filter = isStateFilterScalar(r[key].Filter) ? r[key].Filter : fallback.Filter;
     }
   }
 }
