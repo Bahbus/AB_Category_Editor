@@ -4,8 +4,12 @@ export async function makeRevisionedExportSnapshot(data, getRevision, makeSnapsh
   return { revision, value };
 }
 
+export function isSnapshotCurrent(snapshotRevision, currentRevision) {
+  return snapshotRevision === currentRevision;
+}
+
 export function saveSnapshotIfCurrent(snapshotRevision, currentRevision, options = {}) {
-  if (snapshotRevision !== currentRevision) {
+  if (!isSnapshotCurrent(snapshotRevision, currentRevision)) {
     if (typeof options.onStale === 'function') options.onStale();
     return false;
   }

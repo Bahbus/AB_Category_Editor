@@ -55,6 +55,11 @@ function restoreAppModalInert() {
   inertAppRoot = null;
 }
 
+export function isModalOpen() {
+  const backdrop = el('modalBackdrop');
+  return Boolean(backdrop && !backdrop.classList.contains('hidden'));
+}
+
 export function openModal(title, contentNode, options = {}) {
   const version = ++modalVersion;
   previouslyFocusedElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
