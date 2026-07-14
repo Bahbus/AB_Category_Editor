@@ -169,7 +169,7 @@ Important rule:
 - Invalid individual numeric IDs inside valid arrays are preserved and warned, not silently removed.
 - Category entries themselves must be JSON objects; `null`, arrays, and scalar entries fail validation rather than being repaired into categories.
 - Plain Color objects are snapshotted by value before normalization. Missing or non-number components are repaired to defaults with one material, reviewable Color warning; valid numeric components, including higher-precision values, remain exact. Malformed whole Color values retain separate repair messaging.
-- Range/state scalar repair delegates to `src/filterScalars.js`: Range Enabled accepts only booleans; Level/Item Level accept finite integers; Vendor Price accepts uint-compatible integers; State accepts only numeric 0/1/2; and Filter accepts finite integers. Invalid plain-object components fall back independently while valid unusual signed integers remain exact.
+- Range/state scalar repair delegates to `src/filterScalars.js`: Range Enabled accepts only booleans; Level/Item Level accept signed Int32 values; Vendor Price accepts exact uint-compatible integers; State accepts only numeric 0/1/2; and Filter accepts signed Int32 values. Invalid plain-object components fall back independently while exact boundary values remain unchanged.
 
 ---
 
@@ -216,7 +216,9 @@ The dependency-free browser cannot execute or fully validate .NET syntax. `src/p
 
 ### Range and state scalar semantics
 
-`src/filterScalars.js` is shared by import repair and validation so JSON numeric strings, blanks, booleans-as-numbers, nullish values, arrays, objects, fractions, and non-finite values cannot pass through JavaScript coercion. Vendor Price additionally rejects negative values and values above `uint` capacity. Validation messages identify Enabled, Min, Max, State, or Filter while keeping stable filter fields for category summaries. The pre/post import merge helper is DOM-free and dedupes identical findings without hiding distinct invalid components.
+`src/filterScalars.js` is shared by import repair and validation so JSON numeric strings, blanks, booleans-as-numbers, nullish values, arrays, objects, fractions, non-finite values, and width-incompatible integers cannot pass through JavaScript coercion. Level, Item Level, and State Filter use `-2147483648..2147483647`; Vendor Price uses `0..4294967295`; State remains restricted to 0/1/2. Validation messages identify Enabled, Min, Max, State, or Filter while keeping stable filter fields for category summaries.
+
+The pre/post import merge helper is DOM-free. Category-scoped findings receive a private symbol-backed reference to their source category object; merge-local tokens derived from that reference distinguish category instances even when IDs are duplicated, blank, or missing. Repeated findings for the same object still dedupe across analyses, separate component messages remain distinct, and grouped SortPosition findings keep their stable key. The private identity is not enumerable, serialized, exported, or displayed.
 
 ---
 
@@ -396,9 +398,10 @@ Do not decrement shared busy state for an operation that returned before `showBu
 - reversed range is preserved but warned,
 - sliders and numeric inputs remain synchronized,
 - same-value live number, blur, and slider events do not mutate or notify; a real change mutates once and notifies once,
-- typed range input commits only finite integers; Vendor Price also enforces `0..uint.MaxValue`,
-- invalid live text does not mutate, notify, move the paired slider, or dirty; it exposes a specific associated error and restores the committed value and slider state on blur,
-- reversed or non-finite ranges expose their validation message to both numeric inputs through `aria-describedby`; valid ranges remove that association.
+- typed Level/Item Level input commits only signed Int32 values; Vendor Price enforces `0..uint.MaxValue`,
+- invalid live text does not mutate, notify, move the paired slider, or dirty; it exposes a component- and bound-specific error and restores the committed value and slider state on blur,
+- component-specific parse, width, or stored-value errors mark and describe only the affected numeric input,
+- reversed valid ranges expose their warning to both numeric inputs through `aria-describedby`; valid ranges remove that association.
 
 ---
 
@@ -600,6 +603,8 @@ Phase 48 adds direct storage-classification, browser-compatibility, saved-option
 Phase 48 then merged through PR #84 at `4aa67ed97b89f35e0bf468628536d2993819b182` with no 48.1. Its post-merge review reran the same 59-file / 27-file / 336-test check, confirmed an exact branch-tree match and clean `git diff --check origin/main`, verified desktop-keyring authentication, PR checks, post-merge Project verification, Pages, exact deployed `patternSemantics.js` and `regexToItemIds.js`, and browser behavior for `(?>a)`, early incompatibility handling, blank rejection, and desktop/840px/390px overflow.
 
 Phase 49 adds the shared scalar module and direct classification, repair, validation/merge, typed-input decision, no-op/notification, and focused DOM-wiring coverage. Its local `npm run check` run syntax-checked 61 files, resolved all static relative imports, and passed all 28 test files / 347 tests; `git diff --check origin/main` passed with no output. In-app browser QA was attempted twice but unavailable because the browser transport closed; CI and Pages were not run.
+
+Phase 49.1 adds exact Int32 boundary classification and repair coverage, exact uint adjacency coverage, typed range boundary decisions, bound-specific messages, per-component accessibility state, duplicate/absent category-ID finding identity, repeated-analysis dedupe, separate range-component retention, and unchanged grouped SortPosition behavior. Its local `npm run check` run syntax-checked 61 files, resolved all static relative imports, and passed all 28 test files / 352 tests; `git diff --check origin/main` passed with no output. In-app browser QA was attempted twice but unavailable because the browser transport closed before initialization; CI and Pages were not run.
 
 Testing styles:
 

@@ -6,6 +6,7 @@ import { isBooleanScalar, isRangeBoundScalar, isStateFilterScalar, isStateScalar
 
 const RANGE_FILTER_LABELS = Object.fromEntries(RANGE_FILTERS.map(filter => [filter.key, filter.label]));
 const STATE_FILTER_LABELS = Object.fromEntries(STATE_FILTERS.map(filter => [filter.key, filter.label]));
+const CATEGORY_INSTANCE = Symbol('validationCategoryInstance');
 
 function finding(severity, field, message) { return { severity, field, message }; }
 function label(category, index = null) {
@@ -99,7 +100,7 @@ export function validateRangeFilter(field, range, labelText = field) {
   const findings = [];
   const min = range?.Min;
   const max = range?.Max;
-  const boundType = field === 'VendorPrice' ? 'a non-negative integer compatible with uint' : 'an integer number';
+  const boundType = field === 'VendorPrice' ? 'an integer from 0 through 4294967295' : 'a signed 32-bit integer';
   if (!isBooleanScalar(range?.Enabled)) findings.push(finding('error', field, `${labelText} Enabled must be a JSON boolean.`));
   if (!isRangeBoundScalar(field, min)) findings.push(finding('error', field, `${labelText} minimum must be ${boundType}.`));
   if (!isRangeBoundScalar(field, max)) findings.push(finding('error', field, `${labelText} maximum must be ${boundType}.`));
@@ -110,7 +111,7 @@ export function validateRangeFilter(field, range, labelText = field) {
 export function validateStateFilter(field, stateFilter, labelText = field) {
   const findings = [];
   if (!isStateScalar(stateFilter?.State)) findings.push(finding('warning', field, `${labelText} State must be the integer 0, 1, or 2 and will otherwise be treated as Ignored.`));
-  if (!isStateFilterScalar(stateFilter?.Filter)) findings.push(finding('error', field, `${labelText} Filter must be an integer number.`));
+  if (!isStateFilterScalar(stateFilter?.Filter)) findings.push(finding('error', field, `${labelText} Filter must be a signed 32-bit integer.`));
   return findings;
 }
 
@@ -258,7 +259,9 @@ export function analyzeImportedConfig(config) {
   for (const [index, category] of categories.entries()) {
     for (const item of validateCategory(category, categories)) {
       if (item.field === 'SortPosition') continue;
-      findings.push({ ...item, categoryId: category?.Id, categoryName: label(category, index) });
+      const categoryFinding = { ...item, categoryId: category?.Id, categoryName: label(category, index) };
+      Object.defineProperty(categoryFinding, CATEGORY_INSTANCE, { value: category });
+      findings.push(categoryFinding);
     }
   }
   for (const item of groupedDuplicateSortPositionFindings(categories)) {
@@ -274,19 +277,25 @@ export function countFindings(findings) {
   }, { error: 0, warning: 0, note: 0 });
 }
 
-function validationFindingKey(item) {
+function validationFindingKey(item, categoryTokens) {
   if (item?.field === 'SortPosition' && item.sortPositionKey) {
     return `${item.severity}|${item.field}|${item.sortPositionKey}`;
   }
-  return `${item?.severity}|${item?.field}|${item?.categoryId || ''}|${item?.message}`;
+  const category = item?.[CATEGORY_INSTANCE];
+  if (category && (typeof category === 'object' || typeof category === 'function')) {
+    if (!categoryTokens.has(category)) categoryTokens.set(category, categoryTokens.size + 1);
+    return `${item?.severity}|${item?.field}|category:${categoryTokens.get(category)}|${item?.message}`;
+  }
+  return `${item?.severity}|${item?.field}|${String(item?.categoryId ?? '')}|${item?.message}`;
 }
 
 export function mergeValidationFindings(...analyses) {
   const seen = new Set();
+  const categoryTokens = new Map();
   const findings = [];
   for (const analysis of analyses) {
     for (const item of analysis?.findings || []) {
-      const key = validationFindingKey(item);
+      const key = validationFindingKey(item, categoryTokens);
       if (seen.has(key)) continue;
       seen.add(key);
       findings.push(item);

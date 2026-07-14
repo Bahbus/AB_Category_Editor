@@ -176,30 +176,66 @@ test('default range filter values do not report Min greater than Max', () => {
   assert.equal(validateRangeFilter('VendorPrice', { Enabled: false, Min: 0, Max: 9999999 }).length, 0);
 });
 
-test('range validation rejects coercion and fractions while preserving signed integer ranges', () => {
+test('range validation rejects coercion, fractions, and values outside signed Int32', () => {
   const incompatible = [null, undefined, '', ' ', '7', false, true, [], [1], {}, 1.5, NaN, Infinity];
   for (const value of incompatible) {
-    assert.ok(validateRangeFilter('Level', { Enabled: false, Min: value, Max: 10 }).some(item => /minimum must be an integer/.test(item.message)));
+    assert.ok(validateRangeFilter('Level', { Enabled: false, Min: value, Max: 10 }).some(item => /minimum must be a signed 32-bit integer/.test(item.message)));
   }
-  assert.deepEqual(validateRangeFilter('Level', { Enabled: true, Min: -10, Max: -2 }), []);
-  assert.deepEqual(validateRangeFilter('ItemLevel', { Enabled: false, Min: -20, Max: 30 }), []);
+  for (const value of [-2147483648, 2147483647]) {
+    assert.deepEqual(validateRangeFilter('Level', { Enabled: true, Min: value, Max: value }), []);
+    assert.deepEqual(validateRangeFilter('ItemLevel', { Enabled: false, Min: value, Max: value }), []);
+  }
+  for (const value of [-2147483649, 2147483648]) {
+    assert.ok(validateRangeFilter('Level', { Enabled: false, Min: value, Max: 10 }).some(item => /minimum must be a signed 32-bit integer/.test(item.message)));
+  }
   assert.ok(validateRangeFilter('Level', { Enabled: 'false', Min: 0, Max: 10 }).some(item => /Enabled must be a JSON boolean/.test(item.message)));
 });
 
 test('Vendor Price validation rejects negative, fractional, and out-of-uint values', () => {
   for (const value of [-1, 1.5, 0x100000000]) {
-    assert.ok(validateRangeFilter('VendorPrice', { Enabled: false, Min: value, Max: 10 }).some(item => /non-negative integer compatible with uint/.test(item.message)));
+    assert.ok(validateRangeFilter('VendorPrice', { Enabled: false, Min: value, Max: 10 }).some(item => /integer from 0 through 4294967295/.test(item.message)));
   }
+  assert.deepEqual(validateRangeFilter('VendorPrice', { Enabled: false, Min: 0, Max: 4294967295 }), []);
 });
 
-test('state validation rejects incompatible State and Filter scalars while preserving integer Filter values', () => {
-  assert.deepEqual(validateStateFilter('Dyeable', { State: 2, Filter: -123 }), []);
+test('state validation rejects incompatible State and Filter scalars while preserving Int32 Filter values', () => {
+  for (const filter of [-2147483648, 0, 2147483647]) {
+    assert.deepEqual(validateStateFilter('Dyeable', { State: 2, Filter: filter }), []);
+  }
   for (const state of [-1, 3, 1.5, '1', null, true]) {
     assert.ok(validateStateFilter('Dyeable', { State: state, Filter: 0 }).some(item => /State must be the integer 0, 1, or 2/.test(item.message)));
   }
-  for (const filter of [1.5, '7', null, false, [], {}]) {
-    assert.ok(validateStateFilter('Dyeable', { State: 0, Filter: filter }).some(item => /Filter must be an integer/.test(item.message)));
+  for (const filter of [-2147483649, 2147483648, 1.5, '7', null, false, [], {}]) {
+    assert.ok(validateStateFilter('Dyeable', { State: 0, Filter: filter }).some(item => /Filter must be/.test(item.message)));
   }
+});
+
+test('merged findings preserve duplicate and absent category IDs by category instance', () => {
+  for (const ids of [['duplicate', 'duplicate'], ['', ''], [undefined, undefined]]) {
+    const categories = ids.map((Id, index) => {
+      const category = cleanCategory({ Id, Name: `Affected ${index + 1}` });
+      if (Id === undefined) delete category.Id;
+      category.Rules.Level.Enabled = 'false';
+      return category;
+    });
+    const merged = mergeValidationFindings(analyzeImportedConfig({ Categories: categories }));
+    const levelFindings = merged.findings.filter(item => item.field === 'Level');
+    assert.equal(levelFindings.length, 2);
+    assert.deepEqual(levelFindings.map(item => item.categoryName), ['Affected 1', 'Affected 2']);
+  }
+});
+
+test('merged findings dedupe repeated analysis per category but retain scalar components', () => {
+  const category = cleanCategory();
+  category.Rules.Level = { Enabled: 'false', Min: 2147483648, Max: -2147483649 };
+  const first = analyzeImportedConfig({ Categories: [category] });
+  const second = analyzeImportedConfig({ Categories: [category] });
+  const merged = mergeValidationFindings(first, second);
+  const levelFindings = merged.findings.filter(item => item.field === 'Level');
+  assert.equal(levelFindings.length, 3);
+  assert.ok(levelFindings.some(item => /Enabled/.test(item.message)));
+  assert.ok(levelFindings.some(item => /minimum/.test(item.message)));
+  assert.ok(levelFindings.some(item => /maximum/.test(item.message)));
 });
 
 test('pre-repair and post-repair findings merge without duplicates', () => {

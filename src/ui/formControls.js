@@ -1,6 +1,6 @@
 import { escapeHtml } from '../dom.js';
 import { optionalFiniteNumber } from '../optionalNumbers.js';
-import { isIntegerScalar } from '../filterScalars.js';
+import { INT32_MAX, INT32_MIN, isIntegerScalar } from '../filterScalars.js';
 
 let nextControlId = 0;
 
@@ -23,8 +23,12 @@ export function rangeSliderBounds(min, max, defaults = {}) {
   const defaultMin = Number.isFinite(defaults.min) ? defaults.min : 0;
   const defaultMax = Number.isFinite(defaults.max) ? defaults.max : 100;
   const values = [defaultMin, defaultMax];
-  if (isIntegerScalar(min)) values.push(min);
-  if (isIntegerScalar(max)) values.push(max);
+  const valueOptions = {
+    minimum: defaults.minimum ?? INT32_MIN,
+    maximum: defaults.maximum ?? INT32_MAX
+  };
+  if (decideRangeValueChange(min, min, valueOptions).valid) values.push(min);
+  if (decideRangeValueChange(max, max, valueOptions).valid) values.push(max);
   let lower = Math.min(...values);
   let upper = Math.max(...values);
   if (lower === upper) upper = lower + 1;
@@ -32,13 +36,44 @@ export function rangeSliderBounds(min, max, defaults = {}) {
 }
 
 export function decideRangeValueChange(storedValue, nextValue, options = {}) {
-  const minimum = options.minimum ?? null;
-  const maximum = options.maximum ?? null;
+  const minimum = options.minimum ?? INT32_MIN;
+  const maximum = options.maximum ?? INT32_MAX;
   const valid = isIntegerScalar(nextValue)
     && (minimum === null || nextValue >= minimum)
     && (maximum === null || nextValue <= maximum);
   if (!valid) return { valid: false, changed: false, value: storedValue };
   return { valid: true, changed: !Object.is(storedValue, nextValue), value: nextValue };
+}
+
+export function rangeInputErrorMessage(key, rawValue, options = {}) {
+  const component = key === 'Min' ? 'Minimum' : 'Maximum';
+  const minimum = options.minimum ?? INT32_MIN;
+  const maximum = options.maximum ?? INT32_MAX;
+  const value = Number(String(rawValue));
+  if (String(rawValue).trim() === '' || !isIntegerScalar(value)) return `${component} must be an integer.`;
+  if (value < minimum) return `${component} must be at least ${minimum}.`;
+  if (value > maximum) return `${component} must be no greater than ${maximum}.`;
+  return `${component} must be an integer from ${minimum} through ${maximum}.`;
+}
+
+export function rangeValidationState(rangeObj, inputErrors = {}, options = {}) {
+  const minValid = decideRangeValueChange(rangeObj.Min, rangeObj.Min, options).valid;
+  const maxValid = decideRangeValueChange(rangeObj.Max, rangeObj.Max, options).valid;
+  const reversed = minValid && maxValid && rangeObj.Min > rangeObj.Max;
+  const minError = inputErrors.Min || (!minValid ? rangeInputErrorMessage('Min', rangeObj.Min, options) : '');
+  const maxError = inputErrors.Max || (!maxValid ? rangeInputErrorMessage('Max', rangeObj.Max, options) : '');
+  const errors = [minError, maxError].filter(Boolean);
+  const message = errors.join(' ') || (reversed
+    ? 'Minimum is greater than maximum. Values are preserved until you edit them.'
+    : '');
+  return {
+    hasIssue: reversed || errors.length > 0,
+    hasError: errors.length > 0,
+    reversed,
+    message,
+    Min: { invalid: reversed || Boolean(minError), describedBy: reversed || Boolean(minError) },
+    Max: { invalid: reversed || Boolean(maxError), describedBy: reversed || Boolean(maxError) }
+  };
 }
 
 export function decideRangeInputChange(storedValue, rawValue, options = {}) {
@@ -255,44 +290,36 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
   const validation = wrap.querySelector('.range-validation');
   const inputErrors = { Min: '', Max: '' };
 
-  function invalidInputMessage(key) {
-    const component = key === 'Min' ? 'Minimum' : 'Maximum';
-    return minimum === 0
-      ? `${component} must be a non-negative integer.`
-      : `${component} must be an integer.`;
-  }
-
   function syncValidity() {
     const minValue = rangeObj.Min;
     const maxValue = rangeObj.Max;
     const lowerBound = Number(minSlider.min);
     const upperBound = Number(minSlider.max);
     const span = upperBound - lowerBound || 1;
-    const incompatible = !decideRangeValueChange(minValue, minValue, valueOptions).valid || !decideRangeValueChange(maxValue, maxValue, valueOptions).valid;
-    const reversed = !incompatible && minValue > maxValue;
-    const inputError = inputErrors.Min || inputErrors.Max;
-    const hasRangeIssue = reversed || incompatible || Boolean(inputError);
-    const visualMin = isIntegerScalar(minValue) ? minValue : lowerBound;
-    const visualMax = isIntegerScalar(maxValue) ? maxValue : upperBound;
+    const validity = rangeValidationState(rangeObj, inputErrors, valueOptions);
+    const minCompatible = decideRangeValueChange(minValue, minValue, valueOptions).valid;
+    const maxCompatible = decideRangeValueChange(maxValue, maxValue, valueOptions).valid;
+    const visualMin = minCompatible ? minValue : lowerBound;
+    const visualMax = maxCompatible ? maxValue : upperBound;
     const start = Math.max(0, Math.min(100, ((Math.min(visualMin, visualMax) - lowerBound) / span) * 100));
     const end = Math.max(0, Math.min(100, ((Math.max(visualMin, visualMax) - lowerBound) / span) * 100));
     wrap.style.setProperty('--range-start', `${start}%`);
     wrap.style.setProperty('--range-end', `${end}%`);
-    wrap.classList.toggle('has-range-issue', hasRangeIssue);
-    wrap.classList.toggle('has-range-error', incompatible || Boolean(inputError));
-    wrap.classList.toggle('has-range-warning', !incompatible && !inputError && reversed);
-    minSlider.classList.toggle('range-active-slider', reversed || (!incompatible && minValue >= maxValue));
-    minNumber.classList.toggle('invalid', reversed || incompatible || Boolean(inputErrors.Min));
-    maxNumber.classList.toggle('invalid', reversed || incompatible || Boolean(inputErrors.Max));
-    validation.textContent = inputError || (incompatible ? 'Minimum and maximum must be compatible integers.' : 'Minimum is greater than maximum. Values are preserved until you edit them.');
+    wrap.classList.toggle('has-range-issue', validity.hasIssue);
+    wrap.classList.toggle('has-range-error', validity.hasError);
+    wrap.classList.toggle('has-range-warning', validity.reversed);
+    minSlider.classList.toggle('range-active-slider', validity.reversed || (minCompatible && maxCompatible && minValue >= maxValue));
+    minNumber.classList.toggle('invalid', validity.Min.invalid);
+    maxNumber.classList.toggle('invalid', validity.Max.invalid);
+    validation.textContent = validity.message;
     validation.classList.add('range-validation');
-    validation.classList.toggle('validation-list', hasRangeIssue);
-    validation.classList.toggle('field-error', incompatible || Boolean(inputError));
-    validation.classList.toggle('field-warning', !incompatible && !inputError && reversed);
-    validation.hidden = !hasRangeIssue;
-    for (const input of [minNumber, maxNumber]) {
-      input.setAttribute('aria-invalid', hasRangeIssue ? 'true' : 'false');
-      if (hasRangeIssue) input.setAttribute('aria-describedby', validationId);
+    validation.classList.toggle('validation-list', validity.hasIssue);
+    validation.classList.toggle('field-error', validity.hasError);
+    validation.classList.toggle('field-warning', validity.reversed);
+    validation.hidden = !validity.hasIssue;
+    for (const [input, component] of [[minNumber, validity.Min], [maxNumber, validity.Max]]) {
+      input.setAttribute('aria-invalid', component.invalid ? 'true' : 'false');
+      if (component.describedBy) input.setAttribute('aria-describedby', validationId);
       else input.removeAttribute('aria-describedby');
     }
   }
@@ -320,7 +347,7 @@ export function rangeSliderControl(label, rangeObj, onChange, defaults = {}) {
   function commitFiniteNumberInput(key, input) {
     const decision = decideRangeInputChange(rangeObj[key], input.value, valueOptions);
     if (!decision.valid) {
-      inputErrors[key] = invalidInputMessage(key);
+      inputErrors[key] = rangeInputErrorMessage(key, input.value, valueOptions);
       syncValidity();
       return false;
     }

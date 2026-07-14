@@ -14,6 +14,8 @@ import {
   numberInputDisplayValue,
   STATE_FILTER_OPTIONS,
   rangeSliderBounds,
+  rangeInputErrorMessage,
+  rangeValidationState,
   stateFilterLabel
 } from '../src/ui/formControls.js';
 
@@ -56,6 +58,43 @@ test('range typed-input decisions reject blank, fractions, and negative Vendor P
   }
   assert.deepEqual(decideRangeInputChange(10, '11', { minimum: 0 }), { valid: true, changed: true, value: 11 });
   assert.deepEqual(decideRangeInputChange(-5, '-7'), { valid: true, changed: true, value: -7 });
+});
+
+test('range typed-input decisions enforce signed Int32 and exact uint boundaries', () => {
+  for (const value of [-2147483648, 2147483647]) {
+    assert.deepEqual(decideRangeInputChange(0, String(value)), { valid: true, changed: true, value });
+  }
+  for (const value of [-2147483649, 2147483648]) {
+    assert.deepEqual(decideRangeInputChange(0, String(value)), { valid: false, changed: false, value: 0 });
+  }
+  const uintOptions = { minimum: 0, maximum: 4294967295 };
+  for (const value of [0, 4294967295]) assert.equal(decideRangeInputChange(1, String(value), uintOptions).valid, true);
+  for (const value of [-1, 4294967296]) {
+    assert.deepEqual(decideRangeInputChange(1, String(value), uintOptions), { valid: false, changed: false, value: 1 });
+  }
+});
+
+test('range validation state keeps component errors specific and reversed ranges shared', () => {
+  const maxOnly = rangeValidationState(
+    { Min: 10, Max: 20 },
+    { Max: rangeInputErrorMessage('Max', '4294967296', { minimum: 0, maximum: 4294967295 }) },
+    { minimum: 0, maximum: 4294967295 }
+  );
+  assert.deepEqual(maxOnly.Min, { invalid: false, describedBy: false });
+  assert.deepEqual(maxOnly.Max, { invalid: true, describedBy: true });
+  assert.match(maxOnly.message, /Maximum must be no greater than 4294967295/);
+  assert.doesNotMatch(maxOnly.message, /non-negative/);
+
+  const storedMinOnly = rangeValidationState({ Min: -2147483649, Max: 20 });
+  assert.deepEqual(storedMinOnly.Min, { invalid: true, describedBy: true });
+  assert.deepEqual(storedMinOnly.Max, { invalid: false, describedBy: false });
+  assert.match(storedMinOnly.message, /Minimum must be at least -2147483648/);
+
+  const reversed = rangeValidationState({ Min: 20, Max: 10 });
+  assert.deepEqual(reversed.Min, { invalid: true, describedBy: true });
+  assert.deepEqual(reversed.Max, { invalid: true, describedBy: true });
+  assert.equal(reversed.reversed, true);
+  assert.equal(reversed.hasError, false);
 });
 
 test('invalid range applications do not mutate or notify and valid integers notify exactly once', () => {
@@ -228,11 +267,11 @@ test('hidden range validation keeps hidden display precedence', () => {
   assert.match(styles, /\.validation-list\[hidden\],\s*\.range-validation\[hidden\]\s*{\s*display: none !important;/);
 });
 
-test('range validation associates both number inputs with its generated message only while invalid', () => {
+test('range validation applies per-component accessibility while retaining shared reversed warnings', () => {
   const source = fs.readFileSync(new URL('../src/ui/formControls.js', import.meta.url), 'utf8');
 
   assert.match(source, /const validationId = makeControlId\('range-validation'\);/);
   assert.match(source, /<p id="\$\{validationId\}" class="hint range-validation" hidden>/);
-  assert.match(source, /const hasRangeIssue = reversed \|\| incompatible \|\| Boolean\(inputError\);/);
-  assert.match(source, /for \(const input of \[minNumber, maxNumber\]\) \{[\s\S]*?input\.setAttribute\('aria-invalid', hasRangeIssue \? 'true' : 'false'\);[\s\S]*?if \(hasRangeIssue\) input\.setAttribute\('aria-describedby', validationId\);[\s\S]*?else input\.removeAttribute\('aria-describedby'\);[\s\S]*?\}/);
+  assert.match(source, /const validity = rangeValidationState\(rangeObj, inputErrors, valueOptions\);/);
+  assert.match(source, /for \(const \[input, component\] of \[\[minNumber, validity\.Min\], \[maxNumber, validity\.Max\]\]\) \{[\s\S]*?input\.setAttribute\('aria-invalid', component\.invalid \? 'true' : 'false'\);[\s\S]*?if \(component\.describedBy\) input\.setAttribute\('aria-describedby', validationId\);/);
 });
