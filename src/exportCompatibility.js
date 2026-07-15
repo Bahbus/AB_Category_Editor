@@ -67,7 +67,8 @@ export function jsonSerializationFidelityFindings(value) {
     const { value: current, path } = frame;
     if (current === null || typeof current === 'string' || typeof current === 'boolean') continue;
     if (typeof current === 'number') {
-      if (!Number.isFinite(current)) findings.push(blockingSerializationFinding(path, 'is a non-finite number that JSON serialization would silently replace with null.'));
+      if (Object.is(current, -0)) findings.push(blockingSerializationFinding(path, 'is negative zero, which JSON serialization would silently normalize to 0.'));
+      else if (!Number.isFinite(current)) findings.push(blockingSerializationFinding(path, 'is a non-finite number that JSON serialization would silently replace with null.'));
       continue;
     }
     if (typeof current === 'undefined') {
@@ -131,9 +132,15 @@ export function jsonSerializationFidelityFindings(value) {
         findings.push(blockingSerializationFinding(childPath, 'cannot be inspected safely for JSON serialization.'));
         continue;
       }
-      if (key === 'toJSON' && typeof descriptor.value === 'function') {
-        findings.push(blockingSerializationFinding(childPath, 'defines custom JSON serialization that may change the stored value.'));
-        continue;
+      if (key === 'toJSON') {
+        if (!hasOwn(descriptor, 'value')) {
+          findings.push(blockingSerializationFinding(childPath, 'defines a custom JSON serialization accessor that cannot be checked without invoking user code.'));
+          continue;
+        }
+        if (typeof descriptor.value === 'function') {
+          findings.push(blockingSerializationFinding(childPath, 'defines custom JSON serialization that may change the stored value.'));
+          continue;
+        }
       }
       if (!descriptor.enumerable) continue;
       if (Array.isArray(current) && isArrayIndexKey(key, current.length)) continue;

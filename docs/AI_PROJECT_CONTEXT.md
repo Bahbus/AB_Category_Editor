@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 50 is merged on `origin/main` at `e1b9ce2`. Phase 50.1 on `agent/phase-50-1-export-fidelity-compatibility` adds cycle-safe JSON serialization-fidelity analysis for every enumerable known or unknown value, blocks path-specific non-finite/unserializable data before both export callbacks, and reclassifies upstream-defaulted or ignored values as warnings while retaining actual `System.Text.Json` and use-path blockers. Local `npm run check` passes with 63 JavaScript files, 29 test files, and 375 tests. `git diff --check origin/main` passes. Upstream AetherBags `master` was verified at `368bd4677b16594d9d4624efc8269ada7408d4f5`. In-app browser QA passed both blocked export actions, saved-state/focus behavior, and overflow-free desktop, 840px, and 390px layouts. CI and Pages were not run.
+> **Current state:** Phase 50.1 is merged on `origin/main` at `5ddddd9`. Phase 50.2 on `agent/phase-50-2-serialization-fidelity-completion` makes JSON-semantic equality preserve the sign of zero, blocks path-specific negative zero before export serialization can normalize it, and rejects enumerable or non-enumerable own `toJSON` accessors from their descriptors without invoking user code. Local `npm run check` passes with 63 JavaScript files, 29 test files, and 381 tests. `git diff --check origin/main` passes. In-app browser QA passed both blocked export actions, dirty-state/focus/inert behavior, no-download verification, and overflow-free desktop, 840px, and 390px layouts. CI and Pages were not run.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -127,6 +127,8 @@ Rules:
 - Review-only warnings, including predictable AetherBags Item Sort Criteria normalization, remain exportable.
 - Unknown properties are preserved and are not errors merely because the editor does not interpret them.
 - Every enumerable value, including unknown nested properties, must retain JSON serialization fidelity; non-finite numbers, cycles, and other unserializable shapes block with a JSON-path finding before export work begins.
+- Negative zero must retain its sign in Raw JSON change decisions and blocks export at its exact JSON path before `JSON.stringify` can normalize it to ordinary zero.
+- Own `toJSON` accessors are inspected only through property descriptors and block without invoking getters, setters, serializers, or export callbacks; function-valued own `toJSON` data properties remain custom-serialization blockers regardless of enumerability.
 - Missing Format/Version and omitted upstream-defaulted category members are review warnings, not unreadable blockers. Unexpected string Format and signed-Int32 Version values are also warnings because the pinned importer ignores them.
 - Order and Priority are signed Int32 JSON-number integers; numeric strings, fractions, non-finite values, and coercion-only values are preserved for correction but are not export-compatible.
 
@@ -553,6 +555,22 @@ Validation actually run:
 - `git diff --check origin/main` passed with no output.
 - Upstream AetherBags `master` remained `368bd4677b16594d9d4624efc8269ada7408d4f5` and the import/default/use paths were inspected directly.
 - In-app browser QA imported nested unknown `1e400`, confirmed Export / Copy and Download both blocked with the exact JSON path before busy/output work, preserved both dirty and saved state in separate runs, retained accessible modal inert/focus/return behavior, and passed desktop, 840px, and 390px overflow checks.
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
+### Phase 50.2
+
+Phase 50.2 closes the remaining Phase 50.1 serialization-fidelity gaps without widening the compatibility boundary.
+
+- `jsonSemanticEqual(...)` distinguishes `-0` from `0` while retaining established object-key-order, array-order, primitive-type, and otherwise-identical JSON no-op behavior.
+- The shared iterative serialization-fidelity traversal reports negative zero as a path-specific blocker before either export callback or `JSON.stringify` can normalize it.
+- Own `toJSON` descriptors are inspected regardless of enumerability. Function-valued data properties and accessor descriptors block at the exact path; accessors are never read and getters, serializers, and export callbacks remain uninvoked.
+- Ordinary non-enumerable properties remain ignored when they cannot affect JSON serialization, and ordinary finite zero remains exportable.
+
+Validation actually run:
+
+- `npm run check` passed: 63 JavaScript files syntax-checked, all static relative imports resolved, and all 29 test files / 381 tests passed.
+- `git diff --check origin/main` passed with no output.
+- In-app browser QA applied valid Raw JSON with `$.Phase502Nested.negativeZero`, confirmed Export / Copy and Download both blocked with that readable path, retained `Changes not exported`, produced no download, restored focus and modal inert/ARIA state, and had no horizontal overflow at 1280px, 840px, or 390px widths.
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
 ---
