@@ -5,6 +5,7 @@ import fs from 'node:fs';
 
 import { RARITIES } from '../src/constants.js';
 import { validateCategoryOrder } from '../src/validation.js';
+import { isSignedInt32Scalar } from '../src/filterScalars.js';
 import {
   applyNumberCommit,
   applyRangeValueChange,
@@ -12,6 +13,7 @@ import {
   decideRangeInputChange,
   decideRangeValueChange,
   numberInputDisplayValue,
+  numberInputStoredDisplayValue,
   STATE_FILTER_OPTIONS,
   rangeSliderBounds,
   rangeInputErrorMessage,
@@ -159,6 +161,14 @@ test('invalid committed number values retain the browser blank or invalid displa
   assert.equal(numberInputDisplayValue([1], '1'), '1');
 });
 
+test('strict sort controls can display preserved incompatible JSON values exactly', () => {
+  assert.equal(numberInputStoredDisplayValue('0x10'), '0x10');
+  assert.equal(numberInputStoredDisplayValue('9007199254740993'), '9007199254740993');
+  assert.equal(numberInputStoredDisplayValue(null), 'null');
+  assert.equal(numberInputStoredDisplayValue(true), 'true');
+  assert.equal(numberInputStoredDisplayValue([1]), '[1]');
+});
+
 test('number commit state preserves valid JSON values and accepted numeric strings on numeric no-ops', () => {
   for (const value of [0, 12.5, -3, '0', '0012', '  +7  ']) {
     let commits = 0;
@@ -209,6 +219,43 @@ test('a deliberate finite correction replaces an invalid number once and makes l
   assert.equal(commits, 1);
 });
 
+test('Order and Priority commit decisions accept Int32 boundaries and reject incompatible input without mutation', () => {
+  for (const value of [-2147483648, 2147483647]) {
+    const decision = applyNumberCommit(createNumberCommitState(0, '0'), String(value), () => {}, { validateNumber: isSignedInt32Scalar });
+    assert.equal(decision.inputValid, true);
+    assert.equal(decision.state.jsonValue, value);
+  }
+  for (const value of ['1.5', '2147483648', '-2147483649', 'Infinity', '', 'true', 'null']) {
+    let commits = 0;
+    const state = createNumberCommitState(7, '7');
+    const decision = applyNumberCommit(state, value, () => { commits++; }, { validateNumber: isSignedInt32Scalar });
+    assert.equal(decision.inputValid, false, value);
+    assert.equal(decision.changed, false);
+    assert.equal(decision.state.jsonValue, 7);
+    assert.equal(commits, 0);
+  }
+});
+
+test('explicit same-text edits can correct preserved numeric strings without changing numeric no-ops', () => {
+  let corrected = null;
+  const stringState = { ...createNumberCommitState('1', '1'), diverged: true };
+  const correction = applyNumberCommit(stringState, '1', value => { corrected = value; }, {
+    validateNumber: isSignedInt32Scalar,
+    requireJsonNumber: true
+  });
+  assert.equal(correction.changed, true);
+  assert.equal(correction.state.jsonValue, 1);
+  assert.equal(corrected, 1);
+
+  let numericCommits = 0;
+  const numericState = { ...createNumberCommitState(1, '1'), diverged: true };
+  assert.equal(applyNumberCommit(numericState, '1', () => { numericCommits++; }, {
+    validateNumber: isSignedInt32Scalar,
+    requireJsonNumber: true
+  }).changed, false);
+  assert.equal(numericCommits, 0);
+});
+
 test('editing away from an invalid numeric-looking array makes a same-display finite correction deliberate', () => {
   const invalid = [1];
   let commits = 0;
@@ -252,11 +299,11 @@ test('number controls commit finite input events without committing empty partia
   const formControlsSource = fs.readFileSync(new URL('../src/ui/formControls.js', import.meta.url), 'utf8');
   const categoryEditorSource = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
   assert.match(formControlsSource, /input\.oninput = e =>/);
-  assert.match(formControlsSource, /const input = wrap\.querySelector\('input'\);[\s\S]*?input\.value = numberInputDisplayValue\(value, input\.value\);/);
+  assert.match(formControlsSource, /const input = wrap\.querySelector\('input'\);[\s\S]*?input\.value = preserveStoredDisplay \? numberInputStoredDisplayValue\(value\) : numberInputDisplayValue\(value, input\.value\);/);
   assert.match(formControlsSource, /createNumberCommitState\(value, input\.value\)/);
-  assert.match(formControlsSource, /applyNumberCommit\(committed, rawValue, onChange, bounds\)/);
+  assert.match(formControlsSource, /applyNumberCommit\(committed, rawValue, onChange, \{ \.\.\.bounds, validateNumber: options\.validateNumber, requireJsonNumber: options\.requireJsonNumber \}\)/);
   assert.match(formControlsSource, /options\.validate\(committed\.jsonValue\)/);
-  assert.match(formControlsSource, /function restoreCommittedValue\(\) \{[\s\S]*?input\.value = numberInputDisplayValue\(committed\.jsonValue, input\.value\);/);
+  assert.match(formControlsSource, /function restoreCommittedValue\(\) \{[\s\S]*?numberInputStoredDisplayValue\(committed\.jsonValue\)[\s\S]*?numberInputDisplayValue\(committed\.jsonValue, input\.value\);/);
   assert.doesNotMatch(formControlsSource, /Number\(value\) \|\| 0/);
   assert.match(formControlsSource, /minNumber\.oninput = \(\) => commitFiniteNumberInput/);
   assert.match(categoryEditorSource, /input\.oninput = e =>/);

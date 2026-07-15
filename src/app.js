@@ -18,6 +18,7 @@ import { PRESETS } from './presets.js';
 import { createLookupCacheOperationCoordinator, clearLookupCacheIfIdle } from './lookupCacheOperations.js';
 import { applyConfigReplacement, applyFullConfigCandidate, renumberCategories as applyCategoryRenumber, sortCategoriesPreservingSelection } from './categoryChanges.js';
 import { isSnapshotCurrent, makeRevisionedExportSnapshot, saveSnapshotIfCurrent } from './exportSnapshots.js';
+import { runAetherBagsExportPreflight } from './exportCompatibility.js';
 import {
   reviewableImportRepairs,
   reviewableImportFindings,
@@ -131,6 +132,34 @@ function showValidationSummary(title, analysis, repairs = []) {
   wrap.innerHTML = `<p class="hint">Warnings and import repairs do not block import; they are shown so you can review meaningful cleanup.</p>${findingsSection}${repairSection}<div class="row modal-action-row"><button id="closeValidationSummary" class="primary">Continue editing</button></div>`;
   openModal(title, wrap);
   try { requireScopedEl(wrap, '#closeValidationSummary', 'validation summary').addEventListener('click', closeModal); } catch (err) { reportModalBindingError('Validation summary unavailable', err); }
+}
+
+function showExportCompatibilitySummary(decision) {
+  const findings = decision.blockingFindings || [];
+  const rows = findings.slice(0, 80).map(item => {
+    const location = item.categoryName ? `${item.categoryName} · ${item.field}` : item.field;
+    return `<li class="field-error"><strong>${escapeHtml(location)}:</strong> ${escapeHtml(item.message)}</li>`;
+  }).join('');
+  const more = findings.length > 80 ? `<p class="hint">Showing first 80 of ${findings.length} blocking compatibility errors.</p>` : '';
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `<div role="alert"><p><strong>Export blocked:</strong> the current data contains ${findings.length} value(s) that the current AetherBags category importer cannot safely read.</p><p class="hint">Correct the listed fields in the structured controls or Raw JSON, then run Export / Copy or Download again. No export was generated and the saved state was not changed.</p></div><ul class="validation-list">${rows}</ul>${more}<div class="row modal-action-row"><button id="closeExportCompatibility" class="primary">Continue editing</button></div>`;
+  openModal('AetherBags export compatibility', wrap);
+  try { requireScopedEl(wrap, '#closeExportCompatibility', 'export compatibility').addEventListener('click', closeModal); }
+  catch (err) { reportModalBindingError('Export compatibility summary unavailable', err); }
+  setStatus(`Export blocked by ${findings.length} AetherBags compatibility error(s). Correct the listed fields and try again.`, 'err');
+}
+
+async function makeCompatibleRevisionedExportSnapshot(busyTitle, busyMessage, onBusy = () => {}) {
+  const result = await runAetherBagsExportPreflight(data, async () => {
+    onBusy();
+    showBusy(busyTitle, busyMessage, null);
+    return makeRevisionedExportSnapshot(data, () => dataRevision, makeBase64Export);
+  });
+  if (!result.allowed) {
+    showExportCompatibilitySummary(result);
+    return null;
+  }
+  return result.value;
 }
 function openRegexToItemIdsTool() { commitActiveField(); openRegexTool({ getCategories, getSelectedIndex: () => selectedIndex, ensureShape, lookupCache, saveLookupCache, acquireLookupCacheProducer: lookupCacheOperations.acquire, markDirty, renderAll }); }
 
@@ -417,10 +446,10 @@ function bindAppEvents() {
   bindClick('showExportCopy', async () => {
     commitActiveField();
     if (getCategories().length === 0) { updateExportControls(); setStatus('Add or import at least one category before exporting.', 'warn'); return; }
-    showBusy('Generating export', 'Compressing JSON to gzip+Base64...', null);
-    let busyShown = true;
+    let busyShown = false;
     try {
-      const snapshot = await makeRevisionedExportSnapshot(data, () => dataRevision, makeBase64Export);
+      const snapshot = await makeCompatibleRevisionedExportSnapshot('Generating export', 'Compressing JSON to gzip+Base64...', () => { busyShown = true; });
+      if (!snapshot) return;
       const b64 = snapshot.value;
       hideBusy(); busyShown = false;
       if (isModalOpen()) {
@@ -460,9 +489,10 @@ function bindAppEvents() {
   bindClick('downloadBase64', async () => {
     commitActiveField();
     if (getCategories().length === 0) { updateExportControls(); setStatus('Add or import at least one category before downloading.', 'warn'); return; }
-    showBusy('Generating download', 'Compressing JSON to gzip+Base64...', null);
+    let busyShown = false;
     try {
-      const snapshot = await makeRevisionedExportSnapshot(data, () => dataRevision, makeBase64Export);
+      const snapshot = await makeCompatibleRevisionedExportSnapshot('Generating download', 'Compressing JSON to gzip+Base64...', () => { busyShown = true; });
+      if (!snapshot) return;
       downloadText(EXPORT_FILENAME, snapshot.value, 'text/plain', { onDownloaded(filename) {
         saveSnapshotIfCurrent(snapshot.revision, dataRevision, {
           onSaved() { markSaved('Downloaded'); setStatus(`Downloaded ${filename}`, 'ok'); },
@@ -478,7 +508,7 @@ function bindAppEvents() {
       } });
     }
     catch (err) { setStatus(errorMessage('Download failed', err), 'err'); }
-    finally { hideBusy(); }
+    finally { if (busyShown) hideBusy(); }
   });
 
   bindChange('fileInput', async e => {

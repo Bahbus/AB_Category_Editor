@@ -36,13 +36,13 @@ test('shared category issue counts include errors and warnings but not notes', (
   assert.equal(getCategoryIssueCount(cleanCategory({ Order: 'not-finite' })), 1);
 });
 
-test('Order and Priority validation rejects coercion-only values but accepts numeric strings', () => {
-  for (const value of [null, undefined, '', ' ', true, false, [], {}, 'not-a-number', Infinity]) {
+test('Order and Priority validation requires signed Int32 JSON numbers', () => {
+  for (const value of [null, undefined, '', ' ', true, false, [], {}, 'not-a-number', Infinity, '-2', '3', 4.25, -2147483649, 2147483648]) {
     const category = cleanCategory({ Order: value });
     assert.equal(analyzeImportedConfig({ Categories: [category] }).findings.some(item => item.field === 'Order'), true);
   }
 
-  for (const value of ['-2.5', ' +3 ', 4.25]) {
+  for (const value of [-2147483648, 0, 2147483647]) {
     const category = cleanCategory({ Order: value, Priority: value });
     const findings = analyzeImportedConfig({ Categories: [category] }).findings;
     assert.equal(findings.some(item => item.field === 'Order' || item.field === 'Priority'), false);
@@ -290,8 +290,8 @@ test('duplicate Priority alone does not warn when Order differs', () => {
 
 test('duplicate Order and Priority pair creates one grouped import summary warning', () => {
   const analysis = analyzeImportedConfig({ Categories: [
-    cleanCategory({ Id: 'a', Name: 'Gear', Order: '1', Priority: 1 }),
-    cleanCategory({ Id: 'b', Name: 'Meals', Order: 1, Priority: '1' })
+    cleanCategory({ Id: 'a', Name: 'Gear', Order: 1, Priority: 1 }),
+    cleanCategory({ Id: 'b', Name: 'Meals', Order: 1, Priority: 1 })
   ] });
   const sortFindings = analysis.findings.filter(item => item.field === 'SortPosition');
 
@@ -481,10 +481,10 @@ test('coercible imported Allowed Item IDs create one invalid warning without exp
   assert.doesNotMatch(findings[0].message, /null|false|true|object|abc|-1|1\.5|\[\]/i);
 });
 
-test('valid numeric row ID values do not introduce invalid numeric ID warnings', () => {
+test('valid numeric row ID numbers do not introduce compatibility findings', () => {
   const category = cleanCategory();
-  category.Rules.AllowedItemIds = [0, 123, '0', '123', '00123'];
-  category.Rules.AllowedUiCategoryIds = [0, 456, '0', '456'];
+  category.Rules.AllowedItemIds = [0, 123];
+  category.Rules.AllowedUiCategoryIds = [0, 456];
   const analysis = analyzeImportedConfig({ Categories: [category] });
 
   const invalidNumericFindings = analysis.findings.filter(item => /non-negative integers/i.test(item.message));
@@ -524,13 +524,15 @@ test('invalid Allowed UI Category IDs create one warning without exposing values
   assert.doesNotMatch(invalidFinding.message, /-1|2\.5|bad/);
 });
 
-test('numeric string row IDs are accepted by numeric ID validation', () => {
+test('numeric string row IDs remain preserved but are export-incompatible', () => {
   const category = cleanCategory();
   category.Rules.AllowedItemIds = ['123'];
   category.Rules.AllowedUiCategoryIds = ['456'];
   const analysis = analyzeImportedConfig({ Categories: [category] });
 
-  assert.equal(analysis.counts.warning, 0);
+  assert.equal(analysis.findings.filter(item => item.blocksExport && (item.field === 'AllowedItemIds' || item.field === 'AllowedUiCategoryIds')).length, 2);
+  assert.deepEqual(category.Rules.AllowedItemIds, ['123']);
+  assert.deepEqual(category.Rules.AllowedUiCategoryIds, ['456']);
 });
 
 test('invalid numeric row ID values are grouped per field', () => {

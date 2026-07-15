@@ -1,6 +1,6 @@
 import { ALLOWED_RARITY_IDS, RANGE_FILTERS, RANGE_FILTER_KEYS, STATE_FILTER_KEYS } from './constants.js';
 import { optionalFiniteNumber } from './optionalNumbers.js';
-import { isBooleanScalar, isRangeBoundScalar, isStateFilterScalar, isStateScalar } from './filterScalars.js';
+import { INT32_MAX, isBooleanScalar, isFiniteSingleScalar, isRangeBoundScalar, isSignedInt32Scalar, isStateFilterScalar, isStateScalar } from './filterScalars.js';
 
 export function clone(obj) {
   return JSON.parse(JSON.stringify(obj));
@@ -31,14 +31,16 @@ export function defaultRules() {
 }
 
 export function defaultCategory(maxOrder = 0) {
+  const compatibleMaxOrder = isSignedInt32Scalar(maxOrder) ? maxOrder : 0;
+  const nextOrder = compatibleMaxOrder >= INT32_MAX ? INT32_MAX : compatibleMaxOrder + 1;
   return {
     Enabled: true,
     Pinned: false,
     Id: makeId(),
     Name: 'New Category',
     Description: '',
-    Order: maxOrder + 1,
-    Priority: maxOrder + 1,
+    Order: nextOrder,
+    Priority: nextOrder,
     Color: { X: 1, Y: 1, Z: 1, W: 1 },
     ItemSortCriteria: [{ Field: 0, Direction: 0 }],
     CustomItemOrder: [],
@@ -47,10 +49,11 @@ export function defaultCategory(maxOrder = 0) {
 }
 
 export function nextCategorySortValue(categories = []) {
-  return (Array.isArray(categories) ? categories : []).reduce((max, category) => {
-    const order = optionalFiniteNumber(category?.Order);
+  const maxOrder = (Array.isArray(categories) ? categories : []).reduce((max, category) => {
+    const order = isSignedInt32Scalar(category?.Order) ? category.Order : null;
     return order === null ? max : Math.max(max, order);
-  }, 0) + 1;
+  }, 0);
+  return maxOrder >= INT32_MAX ? INT32_MAX : maxOrder + 1;
 }
 
 function isPlainObject(value) {
@@ -66,7 +69,7 @@ export function ensureShape(cat) {
   if (!isPlainObject(cat)) throw new Error('A category must be a JSON object.');
   if (!isPlainObject(cat.Color)) cat.Color = { X: 1, Y: 1, Z: 1, W: 1 };
   for (const key of ['X','Y','Z','W']) {
-    if (typeof cat.Color[key] !== 'number') cat.Color[key] = 1;
+    if (!isFiniteSingleScalar(cat.Color[key])) cat.Color[key] = 1;
   }
   if (!isPlainObject(cat.Rules)) cat.Rules = defaultRules();
   const r = cat.Rules;
@@ -147,7 +150,7 @@ export function normalizeAllowedRaritiesWithReport(cat) {
   const original = Array.isArray(rules.AllowedRarities) ? rules.AllowedRarities.slice() : [];
   const normalized = normalizeAllowedRarities(cat);
   const changed = original.length !== normalized.length
-    || original.some((value, index) => Number(value) !== normalized[index]);
+    || original.some((value, index) => !Object.is(value, normalized[index]));
   return { normalized, changed };
 }
 
@@ -164,6 +167,8 @@ export function normalizedRaritySet(values) {
 
 export function sameValidRaritySet(before, after) {
   if (!Array.isArray(before) || !Array.isArray(after)) return false;
+  if (before.some(value => typeof value !== 'number' || !ALLOWED_RARITY_IDS.has(value))) return false;
+  if (new Set(before).size !== before.length) return false;
   const normalizedBefore = normalizedRaritySet(before);
   const normalizedAfter = normalizedRaritySet(after);
   return before.length === normalizedBefore.length

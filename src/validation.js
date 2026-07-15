@@ -1,8 +1,8 @@
-import { ALLOWED_RARITY_IDS, RANGE_FILTERS, RANGE_FILTER_KEYS, STATE_FILTERS, STATE_FILTER_KEYS } from './constants.js';
-import { invalidRowIds, normalizeRowIdValue } from './rowIds.js';
-import { optionalFiniteNumber } from './optionalNumbers.js';
+import { RANGE_FILTERS, STATE_FILTERS } from './constants.js';
+import { normalizeRowIdValue } from './rowIds.js';
 import { classifyStoredPattern } from './patternSemantics.js';
-import { isBooleanScalar, isRangeBoundScalar, isStateFilterScalar, isStateScalar } from './filterScalars.js';
+import { isBooleanScalar, isRangeBoundScalar, isSignedInt32Scalar, isStateFilterScalar, isStateScalar } from './filterScalars.js';
+import { categoryCompatibilityFindings, rootCompatibilityFindings } from './exportCompatibility.js';
 
 const RANGE_FILTER_LABELS = Object.fromEntries(RANGE_FILTERS.map(filter => [filter.key, filter.label]));
 const STATE_FILTER_LABELS = Object.fromEntries(STATE_FILTERS.map(filter => [filter.key, filter.label]));
@@ -27,22 +27,26 @@ export function validateCategoryName(category) {
   return findings;
 }
 
-function validateFiniteNumber(category, key) {
-  if (optionalFiniteNumber(category?.[key]) === null) return [finding('error', key, `${key} must be a finite number.`)];
+function validateSortInteger(category, key) {
+  if (!isSignedInt32Scalar(category?.[key])) return [finding('error', key, `${key} must be a signed 32-bit JSON-number integer.`)];
   return [];
 }
 
-export function validateCategoryOrder(category) { return validateFiniteNumber(category, 'Order'); }
-export function validateCategoryPriority(category) { return validateFiniteNumber(category, 'Priority'); }
+export function validateCategoryOrder(category) { return validateSortInteger(category, 'Order'); }
+export function validateCategoryPriority(category) { return validateSortInteger(category, 'Priority'); }
+
+function sortInteger(value) {
+  return isSignedInt32Scalar(value) ? value : null;
+}
 
 export function validateCategorySortPosition(category, allCategories = []) {
-  const order = optionalFiniteNumber(category?.Order);
-  const priority = optionalFiniteNumber(category?.Priority);
+  const order = sortInteger(category?.Order);
+  const priority = sortInteger(category?.Priority);
   if (order === null || priority === null) return [];
   const dupes = (allCategories || []).filter(other => (
     other !== category
-    && optionalFiniteNumber(other?.Order) === order
-    && optionalFiniteNumber(other?.Priority) === priority
+    && sortInteger(other?.Order) === order
+    && sortInteger(other?.Priority) === priority
   ));
   return dupes.length ? [finding('warning', 'SortPosition', `Duplicate sort position: Order ${order} / Priority ${priority}.`)] : [];
 }
@@ -51,8 +55,8 @@ export function validateCategorySortPosition(category, allCategories = []) {
 export function groupedDuplicateSortPositionFindings(categories = []) {
   const groups = new Map();
   for (const [index, category] of (categories || []).entries()) {
-    const order = optionalFiniteNumber(category?.Order);
-    const priority = optionalFiniteNumber(category?.Priority);
+    const order = sortInteger(category?.Order);
+    const priority = sortInteger(category?.Priority);
     if (order === null || priority === null) continue;
     const key = `${order}:${priority}`;
     const group = groups.get(key) || { order, priority, names: [] };
@@ -116,21 +120,13 @@ export function validateStateFilter(field, stateFilter, labelText = field) {
 }
 
 export function validateRarities(category) {
-  const values = rulesOf(category).AllowedRarities;
-  if (!Array.isArray(values)) return [finding('warning', 'AllowedRarities', 'Allowed rarities list is malformed and will be normalized.')];
-  const unsupported = values.filter(value => !ALLOWED_RARITY_IDS.has(Number(value)));
-  return unsupported.length ? [finding('warning', 'AllowedRarities', `Unsupported rarity value(s) will be ignored: ${unsupported.join(', ')}.`)] : [];
+  return categoryCompatibilityFindings(category).filter(item => item.field === 'AllowedRarities');
 }
 
 const INVALID_ROW_ID_MESSAGES = {
   AllowedItemIds: 'Allowed Item IDs must be non-negative integers.',
   AllowedUiCategoryIds: 'Allowed UI Category IDs must be non-negative integers.'
 };
-
-function invalidRowIdFindings(values, field) {
-  if (!invalidRowIds(values).length) return [];
-  return [finding('warning', field, INVALID_ROW_ID_MESSAGES[field])];
-}
 
 function hasDuplicateValues(values) {
   if (!Array.isArray(values)) return false;
@@ -173,35 +169,14 @@ function duplicateFindings(values, field, labelText) {
 }
 
 function sortPositionKey(category) {
-  const order = optionalFiniteNumber(category?.Order);
-  const priority = optionalFiniteNumber(category?.Priority);
+  const order = sortInteger(category?.Order);
+  const priority = sortInteger(category?.Priority);
   if (order === null || priority === null) return '';
   return `${order}:${priority}`;
 }
 
 function getCategoryIssueCountWithoutSortPosition(category) {
-  const rules = rulesOf(category);
-  let count = [
-    ...validateCategoryName(category),
-    ...validateCategoryOrder(category),
-    ...validateCategoryPriority(category),
-    ...validateRarities(category)
-  ].filter(isIssueFinding).length;
-
-  if (hasDuplicateRowIds(rules.AllowedItemIds)) count++;
-  if (hasDuplicateRowIds(rules.AllowedUiCategoryIds)) count++;
-  if (invalidRowIds(rules.AllowedItemIds).length) count++;
-  if (invalidRowIds(rules.AllowedUiCategoryIds).length) count++;
-  if (hasDuplicateValues(usableStoredPatterns(rules.AllowedItemNamePatterns))) count++;
-
-  if (Array.isArray(rules.AllowedItemNamePatterns)) {
-    for (const [index, pattern] of rules.AllowedItemNamePatterns.entries()) {
-      count += validateAllowedItemNamePattern(pattern, index).filter(isIssueFinding).length;
-    }
-  }
-  for (const key of RANGE_FILTER_KEYS) count += validateRangeFilter(key, rules[key], RANGE_FILTER_LABELS[key]).filter(isIssueFinding).length;
-  for (const key of STATE_FILTER_KEYS) count += validateStateFilter(key, rules[key], STATE_FILTER_LABELS[key]).filter(isIssueFinding).length;
-  return count;
+  return validateCategory(category, []).filter(item => item.field !== 'SortPosition' && isIssueFinding(item)).length;
 }
 
 export function getCategoryIssueCounts(categories = []) {
@@ -225,29 +200,26 @@ export function validateCategory(category, allCategories = []) {
   const rules = rulesOf(category);
   const findings = [
     ...validateCategoryName(category),
-    ...validateCategoryOrder(category),
-    ...validateCategoryPriority(category),
+    ...categoryCompatibilityFindings(category),
     ...validateCategorySortPosition(category, allCategories),
-    ...validateRarities(category),
     ...duplicateFindings(rules.AllowedItemIds, 'AllowedItemIds', 'Item ID'),
     ...duplicateFindings(rules.AllowedUiCategoryIds, 'AllowedUiCategoryIds', 'UI Category ID'),
-    ...invalidRowIdFindings(rules.AllowedItemIds, 'AllowedItemIds'),
-    ...invalidRowIdFindings(rules.AllowedUiCategoryIds, 'AllowedUiCategoryIds'),
     ...duplicateFindings(usableStoredPatterns(rules.AllowedItemNamePatterns), 'AllowedItemNamePatterns', 'regex pattern')
   ];
   if (Array.isArray(rules.AllowedItemNamePatterns)) {
     for (const [index, pattern] of rules.AllowedItemNamePatterns.entries()) {
-      findings.push(...validateAllowedItemNamePattern(pattern, index));
+      if (typeof pattern === 'string' && !pattern.trim()) findings.push(...validateAllowedItemNamePattern(pattern, index));
     }
   }
-  for (const key of RANGE_FILTER_KEYS) findings.push(...validateRangeFilter(key, rules[key], RANGE_FILTER_LABELS[key]));
-  for (const key of STATE_FILTER_KEYS) findings.push(...validateStateFilter(key, rules[key], STATE_FILTER_LABELS[key]));
   return findings;
 }
 
 export function analyzeImportedConfig(config) {
   const categories = Array.isArray(config?.Categories) ? config.Categories : [];
-  const findings = [];
+  const rootFindings = rootCompatibilityFindings(config).filter(item =>
+    item.field === 'Categories' || Object.prototype.hasOwnProperty.call(config || {}, item.field)
+  );
+  const findings = [...rootFindings];
   const ids = new Map();
   for (const category of categories) {
     const id = String(category?.Id ?? '');

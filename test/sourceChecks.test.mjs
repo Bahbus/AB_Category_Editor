@@ -453,7 +453,7 @@ test('numeric list editors use strict row-ID dedupe without deduping name patter
   const patternCall = categoryEditor.slice(patternStart, converterStart);
 
   assert.match(uiCall, /dedupeValues:\s*true/);
-  assert.match(categoryEditor, /import \{ normalizeRowIdValue \} from ['"]\.\.\/rowIds\.js['"];/);
+  assert.match(categoryEditor, /import \{ normalizeRowIdValue, parseTypedRowIdValue \} from ['"]\.\.\/rowIds\.js['"];/);
   assert.match(uiCall, /dedupeKey:\s*normalizeRowIdValue/);
   assert.match(itemCall, /dedupeValues:\s*true/);
   assert.match(itemCall, /dedupeKey:\s*normalizeRowIdValue/);
@@ -579,7 +579,7 @@ test('automatic lookup and export failures release only their own busy operation
 
   assert.doesNotMatch(automaticLookup, /hideBusy\(true\)/);
   assert.doesNotMatch(exportHandler, /hideBusy\(true\)/);
-  assert.match(exportHandler, /let busyShown = true;/);
+  assert.match(exportHandler, /let busyShown = false;/);
   assert.match(exportHandler, /if \(busyShown\) hideBusy\(\);/);
 });
 
@@ -604,6 +604,23 @@ test('export guards the generated snapshot before awaiting automatic clipboard c
   assert.match(handler, /snapshotCurrent[\s\S]*?Current gzip\+Base64 export[\s\S]*?represents earlier editor data and is not the current config/);
 });
 
+test('both export paths share the accessible AetherBags compatibility preflight', () => {
+  const app = read('src/app.js');
+  const exportHandler = app.match(/bindClick\('showExportCopy', async \(\) => \{(?<body>[\s\S]*?)\n  \}\);/)?.groups.body ?? '';
+  const downloadHandler = app.match(/bindClick\('downloadBase64', async \(\) => \{(?<body>[\s\S]*?)\n  \}\);/)?.groups.body ?? '';
+  const sharedPreflight = app.match(/async function makeCompatibleRevisionedExportSnapshot[\s\S]*?\n\}/)?.[0] ?? '';
+  const blockedSummary = app.match(/function showExportCompatibilitySummary[\s\S]*?\n\}/)?.[0] ?? '';
+
+  assert.match(app, /import \{ runAetherBagsExportPreflight \} from '\.\/exportCompatibility\.js'/);
+  assert.match(sharedPreflight, /runAetherBagsExportPreflight\(data/);
+  assert.match(sharedPreflight, /showExportCompatibilitySummary\(result\)/);
+  assert.match(exportHandler, /makeCompatibleRevisionedExportSnapshot\(/);
+  assert.match(downloadHandler, /makeCompatibleRevisionedExportSnapshot\(/);
+  assert.match(blockedSummary, /role="alert"/);
+  assert.match(blockedSummary, /structured controls or Raw JSON/);
+  assert.match(blockedSummary, /saved state was not changed/);
+});
+
 test('all live config identity revisions guard both asynchronous export snapshot completion paths', () => {
   const app = read('src/app.js');
   const snapshots = read('src/exportSnapshots.js');
@@ -620,8 +637,11 @@ test('all live config identity revisions guard both asynchronous export snapshot
   assert.match(applyValidatedConfig, /applyConfigReplacement\(data, validation\.config/);
   assert.match(applyValidatedConfig, /advanceDataRevision\(\);/);
   assert.match(snapshots, /const revision = getRevision\(\);\s*const value = await makeSnapshot\(data\);/);
+  const sharedPreflight = app.match(/async function makeCompatibleRevisionedExportSnapshot[\s\S]*?\n\}/)?.[0] ?? '';
+  assert.match(sharedPreflight, /runAetherBagsExportPreflight\(data/);
+  assert.match(sharedPreflight, /makeRevisionedExportSnapshot\(data, \(\) => dataRevision, makeBase64Export\)/);
   for (const handler of [exportHandler, downloadHandler]) {
-    assert.match(handler, /makeRevisionedExportSnapshot\(data, \(\) => dataRevision, makeBase64Export\)/);
+    assert.match(handler, /makeCompatibleRevisionedExportSnapshot\(/);
     assert.match(handler, /saveSnapshotIfCurrent\(snapshot\.revision, dataRevision/);
   }
   assert.match(exportHandler, /newer changes remain unexported\./);
@@ -734,17 +754,15 @@ test('duplicate sort-position import merge uses stable grouped keys', () => {
   assert.match(validation, /const key = validationFindingKey\(item, categoryTokens\);/);
 });
 
-test('numeric ID list parsers reject negatives and mention non-negative integers', () => {
+test('numeric ID list parsers use exact uint parsing', () => {
   const source = read('src/ui/categoryEditor.js');
   const uiBlock = source.match(/listEditor\('Allowed UI Category IDs',[\s\S]*?\n    \}, x => x, \{ hint: 'Game ItemUICategory/)?.[0] ?? '';
   const itemBlock = source.match(/listEditor\('Allowed Item IDs',[\s\S]*?\n    \}, x => x, \{ hint: 'Specific Item/)?.[0] ?? '';
 
-  assert.match(uiBlock, /\/\^\\d\+\$\//);
-  assert.match(itemBlock, /\/\^\\d\+\$\//);
-  assert.doesNotMatch(uiBlock, /\/\^-\?\\d\+\$\//);
-  assert.doesNotMatch(itemBlock, /\/\^-\?\\d\+\$\//);
-  assert.match(uiBlock, /non-negative integers/);
-  assert.match(itemBlock, /non-negative integers/);
+  assert.match(uiBlock, /parseTypedRowIdValue\(x\)/);
+  assert.match(itemBlock, /parseTypedRowIdValue\(x\)/);
+  assert.match(uiBlock, /0 through 4294967295/);
+  assert.match(itemBlock, /0 through 4294967295/);
 });
 
 test('list lookup busy overlay only appears after missing ID check', () => {
@@ -808,7 +826,7 @@ test('number blur handlers avoid unchanged dirty commits', () => {
   const rangeCommitBlock = source.match(/function commitNumber\(key, input\) \{[\s\S]*?\n  }\n  function commitFiniteNumberInput/)?.[0] ?? '';
 
   assert.match(numberBlock, /let committed = createNumberCommitState\(value, input\.value\);/);
-  assert.match(numberBlock, /applyNumberCommit\(committed, rawValue, onChange, bounds\)/);
+  assert.match(numberBlock, /applyNumberCommit\(committed, rawValue, onChange, \{ \.\.\.bounds, validateNumber: options\.validateNumber, requireJsonNumber: options\.requireJsonNumber \}\)/);
   assert.match(numberBlock, /options\.validate\(committed\.jsonValue\)/);
   assert.doesNotMatch(numberBlock, /Number\(value\) \|\| 0/);
   assert.match(rangeCommitBlock, /applyRangeValueChange\(rangeObj, key, decision\.value, onChange, valueOptions\)/);

@@ -975,6 +975,34 @@ Validation actually run:
 - in-app browser QA was attempted twice, but the browser transport closed before initialization; desktop, 840px, phone, and interactive boundary/accessibility checks were unavailable,
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+## Phase 50
+
+Phase 50 establishes an explicit AetherBags export-compatibility boundary against upstream commit `368bd4677b16594d9d4624efc8269ada7408d4f5`, verified as current `master`/HEAD during implementation.
+
+Resolution on `agent/phase-50-aetherbags-export-compatibility`:
+
+- added a DOM-free full-envelope analyzer for `CategoryExportData`, `UserCategoryDefinition`, `CategoryRuleSet`, `Vector4`, Item Sort Criteria, uint lists, range/state scalars, and optional `ForkedFromKey`, while preserving unknown properties,
+- attached stable category identity/labels and severity/blocking counts so import review, category badges, and export preflight share compatibility logic,
+- classified confirmed envelope/default-`System.Text.Json` failures as blocking and predictable AetherBags normalization/discard behavior as reviewable, exportable warnings,
+- routed Export / Copy and Download through one preflight before busy UI and compression; blocking results perform no gzip, copy, download, revision/snapshot, dirty-clear, or saved-state work and show an accessible corrective summary,
+- constrained Order/Priority validation and commits to signed Int32 JSON numbers, preserved incompatible imported/transient text, retained blank/Enter/same-value no-op behavior, and supported explicit numeric-string correction,
+- constrained typed Allowed Item/UI Category IDs to exact uint values with atomic comma-batch rejection and no unsafe rounding, while preserving tolerant in-range legacy lookup display,
+- prevented category creation/duplication from overflowing Int32 sort positions,
+- repaired non-finite and single-overflow Color components before JSON serialization could silently convert them to `null`, with a material category repair,
+- made rarity type-changing coercions material while retaining genuine supported-number reorder-only normalization as non-material,
+- retained Phase 48 pattern semantics, Phase 49/49.1 scalar widths and category identity, import/Raw JSON no-op behavior, dirty/revision snapshots, modal/focus, lookup-cache coordination, responsive CSS, and the dependency-free architecture.
+
+Validation actually run:
+
+- focused compatibility/config/row-ID/form/validation/source coverage passed,
+- `npm run check` passed: 63 JavaScript files syntax-checked, all static relative imports resolved, and all 29 test files / 370 tests passed,
+- `git diff --check origin/main` passed with no output,
+- upstream AetherBags `master` and the relevant source types/options were inspected at `368bd4677b16594d9d4624efc8269ada7408d4f5`,
+- in-app browser QA was attempted twice, but the browser transport closed during initialization; valid export, blocked invalid Order/row ID, Color repair summary, keyboard/focus, and desktop/840px/phone runtime checks were unavailable,
+- CI and GitHub Pages were not run because publication remains separate.
+
+Deferred work remains import/decompression size limits, browser-regex worker/time isolation, CSP/theme-bootstrap and Actions SHA hardening, a browser DOM/E2E harness, and broader pill-list/lookup UI redesign.
+
 # Current next step
 
-Review Phase 49.1 locally. Commit or publish it only when separately requested.
+Review Phase 50 locally. Commit or publish it only when separately requested.

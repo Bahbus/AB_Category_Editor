@@ -36,38 +36,41 @@ Primary layers:
 8. **Shared range/state scalar semantics**
    - `src/filterScalars.js`
 
-9. **Import/export and clipboard/download**
+9. **AetherBags export compatibility**
+   - `src/exportCompatibility.js`
+
+10. **Import/export and clipboard/download**
    - `src/importExport.js`
    - `src/exportSnapshots.js`
 
-10. **XIVAPI and lookup**
+11. **XIVAPI and lookup**
    - `src/xivapi.js`
    - `src/lookupNames.js`
 
-11. **UI rendering**
+12. **UI rendering**
    - `src/ui/categoryList.js`
    - `src/ui/categoryEditor.js`
    - `src/ui/listEditor.js`
    - `src/ui/formControls.js`
    - modal-specific UI modules
 
-12. **Modal infrastructure**
+13. **Modal infrastructure**
    - `src/modals.js`
 
-13. **Persistent state**
+14. **Persistent state**
    - `src/state.js`
 
-14. **Tools**
+15. **Tools**
    - `src/tools/regexToItemIds.js`
 
-15. **Description generation**
+16. **Description generation**
    - `src/descriptionGenerator.js`
 
-16. **Static assets and layout**
+17. **Static assets and layout**
    - `index.html`
    - `styles.css`
 
-17. **Tests and guardrails**
+18. **Tests and guardrails**
    - `test/*.test.mjs`
    - `scripts/check-javascript-syntax.mjs`
    - `scripts/check-imports.mjs`
@@ -168,7 +171,8 @@ Important rule:
 
 - Invalid individual numeric IDs inside valid arrays are preserved and warned, not silently removed.
 - Category entries themselves must be JSON objects; `null`, arrays, and scalar entries fail validation rather than being repaired into categories.
-- Plain Color objects are snapshotted by value before normalization. Missing or non-number components are repaired to defaults with one material, reviewable Color warning; valid numeric components, including higher-precision values, remain exact. Malformed whole Color values retain separate repair messaging.
+- Plain Color objects are snapshotted by value before normalization. Missing, non-number, non-finite, or single-overflow components are repaired to defaults with one material, reviewable Color warning before JSON cloning/stringification can convert them to `null`; valid finite single-representable components, including higher-precision values, remain exact. Malformed whole Color values retain separate repair messaging.
+- Allowed Rarities normalization compares original JSON types strictly: type-changing coercions are material repairs, while a genuine reorder of unique supported numeric values remains a non-material note.
 - Range/state scalar repair delegates to `src/filterScalars.js`: Range Enabled accepts only booleans; Level/Item Level accept signed Int32 values; Vendor Price accepts exact uint-compatible integers; State accepts only numeric 0/1/2; and Filter accepts signed Int32 values. Invalid plain-object components fall back independently while exact boundary values remain unchanged.
 
 ---
@@ -220,6 +224,12 @@ The dependency-free browser cannot execute or fully validate .NET syntax. `src/p
 
 The pre/post import merge helper is DOM-free. Category-scoped findings receive a private symbol-backed reference to their source category object; merge-local tokens derived from that reference distinguish category instances even when IDs are duplicated, blank, or missing. Repeated findings for the same object still dedupe across analyses, separate component messages remain distinct, and grouped SortPosition findings keep their stable key. The private identity is not enumerable, serialized, exported, or displayed.
 
+### AetherBags compatibility analysis
+
+`src/exportCompatibility.js` is the central, DOM-free description of the current AetherBags category-import envelope. It checks the root, every category scalar, `Vector4` components, sort criteria, `CustomItemOrder`, rule lists, range/state fields, and `ForkedFromKey` without mutating configuration data. Findings carry stable fields, category labels/indices, severity counts, and an explicit `blocksExport` decision. `src/validation.js` reuses category/root compatibility findings for import review and category issue badges rather than maintaining a second schema.
+
+Deserialization/envelope failures are blocking. Predictable post-deserialization behavior such as unsupported/duplicate/defaulted Item Sort Criteria or unsupported numeric State values is a warning and remains exportable. Blank string patterns retain Phase 48's review finding but do not become an AetherBags deserialization blocker; non-string pattern elements do block. Unknown properties are ignored by the analyzer and preserved by the editor.
+
 ---
 
 ## 5. Shared row-ID architecture
@@ -234,14 +244,17 @@ Expected helpers:
 
 Valid values:
 
-- non-negative integer numbers,
-- digit-only strings.
+- unsigned 32-bit integer numbers,
+- exact digit-only strings within uint range for legacy lookup/display normalization.
 
 Normalization:
 
 - returns numeric row ID for valid input,
 - returns `null` for invalid input,
+- never rounds unsafe or oversized digit strings,
 - does not mutate source values.
+
+Typed list entry uses `parseTypedRowIdValue(...)` and accepts only exact `0..4294967295` values. Stored numeric strings remain available to tolerant lookup normalization but are export-incompatible until explicitly corrected to JSON numbers.
 
 Consumers include:
 
@@ -388,6 +401,7 @@ Do not decrement shared busy state for an operation that returned before `showBu
 - display normalization runs at control creation and committed-value restoration without rewriting the original JSON value,
 - invalid imported nullish, blank, boolean, array, object, and nonnumeric values remain untouched and visibly invalid on blank or non-committing blur,
 - one deliberate finite edit replaces an invalid committed value once and refreshes validation from the corrected model value.
+- Order/Priority opt into signed Int32-only commits, exact display of incompatible imported JSON, and explicit JSON-number correction. Invalid transient fractions/overflow remain visible and accessible without model, callback, or dirty-state changes; blank blur and Enter-to-blur behavior remain unchanged.
 
 ### Range input contract
 
@@ -566,6 +580,8 @@ Export/Copy and Download capture the current revision immediately before `makeBa
 
 A current generated export shown in the modal counts as exported before automatic clipboard work begins. Clipboard success or failure never decides save state, preserving the Phase 43 ordering while the revision guard covers edits made during compression.
 
+Both Export / Copy and Download call the same compatibility-preflight wrapper after committing the active control and before showing busy UI or starting gzip work. A blocked decision opens an accessible, category/field-specific summary and returns without compression, clipboard/download side effects, snapshot-state advancement, or saved-state transitions. A passing decision enters the unchanged Phase 43/44/44.1 async snapshot path.
+
 Browser support errors should be explicit for missing `CompressionStream`/`DecompressionStream`.
 
 ---
@@ -605,6 +621,8 @@ Phase 48 then merged through PR #84 at `4aa67ed97b89f35e0bf468628536d2993819b182
 Phase 49 adds the shared scalar module and direct classification, repair, validation/merge, typed-input decision, no-op/notification, and focused DOM-wiring coverage. Its local `npm run check` run syntax-checked 61 files, resolved all static relative imports, and passed all 28 test files / 347 tests; `git diff --check origin/main` passed with no output. In-app browser QA was attempted twice but unavailable because the browser transport closed; CI and Pages were not run.
 
 Phase 49.1 adds exact Int32 boundary classification and repair coverage, exact uint adjacency coverage, typed range boundary decisions, bound-specific messages, per-component accessibility state, duplicate/absent category-ID finding identity, repeated-analysis dedupe, separate range-component retention, and unchanged grouped SortPosition behavior. Its local `npm run check` run syntax-checked 61 files, resolved all static relative imports, and passed all 28 test files / 352 tests; `git diff --check origin/main` passed with no output. In-app browser QA was attempted twice but unavailable because the browser transport closed before initialization; CI and Pages were not run.
+
+Phase 50 adds direct compatibility-envelope, Int32 Order/Priority, exact uint list, unsafe-digit-string, top-level/category scalar, Item Sort Criteria, unknown-property, Color overflow repair, rarity materiality, and shared preflight behavior coverage. Its local `npm run check` run syntax-checked 63 files, resolved all static relative imports, and passed all 29 test files / 370 tests; `git diff --check origin/main` passed with no output. Upstream AetherBags `master` remained `368bd4677b16594d9d4624efc8269ada7408d4f5`. In-app browser QA was attempted twice but unavailable because the browser transport closed during initialization; CI and Pages were not run.
 
 Testing styles:
 

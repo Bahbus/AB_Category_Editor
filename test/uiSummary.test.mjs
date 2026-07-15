@@ -203,9 +203,11 @@ test('regex tool and help modal source text stay current', () => {
 
 test('shared state filters are imported by validation and editor', () => {
   const validationSource = fs.readFileSync(new URL('../src/validation.js', import.meta.url), 'utf8');
+  const compatibilitySource = fs.readFileSync(new URL('../src/exportCompatibility.js', import.meta.url), 'utf8');
   const editorSource = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
 
-  assert.match(validationSource, /import \{ ALLOWED_RARITY_IDS, RANGE_FILTERS, RANGE_FILTER_KEYS, STATE_FILTERS, STATE_FILTER_KEYS \}/);
+  assert.match(validationSource, /import \{ RANGE_FILTERS, STATE_FILTERS \}/);
+  assert.match(compatibilitySource, /import \{ ALLOWED_RARITY_IDS, RANGE_FILTERS, STATE_FILTERS \}/);
   assert.doesNotMatch(validationSource, /export const STATE_FILTER_KEYS = \[/);
   const summarySource = fs.readFileSync(new URL('../src/ui/filterSummary.js', import.meta.url), 'utf8');
   assert.match(summarySource, /STATE_FILTER_KEYS/);

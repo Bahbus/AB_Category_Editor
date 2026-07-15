@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 49 merged on `origin/main` at `c8d3da0`. Phase 49.1 on `agent/phase-49-1-int32-scalar-findings` adds exact C# Int32 limits for Level, Item Level, and State Filter; keeps Vendor Price at exact uint limits; makes live range errors accurate and component-specific; and preserves category-instance identity while merging validation findings. Local `npm run check` passes with 61 JavaScript files, 28 test files, and 352 tests. `git diff --check origin/main` passes. In-app browser QA was attempted twice but unavailable because the browser transport closed before initialization; CI and Pages were not run.
+> **Current state:** Phase 49.1 is merged on `origin/main` at `8acd0ca`. Phase 50 on `agent/phase-50-aetherbags-export-compatibility` adds a DOM-free AetherBags compatibility analyzer and shared export preflight, strict Int32 Order/Priority controls, exact uint row-ID entry, reviewable sort-criterion normalization, pre-serialization non-finite/single-overflow Color repair, and material rarity type-change reporting. Local `npm run check` passes with 63 JavaScript files, 29 test files, and 370 tests. `git diff --check origin/main` passes. Upstream AetherBags `master` was verified at `368bd4677b16594d9d4624efc8269ada7408d4f5`. In-app browser QA was attempted twice but unavailable because the browser transport closed during initialization; CI and Pages were not run.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -112,11 +112,21 @@ Invalid row-ID values include:
 
 Rules:
 
-- Imported invalid numeric IDs warn but are preserved.
+- AetherBags-compatible stored IDs are JSON-number integers from `0` through `4294967295`; numeric strings remain preserved legacy data but block export until explicitly corrected.
+- Imported invalid or incompatible numeric IDs are preserved and reported.
 - Typed invalid numeric IDs are rejected.
 - Preserved invalid imported IDs must not be collected for lookup.
 - Validation, lookup normalization, referenced-ID collection, manual lookup search, and regex scanning must agree on row-ID semantics.
 - Shared helpers live in `src/rowIds.js`.
+
+### AetherBags export preflight
+
+- `src/exportCompatibility.js` is the DOM-free authority for the complete current category export envelope.
+- Export / Copy and Download commit the active control and run the same preflight before compression.
+- Confirmed envelope or `System.Text.Json` incompatibilities block compression, clipboard/download work, and saved-state transitions.
+- Review-only warnings, including predictable AetherBags Item Sort Criteria normalization, remain exportable.
+- Unknown properties are preserved and are not errors merely because the editor does not interpret them.
+- Order and Priority are signed Int32 JSON-number integers; numeric strings, fractions, non-finite values, and coercion-only values are preserved for correction but are not export-compatible.
 
 ### Duplicate handling
 
@@ -497,6 +507,30 @@ Validation actually run:
 - `git diff --check origin/main` passed with no output,
 - in-app browser QA was attempted twice, but the browser transport closed before initialization; desktop, 840px, phone, and interactive boundary/accessibility checks were unavailable,
 - CI and GitHub Pages were not run because implementation and publication remain separate.
+
+### Phase 50
+
+The verified upstream AetherBags authority remains commit `368bd4677b16594d9d4624efc8269ada7408d4f5`, still `master`/HEAD during implementation. Its `CategoryExportData`, `UserCategoryDefinition`, `CategoryRuleSet`, range/state types, Int32-backed sort enums, `Vector4`, and default `System.Text.Json` options define the boundary.
+
+- `src/exportCompatibility.js` analyzes the full export shape without mutation and returns stable category-scoped findings, severity counts, and explicit blocking decisions.
+- The analyzer validates root format/version/categories, category booleans and strings, signed Int32 Order/Priority, finite single-representable Color components, Item Sort Criteria, uint lists, rule strings/rarities, Phase 49.1 range/state scalars, and optional `ForkedFromKey`; unknown properties remain untouched.
+- Unsupported, duplicate, empty, or Use Global Item Sort Criteria normalization is reported as reviewable warning behavior when deserialization itself remains possible.
+- Export / Copy and Download share one preflight helper. Blocking findings return before busy/compression, copy, download, revision-snapshot completion, dirty clearing, or saved-state changes and open an accessible corrective summary.
+- Order/Priority controls accept only signed Int32 JSON numbers, retain invalid transient and imported text for accessible correction, restore blank blur, preserve same-value no-ops, and allow an explicit same-text edit to replace a numeric string with a number.
+- Typed Item/UI Category IDs use exact uint parsing. Boundaries `0` and `4294967295` are accepted; overflow, unsafe integers, fractions, negatives, coercion-only values, and oversized digit strings are rejected atomically without rounding.
+- Category creation and duplication cannot overflow Order/Priority beyond Int32.
+- Non-finite or single-overflow Color components are repaired before any JSON clone/stringify path can turn them into `null`, with one material category repair. Rarity type changes such as `["1"] -> [1]` and `[true] -> [1]` are material; genuine valid reorder-only normalization remains non-material.
+- Phase 48 pattern storage behavior, Phase 49/49.1 scalar widths and category identity, Raw JSON/import no-ops, dirty/revision snapshots, modal/focus behavior, lookup leases, responsive CSS, and the dependency-free architecture remain covered.
+
+Validation actually run:
+
+- `npm run check` passed: 63 JavaScript files syntax-checked, all static relative imports resolved, and all 29 test files / 370 tests passed.
+- `git diff --check origin/main` passed with no output.
+- Upstream AetherBags `master` was fetched/inspected and remained `368bd4677b16594d9d4624efc8269ada7408d4f5`.
+- In-app browser QA was attempted twice but unavailable because the browser transport closed during initialization; valid/blocked export, repair-summary, keyboard/focus, and responsive runtime checks were not completed.
+- CI and GitHub Pages were not run because publication remains separate.
+
+Deferred work remains unchanged: import/decompression size limits, regex worker/time isolation, CSP/theme bootstrap and Actions SHA hardening, a DOM/E2E harness, and broader pill/list UI redesign are not part of Phase 50.
 
 ---
 
