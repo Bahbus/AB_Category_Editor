@@ -717,6 +717,12 @@ details.card > .details-body {
 .modal-title-row {
   margin-bottom: 10px;
 }
+.modal-title-row > .flush-heading {
+  display: block;
+  flex: 1 1 14rem;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
 .modal-action-row {
   margin-top: 8px;
 }
@@ -897,7 +903,7 @@ details.card > .details-body {
 .modal {
   outline: none;
   max-width: 900px;
-  width: min(900px, 96vw);
+  width: min(900px, calc(100vw - 40px));
   max-height: 88vh;
   overflow: auto;
   background: var(--panel);
@@ -1373,6 +1379,7 @@ details.card > .details-body {
   color: var(--muted);
   font-size: 12px;
   list-style-position: inside;
+  overflow-wrap: anywhere;
 }
 .validation-list[hidden],
 .range-validation[hidden] {

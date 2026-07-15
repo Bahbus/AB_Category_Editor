@@ -142,7 +142,7 @@ function showExportCompatibilitySummary(decision) {
   }).join('');
   const more = findings.length > 80 ? `<p class="hint">Showing first 80 of ${findings.length} blocking compatibility errors.</p>` : '';
   const wrap = document.createElement('div');
-  wrap.innerHTML = `<div role="alert"><p><strong>Export blocked:</strong> the current data contains ${findings.length} value(s) that the current AetherBags category importer cannot safely read.</p><p class="hint">Correct the listed fields in the structured controls or Raw JSON, then run Export / Copy or Download again. No export was generated and the saved state was not changed.</p></div><ul class="validation-list">${rows}</ul>${more}<div class="row modal-action-row"><button id="closeExportCompatibility" class="primary">Continue editing</button></div>`;
+  wrap.innerHTML = `<div role="alert"><p><strong>Export blocked:</strong> the current data contains ${findings.length} value(s) that cannot be safely serialized or read by the current AetherBags category importer.</p><p class="hint">Correct the listed fields in the structured controls or Raw JSON, then run Export / Copy or Download again. Values that AetherBags will safely default or ignore are review warnings and do not block export. No export was generated and the saved state was not changed.</p></div><ul class="validation-list">${rows}</ul>${more}<div class="row modal-action-row"><button id="closeExportCompatibility" class="primary">Continue editing</button></div>`;
   openModal('AetherBags export compatibility', wrap);
   try { requireScopedEl(wrap, '#closeExportCompatibility', 'export compatibility').addEventListener('click', closeModal); }
   catch (err) { reportModalBindingError('Export compatibility summary unavailable', err); }

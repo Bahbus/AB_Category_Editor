@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 49.1 is merged on `origin/main` at `8acd0ca`. Phase 50 on `agent/phase-50-aetherbags-export-compatibility` adds a DOM-free AetherBags compatibility analyzer and shared export preflight, strict Int32 Order/Priority controls, exact uint row-ID entry, reviewable sort-criterion normalization, pre-serialization non-finite/single-overflow Color repair, and material rarity type-change reporting. Local `npm run check` passes with 63 JavaScript files, 29 test files, and 370 tests. `git diff --check origin/main` passes. Upstream AetherBags `master` was verified at `368bd4677b16594d9d4624efc8269ada7408d4f5`. In-app browser QA was attempted twice but unavailable because the browser transport closed during initialization; CI and Pages were not run.
+> **Current state:** Phase 50 is merged on `origin/main` at `e1b9ce2`. Phase 50.1 on `agent/phase-50-1-export-fidelity-compatibility` adds cycle-safe JSON serialization-fidelity analysis for every enumerable known or unknown value, blocks path-specific non-finite/unserializable data before both export callbacks, and reclassifies upstream-defaulted or ignored values as warnings while retaining actual `System.Text.Json` and use-path blockers. Local `npm run check` passes with 63 JavaScript files, 29 test files, and 375 tests. `git diff --check origin/main` passes. Upstream AetherBags `master` was verified at `368bd4677b16594d9d4624efc8269ada7408d4f5`. In-app browser QA passed both blocked export actions, saved-state/focus behavior, and overflow-free desktop, 840px, and 390px layouts. CI and Pages were not run.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -126,6 +126,8 @@ Rules:
 - Confirmed envelope or `System.Text.Json` incompatibilities block compression, clipboard/download work, and saved-state transitions.
 - Review-only warnings, including predictable AetherBags Item Sort Criteria normalization, remain exportable.
 - Unknown properties are preserved and are not errors merely because the editor does not interpret them.
+- Every enumerable value, including unknown nested properties, must retain JSON serialization fidelity; non-finite numbers, cycles, and other unserializable shapes block with a JSON-path finding before export work begins.
+- Missing Format/Version and omitted upstream-defaulted category members are review warnings, not unreadable blockers. Unexpected string Format and signed-Int32 Version values are also warnings because the pinned importer ignores them.
 - Order and Priority are signed Int32 JSON-number integers; numeric strings, fractions, non-finite values, and coercion-only values are preserved for correction but are not export-compatible.
 
 ### Duplicate handling
@@ -531,6 +533,27 @@ Validation actually run:
 - CI and GitHub Pages were not run because publication remains separate.
 
 Deferred work remains unchanged: import/decompression size limits, regex worker/time isolation, CSP/theme bootstrap and Actions SHA hardening, a DOM/E2E harness, and broader pill/list UI redesign are not part of Phase 50.
+
+### Phase 50.1
+
+Phase 50.1 closes post-merge serialization-fidelity and compatibility-classification gaps.
+
+- A DOM-free iterative traversal checks every enumerable root, category, rule, object, and array value without mutation.
+- Non-finite numbers receive blocking JSON-path findings before `JSON.stringify`, compression, clipboard/download callbacks, snapshot completion, or saved-state changes.
+- Cycles, BigInt, undefined/function/symbol values, sparse arrays, extra array properties, accessors, custom serialization, non-plain objects, and controlled final JSON serialization failures are reported as blocking instead of escaping as pre-compression exceptions.
+- Ordinary finite unknown properties remain untouched and survive a JSON serialization round trip.
+- Missing Format/Version use upstream defaults; unexpected string Format, null Format, and signed-Int32 Version values are ignored by the pinned importer and remain reviewable warnings.
+- Missing category, rule, range/state, Color-component, and sort-criterion members with upstream initializers/value defaults are semantic/defaulting warnings. Explicit null, malformed, or width/type-incompatible members remain blocking unless the complete current path proves them safe.
+- The editor still generates the canonical format/version and complete category shape.
+- The compatibility modal now distinguishes serialization/read blockers from values AetherBags safely defaults or ignores, and long paths/titles wrap without narrow-screen overflow.
+
+Validation actually run:
+
+- `npm run check` passed: 63 JavaScript files syntax-checked, all static relative imports resolved, and all 29 test files / 375 tests passed.
+- `git diff --check origin/main` passed with no output.
+- Upstream AetherBags `master` remained `368bd4677b16594d9d4624efc8269ada7408d4f5` and the import/default/use paths were inspected directly.
+- In-app browser QA imported nested unknown `1e400`, confirmed Export / Copy and Download both blocked with the exact JSON path before busy/output work, preserved both dirty and saved state in separate runs, retained accessible modal inert/focus/return behavior, and passed desktop, 840px, and 390px overflow checks.
+- CI and GitHub Pages were not run because implementation and publication remain separate.
 
 ---
 
