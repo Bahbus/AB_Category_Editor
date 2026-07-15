@@ -57,14 +57,16 @@ test('defaultCategory uses max order for Order and Priority', () => {
   assert.match(category.Id, /^[0-9a-f]{32}$/);
 });
 
-test('nextCategorySortValue uses strict optional-number semantics while accepting numeric strings', () => {
+test('nextCategorySortValue uses compatible Int32 numbers without overflowing', () => {
   const categories = [
     { Order: 'not-a-number' }, { Order: 6 }, { Order: '8.5' }, { Order: Number.POSITIVE_INFINITY },
     { Order: null }, { Order: ' ' }, { Order: false }, { Order: [] }, { Order: {} }
   ];
 
-  assert.equal(nextCategorySortValue(categories), 9.5);
+  assert.equal(nextCategorySortValue(categories), 7);
   assert.equal(categories[2].Order, '8.5');
+  assert.equal(nextCategorySortValue([{ Order: 2147483647 }]), 2147483647);
+  assert.equal(defaultCategory(2147483647).Order, 2147483647);
 });
 
 test('ensureShape fills missing color and rule fields', () => {
@@ -141,6 +143,35 @@ test('validateConfig records one material repair for malformed Color components 
   assert.equal(repairs[0].showBeforeAfter, false);
   assert.match(repairs[0].message, /components/);
   assert.doesNotMatch(repairs[0].message, /missing or malformed and replaced with default RGBA values/);
+});
+
+test('validateConfig repairs JSON-parsed overflowing Color before serialization can turn it into null', () => {
+  const config = JSON.parse('{"Categories":[{"Id":"overflow-color","Name":"Overflow Color","Color":{"X":1e400,"Y":0.5,"Z":0.75,"W":1},"Rules":{}}]}');
+  assert.equal(config.Categories[0].Color.X, Infinity);
+
+  const result = validateConfig(config);
+  const repair = result.repairs.find(item => item.field === 'Color');
+
+  assert.equal(config.Categories[0].Color.X, 1);
+  assert.ok(repair);
+  assert.equal(repair.material, true);
+  assert.equal(JSON.stringify(config).includes('"X":null'), false);
+});
+
+test('rarity type-changing coercions are material while valid order-only normalization is not', () => {
+  for (const value of ['1', true]) {
+    const config = { Categories: [{ ...defaultCategory(), Rules: { ...defaultRules(), AllowedRarities: [value] } }] };
+    const result = validateConfig(config);
+    const repair = result.repairs.find(item => item.field === 'AllowedRarities');
+    assert.equal(repair.material, true);
+    assert.equal(repair.severity, 'warning');
+  }
+
+  const reorder = { Categories: [{ ...defaultCategory(), Rules: { ...defaultRules(), AllowedRarities: [7, 1, 4] } }] };
+  const result = validateConfig(reorder);
+  const repair = result.repairs.find(item => item.field === 'AllowedRarities');
+  assert.equal(repair.material, false);
+  assert.equal(repair.severity, 'note');
 });
 
 test('getNormalizedAllowedRarities returns display rarities without mutating the category', () => {

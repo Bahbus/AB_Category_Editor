@@ -10,6 +10,10 @@ export function isIntegerScalar(value) {
   return typeof value === 'number' && Number.isFinite(value) && Number.isInteger(value);
 }
 
+export function isFiniteSingleScalar(value) {
+  return typeof value === 'number' && Number.isFinite(value) && Number.isFinite(Math.fround(value));
+}
+
 export function isSignedInt32Scalar(value) {
   return isIntegerScalar(value) && value >= INT32_MIN && value <= INT32_MAX;
 }

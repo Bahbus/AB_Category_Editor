@@ -106,11 +106,24 @@ export function numberInputDisplayValue(jsonValue, browserValue = '') {
   return numberValue === null ? displayValue : String(numberValue);
 }
 
+export function numberInputStoredDisplayValue(jsonValue) {
+  if (jsonValue === undefined) return 'undefined';
+  if (jsonValue === null) return 'null';
+  if (typeof jsonValue === 'object') {
+    try { return JSON.stringify(jsonValue); }
+    catch { return String(jsonValue); }
+  }
+  return String(jsonValue);
+}
+
 export function decideNumberCommit(state, rawValue, options = {}) {
   const inputValue = String(rawValue);
   const diverged = state.diverged || inputValue !== state.displayValue;
   let numberValue = optionalFiniteNumber(rawValue);
   if (numberValue === null) return { inputValid: false, changed: false, state: { ...state, diverged } };
+
+  const validateNumber = typeof options.validateNumber === 'function' ? options.validateNumber : () => true;
+  if (!validateNumber(numberValue)) return { inputValid: false, changed: false, state: { ...state, diverged } };
 
   const minValue = optionalFiniteNumber(options.min);
   const maxValue = optionalFiniteNumber(options.max);
@@ -120,7 +133,10 @@ export function decideNumberCommit(state, rawValue, options = {}) {
   if (state.numberValue === null && !diverged) {
     return { inputValid: true, changed: false, state: { ...state, diverged } };
   }
-  if (state.numberValue !== null && Object.is(numberValue, state.numberValue)) {
+  const explicitJsonNumberCorrection = options.requireJsonNumber
+    && diverged
+    && typeof state.jsonValue !== 'number';
+  if (state.numberValue !== null && Object.is(numberValue, state.numberValue) && !explicitJsonNumberCorrection) {
     return { inputValid: true, changed: false, state: { ...state, diverged } };
   }
   return {
@@ -142,10 +158,14 @@ export function numberInput(label, value, onChange, step='1', min=null, max=null
   const minAttr = min === null ? '' : ` min="${min}"`;
   const maxAttr = max === null ? '' : ` max="${max}"`;
   const messageId = options.messageId || `${id}-validation`;
-  wrap.innerHTML = `<label for="${id}">${escapeHtml(label)}</label><input id="${id}" type="number" step="${step}"${minAttr}${maxAttr} value="${escapeHtml(value)}"><p id="${messageId}" class="validation-list" hidden></p>`;
+  const storedNumberCompatible = typeof value === 'number'
+    && (typeof options.validateNumber !== 'function' || options.validateNumber(value));
+  const preserveStoredDisplay = options.preserveStoredDisplay && !storedNumberCompatible;
+  const inputType = preserveStoredDisplay ? 'text' : 'number';
+  wrap.innerHTML = `<label for="${id}">${escapeHtml(label)}</label><input id="${id}" type="${inputType}" step="${step}"${minAttr}${maxAttr} value="${escapeHtml(value)}"><p id="${messageId}" class="validation-list" hidden></p>`;
   const input = wrap.querySelector('input');
   const message = wrap.querySelector(`#${messageId}`);
-  input.value = numberInputDisplayValue(value, input.value);
+  input.value = preserveStoredDisplay ? numberInputStoredDisplayValue(value) : numberInputDisplayValue(value, input.value);
   function setValidation(findings = []) {
     const errors = findings.filter(item => item.severity === 'error' || item.severity === 'warning');
     input.classList.toggle('invalid', errors.length > 0);
@@ -158,19 +178,26 @@ export function numberInput(label, value, onChange, step='1', min=null, max=null
     setValidation(options.validate ? options.validate(committed.jsonValue) : []);
   }
   function restoreCommittedValue() {
-    input.value = String(committed.jsonValue ?? '');
-    input.value = numberInputDisplayValue(committed.jsonValue, input.value);
+    input.value = preserveStoredDisplay ? numberInputStoredDisplayValue(committed.jsonValue) : String(committed.jsonValue ?? '');
+    if (!preserveStoredDisplay) input.value = numberInputDisplayValue(committed.jsonValue, input.value);
     committed = createNumberCommitState(committed.jsonValue, input.value);
     setCommittedValidation();
   }
   function commitInput(rawValue, bounds = {}) {
-    const decision = applyNumberCommit(committed, rawValue, onChange, bounds);
+    const decision = applyNumberCommit(committed, rawValue, onChange, { ...bounds, validateNumber: options.validateNumber, requireJsonNumber: options.requireJsonNumber });
     committed = decision.state;
     if (decision.inputValid) setCommittedValidation();
+    else {
+      const messageText = typeof options.inputErrorMessage === 'function'
+        ? options.inputErrorMessage(rawValue)
+        : options.inputErrorMessage;
+      setValidation(messageText ? [{ severity: 'error', message: messageText }] : (options.validate ? options.validate(rawValue) : []));
+    }
     return decision;
   }
   setCommittedValidation();
   input.oninput = e => {
+    if (options.requireJsonNumber) committed = { ...committed, diverged: true };
     commitInput(e.target.value);
   };
   input.onblur = e => {
@@ -181,8 +208,8 @@ export function numberInput(label, value, onChange, step='1', min=null, max=null
     const decision = commitInput(e.target.value, { min, max });
     if (!decision.inputValid) restoreCommittedValue();
     else {
-      e.target.value = String(committed.jsonValue ?? '');
-      e.target.value = numberInputDisplayValue(committed.jsonValue, e.target.value);
+      e.target.value = preserveStoredDisplay ? numberInputStoredDisplayValue(committed.jsonValue) : String(committed.jsonValue ?? '');
+      if (!preserveStoredDisplay) e.target.value = numberInputDisplayValue(committed.jsonValue, e.target.value);
       committed = createNumberCommitState(committed.jsonValue, e.target.value);
       setCommittedValidation();
     }
