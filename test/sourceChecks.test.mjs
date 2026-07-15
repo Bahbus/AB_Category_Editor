@@ -606,6 +606,7 @@ test('export guards the generated snapshot before awaiting automatic clipboard c
 
 test('both export paths share the accessible AetherBags compatibility preflight', () => {
   const app = read('src/app.js');
+  const styles = read('styles.css');
   const exportHandler = app.match(/bindClick\('showExportCopy', async \(\) => \{(?<body>[\s\S]*?)\n  \}\);/)?.groups.body ?? '';
   const downloadHandler = app.match(/bindClick\('downloadBase64', async \(\) => \{(?<body>[\s\S]*?)\n  \}\);/)?.groups.body ?? '';
   const sharedPreflight = app.match(/async function makeCompatibleRevisionedExportSnapshot[\s\S]*?\n\}/)?.[0] ?? '';
@@ -617,8 +618,13 @@ test('both export paths share the accessible AetherBags compatibility preflight'
   assert.match(exportHandler, /makeCompatibleRevisionedExportSnapshot\(/);
   assert.match(downloadHandler, /makeCompatibleRevisionedExportSnapshot\(/);
   assert.match(blockedSummary, /role="alert"/);
+  assert.match(blockedSummary, /cannot be safely serialized or read/);
+  assert.match(blockedSummary, /safely default or ignore/);
   assert.match(blockedSummary, /structured controls or Raw JSON/);
   assert.match(blockedSummary, /saved state was not changed/);
+  assert.match(styles, /\.modal\s*\{[\s\S]*?width:\s*min\(900px, calc\(100vw - 40px\)\)/);
+  assert.match(styles, /\.modal-title-row > \.flush-heading\s*\{[\s\S]*?overflow-wrap:\s*anywhere/);
+  assert.match(styles, /\.validation-list\s*\{[\s\S]*?overflow-wrap:\s*anywhere/);
 });
 
 test('all live config identity revisions guard both asynchronous export snapshot completion paths', () => {

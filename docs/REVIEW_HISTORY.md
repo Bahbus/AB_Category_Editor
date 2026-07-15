@@ -1003,6 +1003,33 @@ Validation actually run:
 
 Deferred work remains import/decompression size limits, browser-regex worker/time isolation, CSP/theme-bootstrap and Actions SHA hardening, a browser DOM/E2E harness, and broader pill-list/lookup UI redesign.
 
+## Phase 50.1
+
+Post-merge review confirmed two Phase 50 analyzer gaps:
+
+- unknown nested non-finite numbers could pass compatibility analysis and then be silently serialized as `null`, losing preserved imported data,
+- missing/defaulted or ignored-but-correctly-typed envelope values were described as unreadable even though the pinned AetherBags importer supplies defaults and only requires a non-empty Categories list.
+
+Resolution on `agent/phase-50-1-export-fidelity-compatibility`:
+
+- added a DOM-free, non-mutating, iterative, cycle-safe JSON serialization-fidelity traversal across every enumerable root, category, rule, object, and array value,
+- blocking fidelity findings carry exact JSON paths and cover non-finite numbers plus controlled unserializable shapes before `JSON.stringify`, compression, export callbacks, or saved-state work,
+- finite unknown root/category/rule values remain preserved and survive a JSON round trip unchanged,
+- missing Format/Version and upstream-defaulted omitted category/rule/nested members are warnings rather than unreadable blockers,
+- unexpected string Format, null Format, and signed-Int32 Version values are warnings because the current importer assigns and ignores them, while JSON types `System.Text.Json` cannot assign remain blocking,
+- explicit null and malformed category/rule members retain blocking treatment except where the full current path proves null safe,
+- the editor's generated export format/version and complete default category shape remain unchanged,
+- one shared Export / Copy and Download callback boundary remains in place, with blocking fidelity findings occurring before busy UI, compression, clipboard/download output, snapshot completion, or saved-state changes,
+- compatibility-modal copy now separates unsafe serialization/read failures from values AetherBags safely defaults or ignores, and long titles/JSON paths wrap inside narrow viewports.
+
+Validation actually run:
+
+- `npm run check` passed: 63 JavaScript files syntax-checked, all static relative imports resolved, and all 29 test files / 375 tests passed,
+- `git diff --check origin/main` passed with no output,
+- upstream AetherBags `master` and the relevant defaults/import/use paths were verified at `368bd4677b16594d9d4624efc8269ada7408d4f5`,
+- in-app browser QA imported nested unknown `1e400`, confirmed Export / Copy and Download both blocked at `$.Categories[0].UnknownNested.overflow` before busy/output work, preserved saved/dirty state, confirmed modal inert/focus/return behavior, and passed desktop, 840px, and 390px overflow checks,
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Review Phase 50 locally. Commit or publish it only when separately requested.
+Review Phase 50.1 locally. Commit or publish it only when separately requested.

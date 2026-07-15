@@ -5,6 +5,7 @@ import { defaultCategory } from '../src/config.js';
 import {
   analyzeAetherBagsCompatibility,
   decideAetherBagsExportPreflight,
+  jsonSerializationFidelityFindings,
   runAetherBagsExportPreflight
 } from '../src/exportCompatibility.js';
 
@@ -22,9 +23,9 @@ function blockingFields(config) {
 
 test('complete valid exports and unknown properties remain compatible without mutation', () => {
   const config = validConfig();
-  config.UnknownRoot = { future: true };
-  config.Categories[0].UnknownCategory = ['preserved'];
-  config.Categories[0].Rules.UnknownRule = 42;
+  config.UnknownRoot = { future: true, nested: [1, { finite: -123.5 }] };
+  config.Categories[0].UnknownCategory = ['preserved', { count: 2 }];
+  config.Categories[0].Rules.UnknownRule = { value: 42 };
   const before = structuredClone(config);
 
   const decision = decideAetherBagsExportPreflight(config);
@@ -32,6 +33,59 @@ test('complete valid exports and unknown properties remain compatible without mu
   assert.equal(decision.allowed, true);
   assert.equal(decision.blockingFindings.length, 0);
   assert.deepEqual(config, before);
+  assert.deepEqual(JSON.parse(JSON.stringify(config)), before);
+});
+
+test('nested unknown non-finite numbers block before the export callback without mutation', async () => {
+  const config = validConfig();
+  config.UnknownRoot = JSON.parse('{"nested":{"positive":1e400,"values":[0,-1e400]}}');
+  config.Categories[0].UnknownCategory = JSON.parse('{"deep":[{"overflow":1e400}]}');
+  config.Categories[0].Rules.UnknownRule = JSON.parse('{"overflow":-1e400}');
+  const positive = config.UnknownRoot.nested.positive;
+  const negative = config.UnknownRoot.nested.values[1];
+  let callbackCount = 0;
+
+  const result = await runAetherBagsExportPreflight(config, async () => { callbackCount++; });
+
+  assert.equal(result.allowed, false);
+  assert.equal(callbackCount, 0);
+  assert.equal(config.UnknownRoot.nested.positive, positive);
+  assert.equal(config.UnknownRoot.nested.values[1], negative);
+  assert.equal(positive, Infinity);
+  assert.equal(negative, -Infinity);
+  assert.deepEqual(new Set(result.blockingFindings.filter(item => item.serializationFidelity).map(item => item.field)), new Set([
+    '$.UnknownRoot.nested.positive',
+    '$.UnknownRoot.nested.values[1]',
+    '$.Categories[0].UnknownCategory.deep[0].overflow',
+    '$.Categories[0].Rules.UnknownRule.overflow'
+  ]));
+  assert.match(result.blockingFindings[0].message, /silently replace with null/);
+});
+
+test('serialization fidelity traversal handles cycles and unserializable shapes with controlled findings', () => {
+  const cyclic = validConfig();
+  cyclic.UnknownRoot = { nested: {} };
+  cyclic.UnknownRoot.nested.back = cyclic.UnknownRoot;
+  const cycleDecision = decideAetherBagsExportPreflight(cyclic);
+  assert.equal(cycleDecision.allowed, false);
+  assert.ok(cycleDecision.blockingFindings.some(item => item.field === '$.UnknownRoot.nested.back' && /circular reference/.test(item.message)));
+  assert.strictEqual(cyclic.UnknownRoot.nested.back, cyclic.UnknownRoot);
+
+  const bigint = validConfig();
+  bigint.Categories[0].Rules.UnknownBigInt = { value: 1n };
+  assert.ok(decideAetherBagsExportPreflight(bigint).blockingFindings.some(item => item.field === '$.Categories[0].Rules.UnknownBigInt.value'));
+
+  const sparse = validConfig();
+  sparse.Categories[0].UnknownArray = new Array(2);
+  sparse.Categories[0].UnknownArray[1] = 'present';
+  assert.ok(decideAetherBagsExportPreflight(sparse).blockingFindings.some(item => item.field === '$.Categories[0].UnknownArray[0]' && /array hole/.test(item.message)));
+
+  const accessor = validConfig();
+  let getterCalls = 0;
+  Object.defineProperty(accessor, 'UnknownAccessor', { enumerable: true, get() { getterCalls++; return 1; } });
+  const accessorFindings = jsonSerializationFidelityFindings(accessor);
+  assert.equal(getterCalls, 0);
+  assert.ok(accessorFindings.some(item => item.field === '$.UnknownAccessor' && /accessor property/.test(item.message)));
 });
 
 test('root envelope requires the exact format, numeric version, and category array', () => {
@@ -41,6 +95,72 @@ test('root envelope requires the exact format, numeric version, and category arr
   config.Categories = null;
 
   assert.deepEqual(blockingFields(config), ['Format', 'Version', 'Categories']);
+});
+
+test('root defaults and ignored correctly typed envelope values are warnings, while incompatible types block', () => {
+  const omitted = validConfig();
+  delete omitted.Format;
+  delete omitted.Version;
+  const omittedDecision = decideAetherBagsExportPreflight(omitted);
+  assert.equal(omittedDecision.allowed, true);
+  assert.ok(omittedDecision.analysis.findings.some(item => item.field === 'Format' && item.severity === 'warning' && /default/.test(item.message)));
+  assert.ok(omittedDecision.analysis.findings.some(item => item.field === 'Version' && item.severity === 'warning' && /default/.test(item.message)));
+
+  const ignored = validConfig();
+  ignored.Format = 'Future_Category_Format';
+  ignored.Version = -2147483648;
+  const ignoredDecision = decideAetherBagsExportPreflight(ignored);
+  assert.equal(ignoredDecision.allowed, true);
+  assert.ok(ignoredDecision.analysis.findings.some(item => item.field === 'Format' && item.severity === 'warning' && /ignores/.test(item.message)));
+  assert.ok(ignoredDecision.analysis.findings.some(item => item.field === 'Version' && item.severity === 'warning' && /ignores/.test(item.message)));
+
+  const nullFormat = validConfig();
+  nullFormat.Format = null;
+  const nullFormatDecision = decideAetherBagsExportPreflight(nullFormat);
+  assert.equal(nullFormatDecision.allowed, true);
+  assert.ok(nullFormatDecision.analysis.findings.some(item => item.field === 'Format' && item.severity === 'warning' && /ignores/.test(item.message)));
+
+  for (const [field, value] of [['Format', 1], ['Version', '1'], ['Version', 2147483648]]) {
+    const invalid = validConfig();
+    invalid[field] = value;
+    assert.ok(decideAetherBagsExportPreflight(invalid).blockingFindings.some(item => item.field === field));
+  }
+});
+
+test('omitted upstream-defaulted category and rule properties warn without becoming unreadable blockers', () => {
+  const config = validConfig();
+  const category = config.Categories[0];
+  for (const field of ['Enabled', 'Pinned', 'Id', 'Name', 'Description', 'Order', 'Priority', 'Color', 'ItemSortCriteria', 'CustomItemOrder', 'Rules']) delete category[field];
+
+  const decision = decideAetherBagsExportPreflight(config);
+
+  assert.equal(decision.allowed, true);
+  for (const field of ['Enabled', 'Pinned', 'Id', 'Name', 'Description', 'Order', 'Priority', 'Color', 'ItemSortCriteria', 'CustomItemOrder', 'Rules']) {
+    assert.ok(decision.analysis.findings.some(item => item.field === field && item.severity === 'warning' && /omitted/.test(item.message)), `missing default warning for ${field}`);
+  }
+});
+
+test('omitted nested initialized members warn while explicit null and malformed members still block', () => {
+  const config = validConfig();
+  const category = config.Categories[0];
+  delete category.Color.X;
+  delete category.ItemSortCriteria[0].Field;
+  delete category.Rules.AllowedItemIds;
+  delete category.Rules.Level;
+  delete category.Rules.Unique.State;
+
+  const decision = decideAetherBagsExportPreflight(config);
+  assert.equal(decision.allowed, true);
+  assert.ok(decision.analysis.findings.filter(item => item.severity === 'warning').length >= 5);
+
+  const explicitNull = validConfig();
+  explicitNull.Categories[0].Color = null;
+  explicitNull.Categories[0].Rules.Level = null;
+  explicitNull.Categories[0].Rules.AllowedItemIds = null;
+  const blocking = new Set(blockingFields(explicitNull));
+  assert.ok(blocking.has('Color'));
+  assert.ok(blocking.has('Level'));
+  assert.ok(blocking.has('AllowedItemIds'));
 });
 
 test('Order and Priority require signed Int32 JSON-number integers', () => {
