@@ -1,5 +1,5 @@
 import { RARITIES, ALLOWED_RARITY_IDS, RANGE_FILTERS, STATE_FILTERS, STATE_FILTER_KEYS } from '../constants.js';
-import { el, escapeHtml, requireEl, requireScopedEl, setStatus } from '../dom.js';
+import { el, escapeHtml, requireEl, requireScopedEl, setStatus, syncButtonTooltip } from '../dom.js';
 import { setDetailsSummary } from './detailsSummary.js';
 export { renderDetailsSummaryHtml } from './detailsSummary.js';
 import { colorToHex, colorToHexRGBA, hexToRgb01, hexToRgba01, rgbaCss, componentTo255, canonicalHexRgba, decideHexRgbaCommit, decideRgbCommit, decideAlphaCommit } from '../color.js';
@@ -12,7 +12,7 @@ import { renderItemOrderingEditor } from './itemOrderingEditor.js';
 import { generateCategoryDescription, isUsefulGeneratedDescription } from '../descriptionGenerator.js';
 import { rangeFiltersSummaryParts, stateFiltersSummaryParts } from './filterSummary.js';
 import { normalizeRowIdValue, parseTypedRowIdValue } from '../rowIds.js';
-import { applyGeneratedDescriptionChange, applySelectedCategoryCandidate } from '../categoryChanges.js';
+import { applyGeneratedDescriptionChange, applySelectedCategoryCandidate, selectedCategoryStructuralFocusPlan } from '../categoryChanges.js';
 import { INT32_MAX, INT32_MIN, UINT32_MAX, isSignedInt32Scalar } from '../filterScalars.js';
 
 export { countRangeFilterIssues, countStateFilterIssues, rangeFiltersSummary, rangeFiltersSummaryParts, stateFiltersSummary, stateFiltersSummaryParts } from './filterSummary.js';
@@ -600,13 +600,27 @@ export function renderEditor(deps) {
     duplicateCat: `Duplicate ${actionName}`,
     deleteCat: `Delete ${actionName}`
   };
-  for (const [id, label] of Object.entries(actionLabels)) {
-    el(id).setAttribute('aria-label', label);
-    el(id).title = label;
-  }
-
   el('moveUp').disabled = selectedIndex <= 0;
   el('moveDown').disabled = selectedIndex >= cats.length - 1;
+
+  for (const [id, label] of Object.entries(actionLabels)) {
+    const button = el(id);
+    button.setAttribute('aria-label', label);
+    syncButtonTooltip(button, label);
+  }
+
+  function restoreStructuralActionFocus(action) {
+    for (const targetKey of selectedCategoryStructuralFocusPlan(action, selectedIndex, cats.length)) {
+      const target = targetKey === 'selected-category'
+        ? document.querySelector('.cat-item[aria-current="true"]')
+        : el(targetKey);
+      if (target && !target.disabled && !target.hidden && document.contains(target)) {
+        target.focus();
+        return true;
+      }
+    }
+    return false;
+  }
 
   el('moveUp').onclick = () => {
     commitActiveField();
@@ -616,6 +630,7 @@ export function renderEditor(deps) {
     if (el('autoRenumberDrag').checked) renumberCategories();
     markDirty();
     renderAll();
+    restoreStructuralActionFocus('move-up');
   };
   el('moveDown').onclick = () => {
     commitActiveField();
@@ -625,6 +640,7 @@ export function renderEditor(deps) {
     if (el('autoRenumberDrag').checked) renumberCategories();
     markDirty();
     renderAll();
+    restoreStructuralActionFocus('move-down');
   };
   el('duplicateCat').onclick = () => {
     commitActiveField();
@@ -645,6 +661,7 @@ export function renderEditor(deps) {
     selectedIndex++; setSelectedIndex(selectedIndex);
     markDirty();
     renderAll();
+    restoreStructuralActionFocus('duplicate');
   };
   el('deleteCat').onclick = () => {
     commitActiveField();
@@ -665,6 +682,7 @@ export function renderEditor(deps) {
       closeModal();
       markDirty();
       renderAll();
+      restoreStructuralActionFocus('delete');
     };
     requireScopedEl(wrap, '#cancelDeleteCat', 'delete category confirmation').onclick = closeModal;
   };

@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 52.1 is merged on `origin/main` at `9cfbb3f`. Phase 53 on `agent/phase-53-button-system-consistency` standardizes standalone button roles and neutral movement arrows without changing behavior, while deliberately keeping pill-internal movement/removal glyphs compact and borderless. Standalone icon targets are 30px in comfortable density and 26px in compact density; in-pill glyph controls remain 18px and use enabled accent/danger glow instead of outlines. Exact `Add` actions use `+`, sort-criterion removal uses `×`, category deletion uses `🗑`, and unresolved-list lookup uses a contextual `🔍` attached to the pill container. Local `npm run check` passes with 66 JavaScript files, 30 test files, and 412 tests. `git diff --check origin/main` passes. Final-build in-app browser QA passed all six themes, both densities, and 1280px/840px/390px layouts for geometry, disabled state, lookup placement/visibility, labels/titles, wrapping, and horizontal overflow. The browser automation interface still did not produce hover or keyboard focus traversal, so the glow/focus-visible rendering remains source/test verified. CI and Pages were not run.
+> **Current state:** Phase 53 is merged on `origin/main` at `58e40a9`. Phase 53.1 on `agent/phase-53-1-contextual-control-focus` applies contextual geometry consistently: Allowed-section Add buttons match their 38px Comfortable / 34px Compact text inputs, Add criterion matches its 35px / 31px select, criterion arrows/remove remain 30px / 26px and are vertically centered, and category arrows, Duplicate, and trash share the same 30px / 26px height. Compact pill controls remain 18px. Selected-category Move, Duplicate, and confirmed Delete rerenders restore focus to a meaningful live control, including opposite-direction and selected-sidebar-category fallbacks at boundaries. Pill controls retain a visible keyboard-focus outline in every theme, including High Contrast. Disabled buttons omit tooltip titles and are excluded from shared hover outlines while retaining accessible names; no current control uses the explicit disabled-reason exception. Local `npm run check` passes with 66 JavaScript files, 30 test files, and 418 tests. `git diff --check origin/main` passes. In-app browser QA passed both densities at 1280px/840px/390px, exact matched/centered geometry, structural focus recovery, all six theme focus indicators, disabled-tooltip behavior, 18px pill geometry, and zero horizontal overflow. Disabled hover exclusion is source/test verified because browser automation did not expose a reliable pointer-hover pseudo-state. CI and Pages were not run.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -750,3 +750,25 @@ Validation actually run:
 - Pointer hover and keyboard focus traversal were not produced by the browser automation interface, so the actual glow/focus-visible rendering remains source/test verified rather than runtime asserted.
 - Two later post-matrix browser retry sessions failed to attach across five fresh-tab attempts in total, so the final criterion-Add square-height correction is source/test verified; the preceding final-build matrix remains valid for every other audited button and layout relationship.
 - CI and Pages were not run; publication remains separate.
+
+## Phase 53.1 current implementation
+
+- `--input-control-height` is 38px in Comfortable density and 34px in Compact density. Reusable Allowed-section list Add buttons use that square size and match their associated text input.
+- `--ordering-control-height` is 35px / 31px. Add criterion uses that square size and matches its associated select; criterion move/remove icons retain the 30px / 26px standalone size inside a select-height action rail that centers them vertically.
+- Category-header arrows, Duplicate, and trash share the 30px / 26px standalone height. Search and Generate retain their existing input-height match and narrow-width stacking.
+- `selectedCategoryStructuralFocusPlan(...)` provides a DOM-free focus order for Move up, Move down, Duplicate, and confirmed Delete. Rerenders retain the same Move action when enabled, choose the opposite direction at the first/last boundary, keep Duplicate on the selected copy, and route Delete to the newly selected sidebar category before header-action fallbacks. Deleting the final category falls back to Add category.
+- Pill move/remove controls remain borderless 18px targets and keep their established hover glow, but their `:focus-visible` state now has a 2px outline and offset. Theme overrides retain distinct focus treatment, including the High Contrast warning-color outline and halo.
+- Disabled buttons omit their tooltip `title` while retaining their accessible name. The shared tooltip synchronizer allows an explicit disabled-state explanation when genuinely needed, but no current button uses that exception.
+- The shared button hover border applies only to enabled controls, so disabled controls do not gain an accent outline under the pointer.
+- Focused category/source tests cover contextual sizing in both densities without weakening the standalone 24px guard, structural focus plans and wiring, and visible pill focus rather than `outline: 0`.
+
+Validation actually run:
+
+- `npm run check`: 66 JavaScript files, all relative imports, 30 test files, 418 tests passed.
+- `git diff --check origin/main`: passed with no output.
+- In-app browser QA measured Allowed-section Add controls at 38×38 Comfortable / 34×34 Compact beside equal-height text inputs, Add criterion at 35×35 / 31×31 beside equal-height selects, centered criterion move/remove actions at 30×30 / 26×26, equal-height category-header actions at 30px / 26px, and pills at 18×18.
+- Move focus remained on the live same-direction action, changed to the opposite action at disabled boundaries, Duplicate focused the new copy's Duplicate action, and confirmed Delete focused the newly selected sidebar category.
+- System, Dark, Light, High Contrast, Aetherial, and Dalamud all produced a solid 2px keyboard-focus outline with 2px offset on pill controls; High Contrast used its yellow outline and halo.
+- Comfortable and Compact layouts had zero body/document horizontal overflow at 1280px, 840px, and 390px. CI and Pages were not run; publication remains separate.
+- Live disabled-button inspection found no rendered disabled button with a `title`; entering a valid Allowed UI Category ID re-enabled its Add button and restored the normal enabled-state tooltip.
+- Pointer hover could not be reliably asserted through browser automation; the enabled-only `button:not(:disabled):hover` selector and focused source guard verify disabled hover exclusion.

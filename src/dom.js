@@ -1,5 +1,11 @@
 export const el = id => document.getElementById(id);
 
+export function syncButtonTooltip(button, enabledTitle, disabledTitle = '') {
+  const title = button.disabled ? disabledTitle : enabledTitle;
+  if (title) button.title = title;
+  else button.removeAttribute('title');
+}
+
 export function requireEl(id) {
   const node = el(id);
   if (!node) throw new Error(`Missing required element: #${id}`);

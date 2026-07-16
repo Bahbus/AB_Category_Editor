@@ -73,6 +73,19 @@ export function applyCategoryReorder({ categories, sourceIndex, targetIndex, bef
   return result;
 }
 
+export function selectedCategoryStructuralFocusPlan(action, selectedIndex, categoryCount) {
+  if (!Number.isInteger(categoryCount) || categoryCount <= 0) return ['addCategory'];
+  const canMoveUp = selectedIndex > 0;
+  const canMoveDown = selectedIndex >= 0 && selectedIndex < categoryCount - 1;
+  const movementTargets = action === 'move-down'
+    ? [canMoveDown && 'moveDown', canMoveUp && 'moveUp']
+    : [canMoveUp && 'moveUp', canMoveDown && 'moveDown'];
+
+  if (action === 'delete') return ['selected-category', 'duplicateCat', 'deleteCat', ...movementTargets].filter(Boolean);
+  if (action === 'duplicate') return ['duplicateCat', ...movementTargets, 'deleteCat', 'selected-category'].filter(Boolean);
+  return [...movementTargets, 'duplicateCat', 'deleteCat', 'selected-category'].filter(Boolean);
+}
+
 export function applySelectedCategoryCandidate({ categories, selectedIndex, candidate, normalize, onChanged }) {
   normalize(candidate);
   if (jsonSemanticEqual(candidate, categories[selectedIndex])) return false;

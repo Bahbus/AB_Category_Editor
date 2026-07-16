@@ -1,4 +1,4 @@
-import { escapeHtml, setStatus } from '../dom.js';
+import { escapeHtml, setStatus, syncButtonTooltip } from '../dom.js';
 import { parseTypedRowIdValue, normalizeRowIdValue } from '../rowIds.js';
 import {
   ITEM_SORT_FIELDS,
@@ -151,7 +151,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
         button.disabled = index + offset < 0 || index + offset >= criteria.length;
         const movementLabel = `Move sort criterion ${index + 1} ${directionName}`;
         button.setAttribute('aria-label', movementLabel);
-        button.title = movementLabel;
+        syncButtonTooltip(button, movementLabel);
         button.dataset.orderingFocus = `move-${offset}-${index}`;
         button.onclick = () => {
           const plan = listMutationFocusPlan('move', index, criteria.length, offset);
@@ -197,7 +197,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
       label.appendChild(select);
       const add = document.createElement('button');
       add.type = 'button';
-      add.className = 'icon-button add-icon-button';
+      add.className = 'icon-button add-icon-button ordering-contextual-icon';
       add.textContent = '+';
       add.setAttribute('aria-label', 'Add sort criterion');
       add.title = 'Add sort criterion';
