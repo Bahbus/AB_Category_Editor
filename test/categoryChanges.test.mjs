@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyCategoryReorder, applyConfigReplacement, applyFullConfigCandidate, applyGeneratedDescriptionChange, applySelectedCategoryCandidate, jsonSemanticEqual, renumberCategories, reorderCategories, sortCategoriesPreservingSelection } from '../src/categoryChanges.js';
+import { applyCategoryReorder, applyConfigReplacement, applyFullConfigCandidate, applyGeneratedDescriptionChange, applySelectedCategoryCandidate, jsonSemanticEqual, renumberCategories, reorderCategories, selectedCategoryStructuralFocusPlan, sortCategoriesPreservingSelection } from '../src/categoryChanges.js';
 import { ensureShape, validateConfig } from '../src/config.js';
 
 test('JSON semantic equality ignores object key order but preserves array order and types', () => {
@@ -184,6 +184,16 @@ test('successful category drop selects, optionally renumbers, dirties, and rende
     assert.equal(categories[2], moved);
     assert.deepEqual(calls, { selected: [2], renumber: autoRenumber ? 1 : 0, dirty: 1, render: 1 });
   }
+});
+
+test('selected-category structural focus plans keep live actions and meaningful boundaries', () => {
+  assert.deepEqual(selectedCategoryStructuralFocusPlan('move-up', 1, 3).slice(0, 2), ['moveUp', 'moveDown']);
+  assert.deepEqual(selectedCategoryStructuralFocusPlan('move-up', 0, 3).slice(0, 2), ['moveDown', 'duplicateCat']);
+  assert.deepEqual(selectedCategoryStructuralFocusPlan('move-down', 1, 3).slice(0, 2), ['moveDown', 'moveUp']);
+  assert.deepEqual(selectedCategoryStructuralFocusPlan('move-down', 2, 3).slice(0, 2), ['moveUp', 'duplicateCat']);
+  assert.equal(selectedCategoryStructuralFocusPlan('duplicate', 2, 3)[0], 'duplicateCat');
+  assert.equal(selectedCategoryStructuralFocusPlan('delete', 1, 2)[0], 'selected-category');
+  assert.deepEqual(selectedCategoryStructuralFocusPlan('delete', -1, 0), ['addCategory']);
 });
 
 test('selected Raw JSON normalized no-op does not assign or dirty', () => {

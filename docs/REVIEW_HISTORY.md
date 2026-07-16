@@ -1155,6 +1155,38 @@ Validation actually run:
 - two post-audit browser retry sessions failed to attach across five fresh-tab attempts in total, so the criterion-Add square-height correction is source/test verified while the preceding final-build matrix remains the runtime evidence for the otherwise unchanged button system;
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+## Phase 53.1
+
+Live Phase 53 review confirmed three focused gaps:
+
+- Item Sort Criteria selects were 35px Comfortable / 31px Compact while their associated square icons remained 30px / 26px and bottom-aligned,
+- selected-category structural `renderAll()` actions could leave focus on `BODY`,
+- pill controls suppressed the shared focus outline and relied on glyph glow alone.
+
+Resolution on `agent/phase-53-1-contextual-control-focus`:
+
+- Allowed-section list Add controls use a dedicated 38px / 34px input-paired square target that matches their adjacent text input;
+- Add criterion uses the 35px / 31px ordering-control size and matches its select, while criterion move/remove icons retain the 30px / 26px standalone size and are centered within a select-height action rail;
+- category-header arrows, Duplicate, and trash share the 30px / 26px action height; Search and Generate retain their existing input-height match, and responsive stacking rules are unchanged;
+- a DOM-free selected-category structural focus plan covers Move up/down, Duplicate, and confirmed Delete, including opposite-direction fallback at disabled movement boundaries, selected-sidebar-category focus after removal, and Add category after final removal;
+- pill controls retain their compact 18px borderless geometry and existing hover glow while gaining a solid 2px `:focus-visible` outline with 2px offset; High Contrast and Aetherial keep their stronger theme-specific treatment;
+- disabled category, criterion, ordered-list, input Add, lookup, and export buttons omit tooltip titles while retaining accessible names; the explicit disabled-reason path exists but is unused;
+- the shared accent hover border excludes disabled buttons, preventing pointer hover from outlining unavailable controls;
+- focused tests retain the standalone 24px minimum, prove the matched and centered contextual rules in both densities, cover structural focus planning/wiring, and require visible pill focus instead of `outline: 0`.
+
+Validation actually run:
+
+- focused category-change and source coverage passed all 100 tests;
+- `npm run check` passed: 66 JavaScript files syntax-checked, all static relative imports resolved, and all 30 test files / 418 tests passed;
+- `git diff --check origin/main` passed with no output;
+- in-app browser QA measured Allowed-section Add controls and inputs at 38×38 Comfortable / 34×34 Compact, Add criterion and its select at 35×35 / 31×31, criterion move/remove actions at 30×30 / 26×26 with zero vertical center offset, category-header actions at an equal 30px / 26px height, and pill controls at 18×18;
+- Move up/down retained a meaningful live action and switched to the opposite action at disabled boundaries, Duplicate focused the new copy's Duplicate action, and confirmed Delete focused the newly selected sidebar category;
+- System, Dark, Light, High Contrast, Aetherial, and Dalamud all exposed a solid 2px keyboard-focus outline with 2px offset on pill controls, with the High Contrast yellow outline/halo remaining distinct;
+- live disabled-button inspection found no rendered disabled button with a tooltip title, while entering an Allowed UI Category ID re-enabled its Add button and restored the normal enabled-state tooltip;
+- browser automation did not expose a reliable pointer-hover pseudo-state, so disabled hover suppression is source/test verified by the enabled-only selector rather than claimed as runtime asserted;
+- Comfortable and Compact passed 1280px, 840px, and 390px checks with clean wrapping/stacking and zero body/document horizontal overflow;
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Review Phase 53 locally. Commit or publish only when separately requested.
+Review Phase 53.1 locally. Commit or publish only when separately requested.

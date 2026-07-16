@@ -1,4 +1,4 @@
-import { escapeHtml, setStatus, showBusy, updateBusy, hideBusy } from '../dom.js';
+import { escapeHtml, setStatus, showBusy, updateBusy, hideBusy, syncButtonTooltip } from '../dom.js';
 import { sheetLabel, normalizeLookupIds, rowId, rowName } from '../xivapi.js';
 import { normalizeRowIdValue } from '../rowIds.js';
 import { isUsefulLookupName } from '../lookupNames.js';
@@ -110,7 +110,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         moveUp.textContent = '↑';
         moveUp.disabled = i === 0;
         const moveUpLabel = `Move ${valueLabel} from rank ${rank} up in ${title}`;
-        moveUp.title = moveUpLabel;
+        syncButtonTooltip(moveUp, moveUpLabel);
         moveUp.setAttribute('aria-label', moveUpLabel);
         moveUp.dataset.listFocus = `move-up-${i}`;
         moveUp.onclick = () => {
@@ -128,7 +128,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         moveDown.textContent = '↓';
         moveDown.disabled = i === arr.length - 1;
         const moveDownLabel = `Move ${valueLabel} from rank ${rank} down in ${title}`;
-        moveDown.title = moveDownLabel;
+        syncButtonTooltip(moveDown, moveDownLabel);
         moveDown.setAttribute('aria-label', moveDownLabel);
         moveDown.dataset.listFocus = `move-down-${i}`;
         moveDown.onclick = () => {
@@ -190,12 +190,13 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
 
   const add = document.createElement('button');
   add.type = 'button';
-  add.className = 'icon-button add-icon-button';
+  add.className = 'icon-button add-icon-button input-paired-icon';
   add.textContent = '+';
   add.setAttribute('aria-label', `Add value to ${title}`);
-  add.title = `Add value to ${title}`;
+  const addLabel = `Add value to ${title}`;
   function syncAddButtonState() {
     add.disabled = input.value.trim().length === 0;
+    syncButtonTooltip(add, addLabel);
   }
   syncAddButtonState();
   add.onclick = () => {
@@ -267,12 +268,13 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     lookupButton.textContent = '🔍';
     const lookupLabel = `Lookup ${sheetLabel(lookupSheet)} names`;
     lookupButton.setAttribute('aria-label', lookupLabel);
-    lookupButton.title = lookupLabel;
+    syncButtonTooltip(lookupButton, lookupLabel);
     lookupButton.onclick = async () => {
       let busyShown = false;
       let releaseLookupCacheProducer = null;
       try {
         lookupButton.disabled = true;
+        syncButtonTooltip(lookupButton, lookupLabel);
         const ids = normalizeLookupIds(arr);
         const missing = ids.filter(id => !isUsefulLookupName(lookupName(lookupSheet, id)));
 
@@ -311,6 +313,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         releaseLookupCacheProducer?.();
         if (busyShown) hideBusy();
         lookupButton.disabled = false;
+        syncButtonTooltip(lookupButton, lookupLabel);
       }
     };
     pillsWrap.appendChild(lookupButton);

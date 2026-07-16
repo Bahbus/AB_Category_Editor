@@ -31,6 +31,8 @@
   --pill-gap: 6px;
   --button-icon-target: 30px;
   --button-icon-glyph-size: 14px;
+  --input-control-height: 38px;
+  --ordering-control-height: 35px;
 }
 
 :root[data-density="compact"] {
@@ -38,6 +40,8 @@
   --summary-padding-block: 7px;
   --title-control-height: 1.8rem;
   --button-icon-target: 26px;
+  --input-control-height: 34px;
+  --ordering-control-height: 31px;
 }
 @media (prefers-color-scheme: light) {
   :root,
@@ -198,7 +202,7 @@ button {
   padding: 7px 10px;
   cursor: pointer;
 }
-button:hover { border-color: var(--accent); }
+button:not(:disabled):hover { border-color: var(--accent); }
 button:disabled { opacity: .55; cursor: not-allowed; }
 button.primary { background: var(--accent); color: white; border-color: var(--accent); }
 button.danger { border-color: var(--danger); color: var(--danger); }
@@ -216,6 +220,18 @@ button.icon-button {
   font-size: var(--button-icon-glyph-size);
   font-weight: 700;
   line-height: 1;
+}
+button.icon-button.ordering-contextual-icon {
+  width: var(--ordering-control-height);
+  height: var(--ordering-control-height);
+  min-width: var(--ordering-control-height);
+  min-height: var(--ordering-control-height);
+}
+button.icon-button.input-paired-icon {
+  width: var(--input-control-height);
+  height: var(--input-control-height);
+  min-width: var(--input-control-height);
+  min-height: var(--input-control-height);
 }
 button.movement-button {
   border-color: var(--border);
@@ -640,11 +656,14 @@ details.card > .details-body {
 .ordering-add-row select {
   width: 100%;
   min-width: 0;
+  height: var(--ordering-control-height);
 }
 .ordering-row-actions {
   display: grid;
   grid-template-columns: repeat(3, auto);
   gap: 8px;
+  align-items: center;
+  height: var(--ordering-control-height);
   align-self: end;
 }
 .ordering-row-actions > button:not(.icon-button),
@@ -792,6 +811,10 @@ details.card > .details-body {
 .category-header-actions {
   margin-left: auto;
 }
+.category-header-actions > button {
+  height: var(--button-icon-target);
+  min-height: var(--button-icon-target);
+}
 .category-validation-summary {
   justify-self: start;
 }
@@ -932,7 +955,9 @@ details.card > .details-body {
   line-height: 1;
 }
 .pill-icon-button:not(:disabled):focus-visible {
-  outline: 0;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--panel);
 }
 .pill-icon-button.pill-move:not(:disabled):is(:hover, :focus-visible) {
   color: var(--accent);

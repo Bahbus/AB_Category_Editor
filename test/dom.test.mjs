@@ -1,7 +1,27 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { el, requireEl, showBusy, hideBusy } from '../src/dom.js';
+import { el, requireEl, showBusy, hideBusy, syncButtonTooltip } from '../src/dom.js';
+
+test('button tooltips are omitted while disabled unless a reason is explicit', () => {
+  const attributes = new Map();
+  const button = {
+    disabled: false,
+    set title(value) { attributes.set('title', value); },
+    get title() { return attributes.get('title') || ''; },
+    removeAttribute(name) { attributes.delete(name); }
+  };
+
+  syncButtonTooltip(button, 'Move up');
+  assert.equal(button.title, 'Move up');
+
+  button.disabled = true;
+  syncButtonTooltip(button, 'Move up');
+  assert.equal(attributes.has('title'), false);
+
+  syncButtonTooltip(button, 'Move up', 'Unavailable while saving');
+  assert.equal(button.title, 'Unavailable while saving');
+});
 
 test('el returns matching element or null', () => {
   const expected = { id: 'present' };

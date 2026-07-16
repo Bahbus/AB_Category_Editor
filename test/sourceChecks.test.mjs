@@ -36,11 +36,11 @@ test('Item Ordering uses shared summary, issue styling, accessible controls, and
   assert.match(source, /\['↑', 'up', -1\], \['↓', 'down', 1\]/);
   assert.match(source, /`Move sort criterion \$\{index \+ 1\} \$\{directionName\}`/);
   assert.match(source, /button\.className = 'icon-button movement-button'/);
-  assert.match(source, /button\.title = movementLabel/);
+  assert.match(source, /syncButtonTooltip\(button, movementLabel\)/);
   assert.match(source, /remove\.className = 'icon-button danger'/);
   assert.match(source, /remove\.textContent = '×'/);
   assert.match(source, /remove\.title = removeLabel/);
-  assert.match(source, /add\.className = 'icon-button add-icon-button'/);
+  assert.match(source, /add\.className = 'icon-button add-icon-button ordering-contextual-icon'/);
   assert.match(source, /add\.textContent = '\+'/);
   assert.match(source, /`Remove sort criterion \$\{index \+ 1\}`/);
   assert.match(source, /Replace with AetherBags-normalized criteria/);
@@ -449,6 +449,13 @@ test('button taxonomy keeps icon targets square and at least 24 CSS pixels in ev
   assert.match(styles, /:root\[data-density="compact"\]\s*{[\s\S]*?--button-icon-target:\s*26px;/);
   assert.match(styles, /button\.small,\s*\nbutton\.button-compact/);
   assert.match(styles, /button\.icon-button\s*{(?=[\s\S]*?width:\s*var\(--button-icon-target\);)(?=[\s\S]*?height:\s*var\(--button-icon-target\);)(?=[\s\S]*?min-width:\s*var\(--button-icon-target\);)[\s\S]*?min-height:\s*var\(--button-icon-target\);/);
+  assert.match(styles, /--ordering-control-height:\s*35px;/);
+  assert.match(styles, /:root\[data-density="compact"\]\s*{[\s\S]*?--ordering-control-height:\s*31px;/);
+  assert.match(styles, /button\.icon-button\.ordering-contextual-icon\s*{(?=[\s\S]*?width:\s*var\(--ordering-control-height\);)(?=[\s\S]*?height:\s*var\(--ordering-control-height\);)[\s\S]*?min-height:\s*var\(--ordering-control-height\);/);
+  assert.match(styles, /--input-control-height:\s*38px;/);
+  assert.match(styles, /:root\[data-density="compact"\]\s*{[\s\S]*?--input-control-height:\s*34px;/);
+  assert.match(styles, /button\.icon-button\.input-paired-icon\s*{(?=[\s\S]*?width:\s*var\(--input-control-height\);)(?=[\s\S]*?height:\s*var\(--input-control-height\);)[\s\S]*?min-height:\s*var\(--input-control-height\);/);
+  assert.match(styles, /\.ordering-criterion-row select,[\s\S]*?\.ordering-add-row select\s*{[\s\S]*?height:\s*var\(--ordering-control-height\);/);
   assert.match(styles, /\.ordering-add-row\s*>\s*button:not\(\.icon-button\)\s*{\s*height:\s*35px;/);
   assert.match(styles, /:root\[data-density="compact"\]\s+\.ordering-add-row\s*>\s*button:not\(\.icon-button\)\s*{\s*height:\s*31px;/);
   assert.match(styles, /button\.primary/);
@@ -457,12 +464,28 @@ test('button taxonomy keeps icon targets square and at least 24 CSS pixels in ev
   assert.doesNotMatch(styles, /--button-icon-target:\s*(?:[01]?\d|2[0-3])px/);
 });
 
-test('standalone movement stays neutral while compact pill icons glow without outlines', () => {
+test('context determines whether input-adjacent icons match height or center compactly', () => {
+  const styles = read('styles.css');
+  const ordering = read('src/ui/itemOrderingEditor.js');
+  const list = read('src/ui/listEditor.js');
+  const category = read('src/ui/categoryEditor.js');
+  assert.match(ordering, /add\.className = 'icon-button add-icon-button ordering-contextual-icon'/);
+  assert.match(list, /add\.className = 'icon-button add-icon-button input-paired-icon'/);
+  assert.match(styles, /\.ordering-row-actions\s*{[\s\S]*?align-items:\s*center;[\s\S]*?height:\s*var\(--ordering-control-height\);/);
+  assert.match(ordering, /button\.className = 'icon-button movement-button'/);
+  assert.match(ordering, /remove\.className = 'icon-button danger'/);
+  assert.match(styles, /\.category-header-actions\s*>\s*button\s*{[\s\S]*?height:\s*var\(--button-icon-target\);/);
+  assert.match(category, /id="duplicateCat" class="small">Duplicate<\/button>/);
+});
+
+test('standalone movement stays neutral while compact pill icons retain visible focus', () => {
   const styles = read('styles.css');
   const list = read('src/ui/listEditor.js');
   assert.match(styles, /button\.movement-button\s*{[\s\S]*?border-color:\s*var\(--border\);[\s\S]*?color:\s*var\(--text\);/);
   assert.match(styles, /\.pill-icon-button\s*{(?=[\s\S]*?width:\s*18px;)(?=[\s\S]*?height:\s*18px;)[\s\S]*?border:\s*0;/);
-  assert.match(styles, /\.pill-icon-button:not\(:disabled\):focus-visible\s*{[\s\S]*?outline:\s*0;/);
+  assert.match(styles, /\.pill-icon-button:not\(:disabled\):focus-visible\s*{(?=[\s\S]*?outline:\s*2px solid var\(--accent\);)(?=[\s\S]*?outline-offset:\s*2px;)[\s\S]*?box-shadow:/);
+  assert.doesNotMatch(styles, /\.pill-icon-button:not\(:disabled\):focus-visible\s*{[\s\S]*?outline:\s*0;/);
+  assert.match(styles, /:root\[data-theme="high-contrast"\] button:focus-visible[\s\S]*?outline:\s*2px solid var\(--warn\);/);
   assert.match(styles, /\.pill-icon-button\.pill-move:not\(:disabled\):is\(:hover, :focus-visible\)\s*{[\s\S]*?color:\s*var\(--accent\);[\s\S]*?text-shadow:/);
   assert.match(styles, /\.pill-icon-button\.pill-remove:not\(:disabled\):is\(:hover, :focus-visible\)\s*{[\s\S]*?text-shadow:/);
   assert.match(styles, /\.pill-icon-button:disabled\s*{[\s\S]*?text-shadow:\s*none;/);
@@ -471,7 +494,17 @@ test('standalone movement stays neutral while compact pill icons glow without ou
   assert.match(list, /removeButton\.className = 'pill-icon-button pill-remove'/);
 });
 
-test('movement icon controls retain precise names, titles, and disabled boundaries', () => {
+test('selected-category structural actions restore focus after full rerenders', () => {
+  const category = read('src/ui/categoryEditor.js');
+  assert.match(category, /selectedCategoryStructuralFocusPlan\(action, selectedIndex, cats\.length\)/);
+  assert.match(category, /document\.querySelector\('\.cat-item\[aria-current="true"\]'\)/);
+  assert.match(category, /target && !target\.disabled && !target\.hidden && document\.contains\(target\)/);
+  for (const action of ['move-up', 'move-down', 'duplicate', 'delete']) {
+    assert.match(category, new RegExp(`renderAll\\(\\);\\s*\\n\\s*restoreStructuralActionFocus\\('${action}'\\)`));
+  }
+});
+
+test('movement icon controls retain precise names, enabled-only titles, and disabled boundaries', () => {
   const category = read('src/ui/categoryEditor.js');
   const ordering = read('src/ui/itemOrderingEditor.js');
   const list = read('src/ui/listEditor.js');
@@ -481,13 +514,31 @@ test('movement icon controls retain precise names, titles, and disabled boundari
   assert.match(category, /moveDown:\s*`Move \$\{actionName\} down`/);
   assert.match(category, /el\('moveUp'\)\.disabled = selectedIndex <= 0/);
   assert.match(category, /el\('moveDown'\)\.disabled = selectedIndex >= cats\.length - 1/);
+  assert.match(category, /syncButtonTooltip\(button, label\)/);
   assert.match(ordering, /button\.disabled = index \+ offset < 0 \|\| index \+ offset >= criteria\.length/);
-  assert.match(ordering, /button\.setAttribute\('aria-label', movementLabel\);\s*\n\s*button\.title = movementLabel/);
+  assert.match(ordering, /button\.setAttribute\('aria-label', movementLabel\);\s*\n\s*syncButtonTooltip\(button, movementLabel\)/);
   assert.match(list, /moveUp\.disabled = i === 0/);
   assert.match(list, /moveDown\.disabled = i === arr\.length - 1/);
-  assert.match(list, /moveUp\.title = moveUpLabel;\s*\n\s*moveUp\.setAttribute\('aria-label', moveUpLabel\)/);
-  assert.match(list, /moveDown\.title = moveDownLabel;\s*\n\s*moveDown\.setAttribute\('aria-label', moveDownLabel\)/);
+  assert.match(list, /syncButtonTooltip\(moveUp, moveUpLabel\);\s*\n\s*moveUp\.setAttribute\('aria-label', moveUpLabel\)/);
+  assert.match(list, /syncButtonTooltip\(moveDown, moveDownLabel\);\s*\n\s*moveDown\.setAttribute\('aria-label', moveDownLabel\)/);
   assert.match(list, /removeButton\.title = removeLabel;\s*\n\s*removeButton\.setAttribute\('aria-label', removeLabel\)/);
+});
+
+test('disabled buttons omit tooltips and no current control claims the reason exception', () => {
+  const app = read('src/app.js');
+  const buttonSources = [
+    read('src/ui/categoryEditor.js'),
+    read('src/ui/itemOrderingEditor.js'),
+    read('src/ui/listEditor.js')
+  ].join('\n');
+  assert.match(app, /button\.disabled = disabled;\s*\n\s*button\.removeAttribute\('title'\)/);
+  assert.doesNotMatch(buttonSources, /syncButtonTooltip\([^\n]+,[^\n]+,[^\n]+\)/);
+});
+
+test('disabled buttons cannot acquire the shared hover border', () => {
+  const styles = read('styles.css');
+  assert.match(styles, /button:not\(:disabled\):hover\s*{\s*border-color:\s*var\(--accent\);\s*}/);
+  assert.doesNotMatch(styles, /(?:^|\n)button:hover\s*{/);
 });
 
 test('visible button labels retain clarity with intentional sentence case', () => {
@@ -508,12 +559,13 @@ test('list add and lookup icon controls track useful input and unresolved IDs', 
   const list = read('src/ui/listEditor.js');
   const styles = read('styles.css');
   assert.match(list, /add\.setAttribute\('aria-label', `Add value to \$\{title\}`\)/);
-  assert.match(list, /add\.title = `Add value to \$\{title\}`/);
-  assert.match(list, /function syncAddButtonState\(\)\s*{\s*add\.disabled = input\.value\.trim\(\)\.length === 0;/);
+  assert.match(list, /const addLabel = `Add value to \$\{title\}`/);
+  assert.match(list, /function syncAddButtonState\(\)\s*{\s*add\.disabled = input\.value\.trim\(\)\.length === 0;\s*\n\s*syncButtonTooltip\(add, addLabel\)/);
   assert.match(list, /input\.addEventListener\('input', syncAddButtonState\)/);
   assert.match(list, /lookupButton\.className = 'icon-button pill-lookup-button'/);
   assert.match(list, /lookupButton\.setAttribute\('aria-label', lookupLabel\)/);
-  assert.match(list, /lookupButton\.title = lookupLabel/);
+  assert.match(list, /lookupButton\.disabled = true;\s*\n\s*syncButtonTooltip\(lookupButton, lookupLabel\)/);
+  assert.match(list, /lookupButton\.disabled = false;\s*\n\s*syncButtonTooltip\(lookupButton, lookupLabel\)/);
   assert.match(list, /lookupButton\.hidden = !showLookup/);
   assert.match(list, /pillsWrap\.classList\.toggle\('has-pill-lookup', showLookup\)/);
   assert.match(list, /pillsWrap\.appendChild\(lookupButton\)/);

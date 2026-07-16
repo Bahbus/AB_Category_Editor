@@ -210,7 +210,7 @@ function updateExportControls() {
     const button = el(id);
     if (!button) continue;
     button.disabled = disabled;
-    button.title = disabled ? 'Add or import at least one category before exporting.' : '';
+    button.removeAttribute('title');
   }
 }
 
