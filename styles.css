@@ -29,13 +29,15 @@
   --pill-padding-block: 4px;
   --pill-padding-inline: 8px;
   --pill-gap: 6px;
-  --pill-remove-size: 16px;
+  --button-icon-target: 30px;
+  --button-icon-glyph-size: 14px;
 }
 
 :root[data-density="compact"] {
   --badge-height: 1.25rem;
   --summary-padding-block: 7px;
   --title-control-height: 1.8rem;
+  --button-icon-target: 26px;
 }
 @media (prefers-color-scheme: light) {
   :root,
@@ -200,7 +202,30 @@ button:hover { border-color: var(--accent); }
 button:disabled { opacity: .55; cursor: not-allowed; }
 button.primary { background: var(--accent); color: white; border-color: var(--accent); }
 button.danger { border-color: var(--danger); color: var(--danger); }
-button.small { padding: 4px 7px; font-size: 12px; }
+button.small,
+button.button-compact { padding: 4px 7px; font-size: 12px; }
+button.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--button-icon-target);
+  height: var(--button-icon-target);
+  min-width: var(--button-icon-target);
+  min-height: var(--button-icon-target);
+  padding: 0;
+  font-size: var(--button-icon-glyph-size);
+  font-weight: 700;
+  line-height: 1;
+}
+button.movement-button {
+  border-color: var(--border);
+  background: var(--panel2);
+  color: var(--text);
+}
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 input, textarea, select {
   width: 100%;
   border: 1px solid var(--border);
@@ -311,14 +336,12 @@ label {
   font-size: 13px;
 }
 .topbar-group-help .icon-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
   padding-inline: 0;
   border-radius: 10px;
-  font-weight: 700;
-  line-height: 1;
 }
 .topbar-group-options .check {
   max-width: 220px;
@@ -624,8 +647,8 @@ details.card > .details-body {
   gap: 8px;
   align-self: end;
 }
-.ordering-row-actions > button,
-.ordering-add-row > button {
+.ordering-row-actions > button:not(.icon-button),
+.ordering-add-row > button:not(.icon-button) {
   height: 35px;
 }
 .ordering-add-row {
@@ -645,7 +668,7 @@ details.card > .details-body {
   box-shadow: none;
 }
 .pill .pill-move {
-  font-weight: 700;
+  color: var(--text);
 }
 .nested-card {
   background: var(--panel3);
@@ -864,6 +887,20 @@ details.card > .details-body {
   border-radius: 10px;
   min-height: 40px;
 }
+.pill-list-shell {
+  position: relative;
+}
+.pill-list-shell.has-pill-lookup .pill-list {
+  padding-right: calc(var(--button-icon-target) + 14px);
+}
+.pill-lookup-button {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+}
+.pill-lookup-button[hidden] {
+  display: none !important;
+}
 .pill {
   display: inline-flex;
   align-items: center;
@@ -878,15 +915,39 @@ details.card > .details-body {
 .pill .pill-name {
   color: var(--muted);
 }
-.pill button {
-  border: none;
+.pill-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  border: 0;
   background: transparent;
   padding: 0;
-  width: var(--pill-remove-size);
-  height: var(--pill-remove-size);
-  min-height: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
   line-height: 1;
+}
+.pill-icon-button:not(:disabled):focus-visible {
+  outline: 0;
+}
+.pill-icon-button.pill-move:not(:disabled):is(:hover, :focus-visible) {
+  color: var(--accent);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--accent), transparent 20%);
+}
+.pill-icon-button.pill-remove {
   color: var(--danger);
+}
+.pill-icon-button.pill-remove:not(:disabled):is(:hover, :focus-visible) {
+  text-shadow: 0 0 6px color-mix(in srgb, var(--danger), transparent 20%);
+}
+.pill-icon-button:disabled {
+  color: var(--muted);
+  opacity: .45;
+  text-shadow: none;
 }
 .lookup-results {
   display: grid;
@@ -1107,25 +1168,20 @@ details.card > .details-body {
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Compact mode must not enlarge list editor pills; keep at or below comfortable sizing. */
+/* Compact mode keeps pill text dense while every icon action retains a usable target. */
 :root[data-density="compact"] .pill {
   font-size: var(--pill-font-size);
   padding: var(--pill-padding-block) var(--pill-padding-inline);
   min-height: 0;
 }
-:root[data-density="compact"] .pill button {
-  width: var(--pill-remove-size);
-  height: var(--pill-remove-size);
-  min-height: 0;
-  padding: 0;
-}
 :root[data-density="compact"] button { padding: 5px 8px; }
 :root[data-density="compact"] button.small { padding: 3px 6px; }
+:root[data-density="compact"] button.icon-button { padding: 0; }
 :root[data-density="compact"] input,
 :root[data-density="compact"] textarea,
 :root[data-density="compact"] select { padding: 5px 7px; }
-:root[data-density="compact"] .ordering-row-actions > button,
-:root[data-density="compact"] .ordering-add-row > button { height: 31px; }
+:root[data-density="compact"] .ordering-row-actions > button:not(.icon-button),
+:root[data-density="compact"] .ordering-add-row > button:not(.icon-button) { height: 31px; }
 :root[data-density="compact"] .topbar { padding: 8px; gap: 7px; }
 :root[data-density="compact"] .topbar-group { padding: 4px 6px; gap: 6px; }
 :root[data-density="compact"] .editor { padding: 10px; gap: 10px; }

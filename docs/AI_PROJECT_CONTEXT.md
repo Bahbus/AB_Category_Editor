@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 52 is merged on `origin/main` at `0e1426d`. Phase 52.1 on `agent/phase-52-1-ordering-fidelity-focus` separates export compatibility from safe structured editability so criterion objects with additional properties remain exportable and preserved while routing to selected-category Raw JSON. Criterion and ordered custom-rank rerenders now recover focus deterministically without targeting disabled controls. Local `npm run check` passes with 66 JavaScript files, 30 test files, and 408 tests. `git diff --check origin/main` passes. In-app browser QA remained unavailable after the original two attempts and a later two-tab retry because the browser webview did not attach; CI and Pages were not run.
+> **Current state:** Phase 52.1 is merged on `origin/main` at `9cfbb3f`. Phase 53 on `agent/phase-53-button-system-consistency` standardizes standalone button roles and neutral movement arrows without changing behavior, while deliberately keeping pill-internal movement/removal glyphs compact and borderless. Standalone icon targets are 30px in comfortable density and 26px in compact density; in-pill glyph controls remain 18px and use enabled accent/danger glow instead of outlines. Exact `Add` actions use `+`, sort-criterion removal uses `×`, category deletion uses `🗑`, and unresolved-list lookup uses a contextual `🔍` attached to the pill container. Local `npm run check` passes with 66 JavaScript files, 30 test files, and 412 tests. `git diff --check origin/main` passes. Final-build in-app browser QA passed all six themes, both densities, and 1280px/840px/390px layouts for geometry, disabled state, lookup placement/visibility, labels/titles, wrapping, and horizontal overflow. The browser automation interface still did not produce hover or keyboard focus traversal, so the glow/focus-visible rendering remains source/test verified. CI and Pages were not run.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -726,4 +726,27 @@ Validation actually run:
 - `npm run check`: 66 JavaScript files, all relative imports, 30 test files, 408 tests passed.
 - `git diff --check origin/main`: passed with no output.
 - In-app browser QA was attempted with two fresh tabs and later retried with two additional fresh tabs, but the browser webview did not attach. Desktop, 840px, and 390px runtime checks remain unavailable.
+- CI and Pages were not run; publication remains separate.
+
+## Phase 53 current implementation
+
+- Existing CSS now documents and implements standard text, compact text, square icon, primary, destructive, and link-style button roles without a markup-wide rewrite or dependency.
+- Category-header and sort-criterion movement actions use the same neutral `↑`/`↓` icon-button treatment. Their precise category- or criterion-specific accessible names and titles remain separate from the visible glyphs, and native disabled boundaries remain in place.
+- Ordered Custom Item Rank arrows use compact 18px borderless pill-icon controls so pills retain their dense height. Enabled movement glyphs glow with the accent on hover/focus; `×` is exclusively destructive and glows with the danger color. Disabled glyphs stay muted and do not glow.
+- Standalone icon targets are square 30px controls in comfortable density and square 26px controls in compact density, with a separate 14px glyph size. The topbar Help icon intentionally remains 32px. The 18px in-pill exception is confined to controls inside pills.
+- Exact `Add` actions now display `+`. List-entry add icons are disabled while their adjacent text field is blank and update with input; the criterion add icon remains available because it accompanies a populated select rather than blank text.
+- Sort-criterion removal displays `×`, category deletion displays `🗑`, and each retains a precise contextual accessible name/title. `Duplicate` remains descriptive text.
+- Batch lookup displays `🔍`, is positioned inside the pill-list container, and is hidden unless that list contains at least one unresolved ID. Manual name search remains the descriptive `Search` action.
+- A final all-button layout audit keeps legacy fixed heights limited to text actions; the `+` beside the criterion select now remains a true 30px/26px square instead of inheriting the former 35px/31px text-button height.
+- The visible-label audit also changed `Sort by Order` to sentence-case `Sort by order`; established acronyms and slash-based product actions remain unchanged for clarity.
+- Movement, ordering, removal, duplicate, dirty/no-op, lookup, modal, export, and Phase 52.1 focus-recovery callbacks are unchanged.
+
+Validation actually run:
+
+- `npm run check`: 66 JavaScript files, all relative imports, 30 test files, 412 tests passed.
+- `git diff --check origin/main`: passed with no output.
+- Final-build in-app browser QA populated criteria, three Custom Item Ranks, ordinary ID pills, and an unresolved ID, then covered System, Dark, Light, High Contrast, Aetherial, and Dalamud in comfortable and compact density at 1280px, 840px, and 390px.
+- Every matrix entry retained 18×18 borderless pill controls inside 28px pills, 30px/26px standalone icon minima, and zero document/body horizontal overflow. Blank-input `+` controls disabled, enabled after input, and disabled again after clearing; unresolved lookup became visible inside its pill shell and cached/empty lists hid it. Category/criterion/pill glyphs exposed complete contextual names and titles, and disabled arrows remained natively unavailable.
+- Pointer hover and keyboard focus traversal were not produced by the browser automation interface, so the actual glow/focus-visible rendering remains source/test verified rather than runtime asserted.
+- Two later post-matrix browser retry sessions failed to attach across five fresh-tab attempts in total, so the final criterion-Add square-height correction is source/test verified; the preceding final-build matrix remains valid for every other audited button and layout relationship.
 - CI and Pages were not run; publication remains separate.
