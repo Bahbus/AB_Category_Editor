@@ -1,5 +1,6 @@
 import { ALLOWED_RARITY_IDS } from './constants.js';
 import { isUsefulLookupName } from './lookupNames.js';
+import { analyzeItemOrdering } from './itemOrdering.js';
 
 const FALLBACK_DESCRIPTION = "Groups items matching this category's selected rules.";
 
@@ -355,7 +356,7 @@ function buildIntentDescription(analysis, rules, category, options = {}) {
   const explicit = analyzeExplicitSources(rules, options);
   if (analysis.intent === 'generic') {
     const clues = [explicit.phrase, ...objects, ...ranges].filter(Boolean);
-    if (hasItems(category?.CustomItemOrder)) clues.push('custom item ordering');
+    if (analyzeItemOrdering(category).customOrderingApplied) clues.push('custom item ordering');
     return clues.length ? `Groups ${readableJoin(clues.slice(0, 3))}.` : FALLBACK_DESCRIPTION;
   }
   const phrase = applyAdjectives(analysis.phrase, stateAdjectives(rules, analysis.intent), analysis.intent);

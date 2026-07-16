@@ -374,7 +374,7 @@ test('normalized Custom Order with no custom list produces one stable actionable
     assert.equal(findings[0].categoryId, 'stable-custom-order');
     assert.equal(findings[0].categoryName, 'Stable Custom Order');
     assert.equal(findings[0].categoryIndex, 0);
-    assert.match(findings[0].message, /fall back to a different ordering/);
+    assert.match(findings[0].message, /fall back to Quantity \/ Descending/);
   }
 });
 

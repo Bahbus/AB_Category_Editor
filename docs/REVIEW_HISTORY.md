@@ -1080,6 +1080,27 @@ Validation actually run:
 - in-app browser QA loaded the 24-category basic preset without a review modal or issue badges, completed Export/Copy and Download, showed one actionable Custom Order warning, preserved modal focus/inert/ARIA/return behavior, and had no horizontal overflow at desktop, 840px, or 390px,
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+## Phase 52
+
+Resolution on `agent/phase-52-item-ordering-controls`:
+
+- added one DOM-free item-ordering model for metadata, upstream normalization/effective behavior, Custom Order activation, summaries, repairs, and strict change/no-op decisions;
+- refactored export compatibility to use that model without changing Phase 50-51 severity or blocking classifications, while clarifying the sole-empty-Custom fallback as Quantity / Descending;
+- added the collapsed Item Ordering details card in the required category-level position with accessible criterion controls, unused-field adds, stable priority ordering, explicit normalization rewrite, and Raw JSON correction actions;
+- made Custom Item Order an ordered, movable, Item-lookup/search-aware list when active or retained inactive, while leaving malformed containers preserved and leaving all existing list-editor defaults unchanged;
+- made duplicate custom additions preserve typed text and perform no data/dirty change;
+- refreshed inline, details, category-header, and sidebar findings after each real local ordering edit without a whole-editor rerender;
+- included valid active and retained-inactive custom IDs in Resolve IDs, and prevented inactive/empty retained data from being described as active custom ordering;
+- preserved omitted/empty basic-preset ordering shapes through open/close and export.
+
+Validation actually run:
+
+- `npm run check` passed: 66 JavaScript files syntax-checked, all static relative imports resolved, and all 30 test files / 403 tests passed;
+- `git diff --check origin/main` passed with no output;
+- in-app browser QA passed untouched basic-preset export shape, deliberate criterion changes, explicit normalization with immediate issue clearing, invalid custom input association/atomicity, rank addition/reordering/duplicate no-op/lookup, retained-inactive editing, malformed Raw JSON preservation and focus routing, accessible control names, focus continuity, and overflow-free desktop, 840px, and 390px layouts;
+- automatic clipboard copy was browser-blocked during the export test, but the generated gzip+Base64 payload was inspected directly and all 24 categories still omitted both ordering properties;
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Review Phase 51 locally. Commit or publish only when separately requested.
+Review Phase 52 locally. Commit or publish only when separately requested.

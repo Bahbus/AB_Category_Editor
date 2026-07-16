@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 50.2 is merged on `origin/main` at `70b2346`. Phase 51 on `agent/phase-51-actionable-item-ordering-findings` makes harmless omitted/empty item-ordering defaults silent while retaining actionable findings for supplied normalization, data loss, malformed values, and Custom Order fallback behavior. Local `npm run check` passes with 63 JavaScript files, 29 test files, and 386 tests. `git diff --check origin/main` passes. In-app browser QA passed the basic-preset import, Export/Copy, Download, actionable Custom Order warning, modal focus/inert/return behavior, and overflow-free desktop, 840px, and 390px layouts. CI and Pages were not run.
+> **Current state:** Phase 51 is merged on `origin/main` at `6fe03a4`. Phase 52 on `agent/phase-52-item-ordering-controls` adds a shared ordering model and a structured, lookup-aware Item Ordering editor without normalizing omitted, empty, malformed, or noncanonical imported values on render. Local `npm run check` passes with 66 JavaScript files, 30 test files, and 403 tests. `git diff --check origin/main` passes. In-app browser QA passed omitted-shape export fidelity, deliberate criterion editing/normalization, active and retained-inactive custom ranks, lookup, duplicate/no-op behavior, malformed-data Raw JSON routing, accessible error association, focus continuity, and overflow-free desktop, 840px, and 390px layouts. CI and Pages were not run.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -695,3 +695,21 @@ node --test
 ```
 
 Never state these passed unless they were actually run successfully.
+
+---
+
+## Phase 52 current implementation
+
+- `src/itemOrdering.js` is the DOM-free authority for field/direction metadata, upstream-compatible effective criteria, normalization findings, Custom Order activation/application, summary state, canonical repair, and no-op-aware add/change/remove/reorder decisions.
+- `src/exportCompatibility.js`, `src/xivapi.js`, and `src/descriptionGenerator.js` consume that authority. Valid active and retained-inactive custom IDs join Resolve IDs; inactive retained ranks are not described as active ordering.
+- The collapsed Item Ordering card sits between the Basics/Color grid and the unchanged four matching-rule cards. Omitted or empty criteria display as Use Global without inserting properties or dirtying data.
+- Canonical criteria are editable with accessible field/direction, add/remove, and priority controls. Reviewable normalization has a deliberate rewrite action; unrepresentable values route to selected-category Raw JSON and remain untouched.
+- Custom ranks reuse the Item lookup/search/cache/lease stack. The reusable list editor's ordered and strict-no-op-input options are opt-in, so Allowed Item IDs, UI Category IDs, and name patterns retain their defaults.
+- Real ordering changes refresh inline findings, the details summary, category header, and sidebar locally. Disabled moves, identical selections, duplicate additions, and canonical repair no-ops do not mutate or dirty.
+
+Validation actually run:
+
+- `npm run check`: 66 JavaScript files, all relative imports, 30 test files, 403 tests passed.
+- `git diff --check origin/main`: passed with no output.
+- In-app browser QA passed the runtime behaviors summarized in the current-state banner, including an untouched 24-category basic-preset export with both ordering properties absent from every category.
+- CI and Pages were not run; publication remains separate.

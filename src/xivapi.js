@@ -1,6 +1,7 @@
 import { XIVAPI_BASE, LOOKUP_BATCH_SIZE } from './constants.js';
 import { isUsefulLookupName } from './lookupNames.js';
 import { normalizeRowIdValue } from './rowIds.js';
+import { analyzeItemOrdering } from './itemOrdering.js';
 
 export function sheetLabel(sheet) {
   if (sheet === 'Item') return 'Item';
@@ -107,6 +108,13 @@ export function collectReferencedIds(categories, ensureShape) {
     for (const id of cat.Rules.AllowedUiCategoryIds || []) {
       const normalized = normalizeRowIdValue(id);
       if (normalized !== null) ids.ItemUICategory.add(normalized);
+    }
+    const ordering = analyzeItemOrdering(cat);
+    if (ordering.customRepresentable && Array.isArray(cat.CustomItemOrder)) {
+      for (const id of cat.CustomItemOrder) {
+        const normalized = normalizeRowIdValue(id);
+        if (normalized !== null) ids.Item.add(normalized);
+      }
     }
   }
   return ids;

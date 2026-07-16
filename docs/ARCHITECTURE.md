@@ -39,38 +39,41 @@ Primary layers:
 9. **AetherBags export compatibility**
    - `src/exportCompatibility.js`
 
-10. **Import/export and clipboard/download**
+10. **Shared item-ordering semantics**
+   - `src/itemOrdering.js`
+
+11. **Import/export and clipboard/download**
    - `src/importExport.js`
    - `src/exportSnapshots.js`
 
-11. **XIVAPI and lookup**
+12. **XIVAPI and lookup**
    - `src/xivapi.js`
    - `src/lookupNames.js`
 
-12. **UI rendering**
+13. **UI rendering**
    - `src/ui/categoryList.js`
    - `src/ui/categoryEditor.js`
    - `src/ui/listEditor.js`
    - `src/ui/formControls.js`
    - modal-specific UI modules
 
-13. **Modal infrastructure**
+14. **Modal infrastructure**
    - `src/modals.js`
 
-14. **Persistent state**
+15. **Persistent state**
    - `src/state.js`
 
-15. **Tools**
+16. **Tools**
    - `src/tools/regexToItemIds.js`
 
-16. **Description generation**
+17. **Description generation**
    - `src/descriptionGenerator.js`
 
-17. **Static assets and layout**
+18. **Static assets and layout**
    - `index.html`
    - `styles.css`
 
-18. **Tests and guardrails**
+19. **Tests and guardrails**
    - `test/*.test.mjs`
    - `scripts/check-javascript-syntax.mjs`
    - `scripts/check-imports.mjs`
@@ -643,6 +646,8 @@ Phase 50.1 adds direct nested root/category/rule fidelity coverage, exact non-fi
 Phase 50.2 adds direct zero-sign equality and Raw JSON decision coverage, exact root/category/rule/object/array negative-zero paths, both export-callback suppression paths, ordinary-zero allowance, enumerable/non-enumerable `toJSON` accessor invocation counters, and retained function-valued `toJSON`, accessor, sparse-array, cycle, non-finite, unknown-property, and default/ignored-member coverage. Its local `npm run check` run syntax-checked 63 files, resolved all static relative imports, and passed all 29 test files / 381 tests; `git diff --check origin/main` passed with no output. Browser QA passed both blocked actions, dirty-state and focus/inert restoration, no-download verification, and overflow-free 1280px, 840px, and 390px layouts. CI and Pages were not run because publication remains separate.
 
 Phase 51 adds direct omitted/empty Use Global equivalence, Custom Order fallback, Use Global precedence, supplied-normalization, malformed ordering, duplicate custom-order ID, stable category identity, shared export-preflight, bundled-preset parser, issue-count, modal-gating, and JSON-shape fidelity coverage. Its local `npm run check` run syntax-checked 63 files, resolved all static relative imports, and passed all 29 test files / 386 tests; `git diff --check origin/main` passed with no output. The basic preset remained 24 categories with neither ordering property inserted and no ordering findings or issue badges; the advanced preset retained its three unrelated duplicate sort-position warnings. Browser QA passed silent basic-preset import, both export actions, one actionable Custom Order warning, modal focus/inert/return behavior, and overflow-free desktop/840px/390px layouts. CI and Pages were not run because publication remains separate.
+
+Phase 52 adds `src/itemOrdering.js` as the shared non-mutating authority used by compatibility analysis, structured UI, global referenced-ID collection, and generated descriptions. `src/ui/itemOrderingEditor.js` owns the disclosure card and local refresh boundary; it never writes ordering properties during analysis/render. Criteria and custom-rank changes are delegated to DOM-free decisions or the reusable list editor's opt-in ordered mode. Blocking containers stay outside structured mutation and route to the existing selected-category Raw JSON control. Valid custom IDs participate in Item lookup even when the list is retained inactive. The local `npm run check` run syntax-checked 66 files, resolved all static relative imports, and passed all 30 test files / 403 tests; `git diff --check origin/main` passed. Browser QA verified omitted-shape export fidelity, normalization repair, local issue clearing, malformed-data preservation/routing/focus, rank validation/add/reorder/duplicate/lookup/retained-inactive behavior, focus continuity, and desktop/840px/390px overflow. CI and Pages were not run because publication remains separate.
 
 Testing styles:
 
