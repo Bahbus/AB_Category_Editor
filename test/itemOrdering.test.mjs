@@ -10,7 +10,8 @@ import {
   decideCriterionRemove,
   decideOrderedMove,
   decideUniqueItemAdd,
-  decideItemRemove
+  decideItemRemove,
+  listMutationFocusPlan
 } from '../src/itemOrdering.js';
 
 test('ordering metadata exposes every pinned upstream field and direction', () => {
@@ -45,6 +46,17 @@ test('normalization preserves order, defaults missing members, discards unsuppor
   assert.match(analysis.criteriaIssues.map(item => item.message).join('\n'), /Field is omitted/);
   assert.match(analysis.criteriaIssues.map(item => item.message).join('\n'), /repeats Field 2/);
   assert.match(analysis.criteriaIssues.map(item => item.message).join('\n'), /unsupported/);
+});
+
+test('extra criterion properties stay compatible but make structured editing unsafe', () => {
+  const category = { ItemSortCriteria: [{ Field: 2, Direction: 0, FutureOption: true }] };
+  const before = JSON.stringify(category);
+  const analysis = analyzeItemOrdering(category);
+  assert.equal(analysis.criteriaRepresentable, true);
+  assert.equal(analysis.criteriaStructuredEditable, false);
+  assert.equal(analysis.criteriaHasAdditionalProperties, true);
+  assert.deepEqual(analysis.issues, []);
+  assert.equal(JSON.stringify(category), before);
 });
 
 test('Use Global anywhere takes exclusive precedence and canonical direction', () => {
@@ -107,6 +119,14 @@ test('custom-list decisions are atomic, unique, ordered, and boundary aware', ()
   assert.deepEqual(decideOrderedMove(values, 1, -1).value, [8, 7]);
   assert.equal(decideItemRemove(values, 4).changed, false);
   assert.deepEqual(decideItemRemove(values, 0).value, [8]);
+});
+
+test('list mutation focus plans prefer added, moved, next, and previous surviving positions', () => {
+  assert.deepEqual(listMutationFocusPlan('add', 0, 3), { indices: [2], fallback: 'add' });
+  assert.deepEqual(listMutationFocusPlan('move', 2, 3, -1), { indices: [1], fallback: 'add' });
+  assert.deepEqual(listMutationFocusPlan('remove', 0, 2), { indices: [0], fallback: 'add' });
+  assert.deepEqual(listMutationFocusPlan('remove', 2, 2), { indices: [1], fallback: 'add' });
+  assert.deepEqual(listMutationFocusPlan('remove', 0, 0), { indices: [], fallback: 'add' });
 });
 
 test('malformed ordering values remain unchanged and route away from structured editing', () => {

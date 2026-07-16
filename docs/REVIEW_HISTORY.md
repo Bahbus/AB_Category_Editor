@@ -1101,6 +1101,30 @@ Validation actually run:
 - automatic clipboard copy was browser-blocked during the export test, but the generated gzip+Base64 payload was inspected directly and all 24 categories still omitted both ordering properties;
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+## Phase 52.1
+
+The Phase 52 review confirmed two focused gaps:
+
+- a compatible criterion object with an additional property could be rendered from the two-field effective criteria and then silently lose that property on the first structured edit;
+- criterion add/final removal and ordered custom-rank move/removal could replace the focused control without a deterministic useful successor.
+
+Resolution on `agent/phase-52-1-ordering-fidelity-focus`:
+
+- item-ordering analysis now distinguishes AetherBags/export representability from safe structured editability without adding warnings or errors for unknown compatible properties;
+- any criterion with own enumerable members beyond `Field` and `Direction` keeps its exact stored value, exposes no structured criterion mutation or normalization action, explains the preservation boundary, and routes to selected-category Raw JSON;
+- analysis, render, disclosure, and Raw JSON routing remain non-mutating and non-dirty;
+- a DOM-free list-mutation focus plan selects added/moved positions and next-then-previous removal boundaries;
+- criterion rerenders and opt-in ordered custom-rank pills use enabled-target checks, prefer corresponding moved actions, and fall back to surviving equivalent controls or the relevant add/input control;
+- canonical and reviewable criteria, deliberate AetherBags normalization, custom-rank lookup/duplicates/no-ops, validation refresh, descriptions, responsive styling, and all non-ordered list editors retain their Phase 52 behavior.
+
+Validation actually run:
+
+- focused item-ordering, export-compatibility, list-editor, and source coverage passed all 112 tests;
+- `npm run check` passed: 66 JavaScript files syntax-checked, all static relative imports resolved, and all 30 test files / 408 tests passed;
+- `git diff --check origin/main` passed with no output;
+- in-app browser QA was attempted with two fresh tabs and later retried with two additional fresh tabs, but the browser webview did not attach. Extra-member export fidelity, Raw JSON routing, keyboard focus, custom-rank lookup/no-op behavior, and desktop/840px/390px overflow could not be verified at runtime;
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Review Phase 52 locally. Commit or publish only when separately requested.
+Review Phase 52.1 locally. Commit or publish only when separately requested.

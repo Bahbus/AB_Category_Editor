@@ -26,6 +26,9 @@ function isPlainObject(value) {
   const prototype = Object.getPrototypeOf(value);
   return prototype === Object.prototype || prototype === null;
 }
+function hasOnlyStructuredCriterionProperties(criterion) {
+  return Object.keys(criterion).every(key => key === 'Field' || key === 'Direction');
+}
 function sameCriteria(left, right) {
   return Array.isArray(left) && left.length === right.length && left.every((criterion, index) => (
     isPlainObject(criterion)
@@ -52,6 +55,7 @@ export function analyzeItemOrdering(category) {
   const criteriaIssues = [];
   const normalizedCriteria = [];
   let criteriaRepresentable = true;
+  let criteriaHasAdditionalProperties = false;
   let usableCount = 0;
   let useGlobalIndex = -1;
   const seenFields = new Set();
@@ -69,6 +73,7 @@ export function analyzeItemOrdering(category) {
         criteriaIssues.push(issue('error', 'ItemSortCriteria', `Item Sort Criterion ${position} must be a non-null JSON object.`, { blocksExport: true }));
         continue;
       }
+      if (!hasOnlyStructuredCriterionProperties(criterion)) criteriaHasAdditionalProperties = true;
       const fieldMissing = !hasOwn(criterion, 'Field');
       const directionMissing = !hasOwn(criterion, 'Direction');
       if (fieldMissing) criteriaIssues.push(issue('warning', 'ItemSortCriteria', `Item Sort Criterion ${position} Field is omitted; AetherBags will use Quantity.`));
@@ -136,6 +141,7 @@ export function analyzeItemOrdering(category) {
   }
 
   const criteriaCanonical = criteriaPresent && criteriaRepresentable && sameCriteria(storedCriteria, normalizedCriteria);
+  const criteriaStructuredEditable = criteriaRepresentable && !criteriaHasAdditionalProperties;
   const customOrderingApplied = customCriterionActive && validCustomOrder && storedCustomOrder.length > 0;
   let badge = 'Use global';
   if (customOrderingApplied) badge = 'Custom order';
@@ -144,6 +150,8 @@ export function analyzeItemOrdering(category) {
   return {
     criteriaPresent,
     criteriaRepresentable,
+    criteriaStructuredEditable,
+    criteriaHasAdditionalProperties,
     criteriaCanonical,
     normalizedCriteria,
     effectiveCriteria: normalizedCriteria.map(criterion => ({ ...criterion })),
@@ -159,6 +167,28 @@ export function analyzeItemOrdering(category) {
     issues: [...criteriaIssues, ...customIssues],
     badge
   };
+}
+
+export function listMutationFocusPlan(action, index, nextLength, offset = 0) {
+  const length = Number.isInteger(nextLength) && nextLength >= 0 ? nextLength : 0;
+  if (action === 'add') {
+    return { indices: length ? [length - 1] : [], fallback: 'add' };
+  }
+  if (action === 'move') {
+    const movedIndex = index + offset;
+    return {
+      indices: movedIndex >= 0 && movedIndex < length ? [movedIndex] : [],
+      fallback: 'add'
+    };
+  }
+  if (action === 'remove') {
+    const indices = [];
+    if (index >= 0 && index < length) indices.push(index);
+    const previous = Math.min(index - 1, length - 1);
+    if (previous >= 0 && !indices.includes(previous)) indices.push(previous);
+    return { indices, fallback: 'add' };
+  }
+  return { indices: [], fallback: 'add' };
 }
 
 function decision(value, changed) { return { value, changed }; }

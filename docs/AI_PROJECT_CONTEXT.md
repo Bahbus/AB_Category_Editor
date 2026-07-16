@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 51 is merged on `origin/main` at `6fe03a4`. Phase 52 on `agent/phase-52-item-ordering-controls` adds a shared ordering model and a structured, lookup-aware Item Ordering editor without normalizing omitted, empty, malformed, or noncanonical imported values on render. Local `npm run check` passes with 66 JavaScript files, 30 test files, and 403 tests. `git diff --check origin/main` passes. In-app browser QA passed omitted-shape export fidelity, deliberate criterion editing/normalization, active and retained-inactive custom ranks, lookup, duplicate/no-op behavior, malformed-data Raw JSON routing, accessible error association, focus continuity, and overflow-free desktop, 840px, and 390px layouts. CI and Pages were not run.
+> **Current state:** Phase 52 is merged on `origin/main` at `0e1426d`. Phase 52.1 on `agent/phase-52-1-ordering-fidelity-focus` separates export compatibility from safe structured editability so criterion objects with additional properties remain exportable and preserved while routing to selected-category Raw JSON. Criterion and ordered custom-rank rerenders now recover focus deterministically without targeting disabled controls. Local `npm run check` passes with 66 JavaScript files, 30 test files, and 408 tests. `git diff --check origin/main` passes. In-app browser QA remained unavailable after the original two attempts and a later two-tab retry because the browser webview did not attach; CI and Pages were not run.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -712,4 +712,18 @@ Validation actually run:
 - `npm run check`: 66 JavaScript files, all relative imports, 30 test files, 403 tests passed.
 - `git diff --check origin/main`: passed with no output.
 - In-app browser QA passed the runtime behaviors summarized in the current-state banner, including an untouched 24-category basic-preset export with both ordering properties absent from every category.
+- CI and Pages were not run; publication remains separate.
+
+## Phase 52.1 current implementation
+
+- `analyzeItemOrdering(...)` now reports export representability separately from safe structured editability. Criterion objects with own enumerable properties beyond `Field` and `Direction` remain compatible and produce no new finding, but the structured criterion editor is withheld so no edit can discard those properties.
+- The Item Ordering card explains the preservation boundary and routes directly to the existing selected-category Raw JSON control without changing category data, dirty state, or findings during analysis, rendering, disclosure changes, or routing.
+- A DOM-free list-mutation focus plan covers add, move, and removal boundaries. Criterion controls and opt-in ordered list pills use it to prefer the corresponding moved action, then a useful enabled equivalent, with next/previous removal and add/input fallbacks.
+- Existing canonical, reviewable, normalization, custom-rank, lookup, duplicate/no-op, validation-refresh, and description behavior remains unchanged.
+
+Validation actually run:
+
+- `npm run check`: 66 JavaScript files, all relative imports, 30 test files, 408 tests passed.
+- `git diff --check origin/main`: passed with no output.
+- In-app browser QA was attempted with two fresh tabs and later retried with two additional fresh tabs, but the browser webview did not attach. Desktop, 840px, and 390px runtime checks remain unavailable.
 - CI and Pages were not run; publication remains separate.
