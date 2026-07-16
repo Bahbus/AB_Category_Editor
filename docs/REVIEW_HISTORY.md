@@ -1054,6 +1054,32 @@ Validation actually run:
 - in-app browser QA applied valid Raw JSON containing `$.Phase502Nested.negativeZero`, confirmed Export / Copy and Download both blocked with that readable path while dirty state remained `Changes not exported`, observed no download event, verified focus return and modal inert/ARIA restoration, and found no horizontal overflow at 1280px, 840px, or 390px widths,
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+## Phase 51
+
+The post-Phase-50.2 review confirmed an item-ordering finding-actionability defect:
+
+- all 24 basic-preset categories omit both `ItemSortCriteria` and `CustomItemOrder`, but the shared analyzer described both harmless upstream defaults as warnings, producing 48 warnings, an import-review modal, and two issue badges per category.
+
+Resolution on `agent/phase-51-actionable-item-ordering-findings`:
+
+- omitted or explicitly empty Item Sort Criteria is silent because upstream normalization deterministically produces Use Global / Ascending,
+- omitted or empty Custom Item Order is silent unless normalized criteria includes Custom Order,
+- normalized Custom Order with no list produces one stable category-scoped warning because custom ranks cannot be applied; a sole Custom Order criterion falls back to non-global default ordering,
+- Use Global anywhere in supplied criteria overrides Custom Order before the cross-field decision, matching upstream normalization order,
+- supplied unsupported criteria, duplicate fields/item IDs, mixed Use Global criteria, missing criterion members, and other meaningful rewrites remain reviewable,
+- malformed criteria/list containers, malformed criterion entries, incompatible Field/Direction types or widths, and incompatible custom item IDs remain blocking,
+- the analyzer remains non-mutating and never inserts ordering properties, changes imported/exported shape, marks dirty, or changes saved-state behavior,
+- normal-parser coverage keeps the basic preset at 24 categories with omitted fields, no ordering findings, no ordering issue badges, and no ordering-driven modal; the advanced preset retains exactly three unrelated duplicate sort-position warnings.
+
+Validation actually run:
+
+- upstream AetherBags `master` was reconfirmed at `368bd4677b16594d9d4624efc8269ada7408d4f5`, including import, normalization, ordering UI, and runtime sorting paths,
+- focused compatibility/import coverage passed all 24 tests,
+- `npm run check` passed: 63 JavaScript files syntax-checked, all static relative imports resolved, and all 29 test files / 386 tests passed,
+- `git diff --check origin/main` passed with no output,
+- in-app browser QA loaded the 24-category basic preset without a review modal or issue badges, completed Export/Copy and Download, showed one actionable Custom Order warning, preserved modal focus/inert/ARIA/return behavior, and had no horizontal overflow at desktop, 840px, or 390px,
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Review Phase 50.2 locally. Commit or publish it only when separately requested.
+Review Phase 51 locally. Commit or publish only when separately requested.

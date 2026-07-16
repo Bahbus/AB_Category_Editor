@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 50.1 is merged on `origin/main` at `5ddddd9`. Phase 50.2 on `agent/phase-50-2-serialization-fidelity-completion` makes JSON-semantic equality preserve the sign of zero, blocks path-specific negative zero before export serialization can normalize it, and rejects enumerable or non-enumerable own `toJSON` accessors from their descriptors without invoking user code. Local `npm run check` passes with 63 JavaScript files, 29 test files, and 381 tests. `git diff --check origin/main` passes. In-app browser QA passed both blocked export actions, dirty-state/focus/inert behavior, no-download verification, and overflow-free desktop, 840px, and 390px layouts. CI and Pages were not run.
+> **Current state:** Phase 50.2 is merged on `origin/main` at `70b2346`. Phase 51 on `agent/phase-51-actionable-item-ordering-findings` makes harmless omitted/empty item-ordering defaults silent while retaining actionable findings for supplied normalization, data loss, malformed values, and Custom Order fallback behavior. Local `npm run check` passes with 63 JavaScript files, 29 test files, and 386 tests. `git diff --check origin/main` passes. In-app browser QA passed the basic-preset import, Export/Copy, Download, actionable Custom Order warning, modal focus/inert/return behavior, and overflow-free desktop, 840px, and 390px layouts. CI and Pages were not run.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -125,6 +125,7 @@ Rules:
 - Export / Copy and Download commit the active control and run the same preflight before compression.
 - Confirmed envelope or `System.Text.Json` incompatibilities block compression, clipboard/download work, and saved-state transitions.
 - Review-only warnings, including predictable AetherBags Item Sort Criteria normalization, remain exportable.
+- Omitted or explicitly empty Item Sort Criteria is a clean Use Global default. Omitted or empty Custom Item Order is also clean unless normalized criteria actively selects Custom Order; neither field is inserted or rewritten merely to change finding presentation.
 - Unknown properties are preserved and are not errors merely because the editor does not interpret them.
 - Every enumerable value, including unknown nested properties, must retain JSON serialization fidelity; non-finite numbers, cycles, and other unserializable shapes block with a JSON-path finding before export work begins.
 - Negative zero must retain its sign in Raw JSON change decisions and blocks export at its exact JSON path before `JSON.stringify` can normalize it to ordinary zero.
@@ -571,6 +572,25 @@ Validation actually run:
 - `npm run check` passed: 63 JavaScript files syntax-checked, all static relative imports resolved, and all 29 test files / 381 tests passed.
 - `git diff --check origin/main` passed with no output.
 - In-app browser QA applied valid Raw JSON with `$.Phase502Nested.negativeZero`, confirmed Export / Copy and Download both blocked with that readable path, retained `Changes not exported`, produced no download, restored focus and modal inert/ARIA state, and had no horizontal overflow at 1280px, 840px, or 390px widths.
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
+### Phase 51
+
+Phase 51 makes item-ordering compatibility findings actionable without adding structured ordering controls.
+
+- Item Sort Criteria controls how matched items are sorted within a category; omission or an empty array deterministically normalizes to Use Global / Ascending and is intentionally silent.
+- Custom Item Order supplies item-ID ranks only when normalized criteria includes Custom Order; omission or an empty array is silent otherwise.
+- Normalized Custom Order with no custom item list produces one category-stable warning because custom ranks cannot be applied and AetherBags uses a different ordering. A sole Custom Order criterion falls back to the non-global default. Use Global anywhere in the supplied criteria overrides that cross-field warning, matching upstream normalization order.
+- Supplied unsupported criteria, duplicate fields/item IDs, Use Global mixed with other criteria, missing criterion members, and other meaningful rewrites remain reviewable. Malformed containers/entries, incompatible scalar widths/types, and incompatible custom item IDs remain blocking.
+- Analysis does not insert either property, mutate imported data, dirty the document, change saved-state behavior, or alter export shape.
+- Both bundled presets are parsed through the normal importer in regression coverage. The 24-category basic preset retains omitted ordering properties with no ordering findings, issue badges, or ordering-driven modal requirement; the advanced preset retains its three unrelated duplicate sort-position warnings.
+
+Validation actually run:
+
+- `npm run check` passed: 63 JavaScript files syntax-checked, all static relative imports resolved, and all 29 test files / 386 tests passed,
+- `git diff --check origin/main` passed with no output,
+- upstream AetherBags `master` was reconfirmed at `368bd4677b16594d9d4624efc8269ada7408d4f5`, including import, normalization, ordering UI, and runtime sorting paths,
+- in-app browser QA loaded the 24-category basic preset without a review modal or issue badges, completed Export/Copy, reported the downloaded export, showed one actionable Custom Order omission warning with modal focus and background inert/ARIA state, restored focus to Raw JSON on close, and found no horizontal overflow at desktop, 840px, or 390px,
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
 ---

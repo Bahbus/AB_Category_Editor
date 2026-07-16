@@ -262,16 +262,20 @@ function validateColor(category, index) {
 
 function validateItemSortCriteria(category, index) {
   if (!hasOwn(category, 'ItemSortCriteria')) {
-    return [defaultingCategoryFinding(category, index, 'ItemSortCriteria', 'Item Sort Criteria is omitted; AetherBags will use its empty-list default and later normalize it to Use Global.')];
+    return { findings: [], normalizedFields: [0] };
   }
   const criteria = category?.ItemSortCriteria;
   if (!Array.isArray(criteria)) {
-    return [blockingCategoryFinding(category, index, 'ItemSortCriteria', 'Item Sort Criteria must be an array of non-null objects.')];
+    return {
+      findings: [blockingCategoryFinding(category, index, 'ItemSortCriteria', 'Item Sort Criteria must be an array of non-null objects.')],
+      normalizedFields: []
+    };
   }
   const findings = [];
   const seenFields = new Set();
   let usableCount = 0;
   let useGlobalIndex = -1;
+  const normalizedFields = [];
   for (const [criterionIndex, criterion] of criteria.entries()) {
     const position = criterionIndex + 1;
     if (!isPlainObject(criterion)) {
@@ -306,6 +310,7 @@ function validateItemSortCriteria(category, index) {
       findings.push(categoryFinding(category, index, 'warning', 'ItemSortCriteria', `Item Sort Criterion ${position} repeats Field ${field} and AetherBags will discard the duplicate.`));
     } else {
       seenFields.add(field);
+      normalizedFields.push(field);
     }
   }
   if (useGlobalIndex >= 0) {
@@ -314,8 +319,35 @@ function validateItemSortCriteria(category, index) {
     if (criteria.length !== 1 || useGlobalIndex !== 0 || direction !== 0) {
       findings.push(categoryFinding(category, index, 'warning', 'ItemSortCriteria', 'AetherBags will normalize Item Sort Criteria to a single Use Global / Ascending criterion.'));
     }
-  } else if (criteria.length === 0 || usableCount === 0) {
+    return { findings, normalizedFields: [0] };
+  }
+  if (criteria.length > 0 && usableCount === 0) {
     findings.push(categoryFinding(category, index, 'warning', 'ItemSortCriteria', 'AetherBags will replace the empty or unusable Item Sort Criteria list with its Use Global default.'));
+  }
+  return { findings, normalizedFields: normalizedFields.length ? normalizedFields : [0] };
+}
+
+function validateCustomItemOrder(category, index, usesCustomOrder) {
+  const field = 'CustomItemOrder';
+  const label = 'Custom Item Order';
+  if (!hasOwn(category, field)) {
+    return usesCustomOrder
+      ? [categoryFinding(category, index, 'warning', field, 'Custom Order is selected, but Custom Item Order is omitted; AetherBags will fall back to a different ordering instead of applying custom item ranks.')]
+      : [];
+  }
+  const values = category?.[field];
+  if (!Array.isArray(values)) {
+    return [blockingCategoryFinding(category, index, field, `${label} must be an array of unsigned 32-bit JSON numbers.`)];
+  }
+  if (values.some(value => !isUnsignedIntegerScalar(value))) {
+    return [blockingCategoryFinding(category, index, field, `${label} must contain only JSON-number non-negative integers from 0 through 4294967295; numeric strings are not export-compatible.`)];
+  }
+  const findings = [];
+  if (usesCustomOrder && new Set(values).size !== values.length) {
+    findings.push(categoryFinding(category, index, 'warning', field, 'Custom Item Order contains duplicate item IDs; AetherBags will use only the first position for each item.'));
+  }
+  if (usesCustomOrder && values.length === 0) {
+    findings.push(categoryFinding(category, index, 'warning', field, 'Custom Order is selected, but Custom Item Order is empty; AetherBags will fall back to a different ordering instead of applying custom item ranks.'));
   }
   return findings;
 }
@@ -395,8 +427,9 @@ export function categoryCompatibilityFindings(category, index = null) {
     findings.push(blockingCategoryFinding(category, index, 'ForkedFromKey', 'ForkedFromKey must be null or a string when present.'));
   }
   findings.push(...validateColor(category, index));
-  findings.push(...validateItemSortCriteria(category, index));
-  findings.push(...validateUintList(category, index, category, 'CustomItemOrder', 'Custom Item Order'));
+  const itemSortCriteria = validateItemSortCriteria(category, index);
+  findings.push(...itemSortCriteria.findings);
+  findings.push(...validateCustomItemOrder(category, index, itemSortCriteria.normalizedFields.includes(5)));
   if (!hasOwn(category, 'Rules')) {
     findings.push(defaultingCategoryFinding(category, index, 'Rules', 'Rules is omitted; AetherBags will use a complete default rule set.'));
     return findings;
