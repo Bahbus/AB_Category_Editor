@@ -1,4 +1,5 @@
 export function jsonSemanticEqual(left, right) {
+  if (left === 0 && right === 0) return Object.is(left, right);
   if (left === right) return true;
   if (left === null || right === null || typeof left !== 'object' || typeof right !== 'object') return false;
   if (Array.isArray(left) || Array.isArray(right)) {

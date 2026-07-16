@@ -7,6 +7,45 @@ test('JSON semantic equality ignores object key order but preserves array order 
   assert.equal(jsonSemanticEqual({ a: 1, b: { c: true } }, { b: { c: true }, a: 1 }), true);
   assert.equal(jsonSemanticEqual([1, 2], [2, 1]), false);
   assert.equal(jsonSemanticEqual({ value: 1 }, { value: '1' }), false);
+  assert.equal(jsonSemanticEqual(-0, 0), false);
+  assert.equal(jsonSemanticEqual({ nested: [-0, { value: 1 }] }, { nested: [-0, { value: 1 }] }), true);
+});
+
+test('config replacement treats a negative-zero sign change as real data', () => {
+  const currentData = { Categories: [{ Unknown: -0 }] };
+  const candidate = { Categories: [{ Unknown: 0 }] };
+  let replacements = 0;
+
+  assert.equal(applyConfigReplacement(currentData, candidate, () => replacements++), true);
+  assert.equal(replacements, 1);
+});
+
+test('Raw JSON apply decisions do not discard a negative-zero sign change as a no-op', async () => {
+  const categories = [{ Unknown: -0 }];
+  let selectedChanges = 0;
+  assert.equal(applySelectedCategoryCandidate({
+    categories,
+    selectedIndex: 0,
+    candidate: { Unknown: 0 },
+    normalize() {},
+    onChanged() { selectedChanges++; }
+  }), true);
+  assert.equal(selectedChanges, 1);
+  assert.equal(Object.is(categories[0].Unknown, 0), true);
+
+  let confirmations = 0;
+  let fullChanges = 0;
+  let fullNoChanges = 0;
+  assert.equal(await applyFullConfigCandidate({
+    currentData: { Categories: [{ Unknown: -0 }] },
+    candidate: { Categories: [{ Unknown: 0 }] },
+    async confirmReplace() { confirmations++; return true; },
+    onChanged() { fullChanges++; },
+    onNoChange() { fullNoChanges++; }
+  }), true);
+  assert.equal(confirmations, 1);
+  assert.equal(fullChanges, 1);
+  assert.equal(fullNoChanges, 0);
 });
 
 test('config replacement applies changed data once and skips JSON-semantic no-ops', () => {

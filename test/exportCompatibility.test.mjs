@@ -62,6 +62,55 @@ test('nested unknown non-finite numbers block before the export callback without
   assert.match(result.blockingFindings[0].message, /silently replace with null/);
 });
 
+test('negative zero blocks at exact root, category, rule, object, and array paths before export callbacks', async () => {
+  const config = validConfig();
+  config.UnknownRootNegativeZero = -0;
+  config.Categories[0].UnknownCategoryNegativeZero = -0;
+  config.Categories[0].Rules.UnknownRuleNegativeZero = -0;
+  config.Categories[0].UnknownNested = { member: -0, values: [1, -0] };
+  let copyCallbacks = 0;
+  let downloadCallbacks = 0;
+  let stateAdvances = 0;
+
+  const copy = await runAetherBagsExportPreflight(config, async () => {
+    copyCallbacks++;
+    stateAdvances++;
+  });
+  const download = await runAetherBagsExportPreflight(config, async () => {
+    downloadCallbacks++;
+    stateAdvances++;
+  });
+
+  const expectedPaths = new Set([
+    '$.UnknownRootNegativeZero',
+    '$.Categories[0].UnknownCategoryNegativeZero',
+    '$.Categories[0].Rules.UnknownRuleNegativeZero',
+    '$.Categories[0].UnknownNested.member',
+    '$.Categories[0].UnknownNested.values[1]'
+  ]);
+  assert.equal(copy.allowed, false);
+  assert.equal(download.allowed, false);
+  assert.equal(copyCallbacks, 0);
+  assert.equal(downloadCallbacks, 0);
+  assert.equal(stateAdvances, 0);
+  assert.deepEqual(new Set(copy.blockingFindings.filter(item => item.serializationFidelity).map(item => item.field)), expectedPaths);
+  assert.deepEqual(new Set(download.blockingFindings.filter(item => item.serializationFidelity).map(item => item.field)), expectedPaths);
+  assert.ok(copy.blockingFindings.every(item => !expectedPaths.has(item.field) || /negative zero/.test(item.message)));
+  assert.equal(Object.is(config.UnknownRootNegativeZero, -0), true);
+  assert.equal(Object.is(config.Categories[0].UnknownNested.values[1], -0), true);
+});
+
+test('ordinary finite zero remains serialization-compatible', () => {
+  const config = validConfig();
+  config.UnknownRootZero = 0;
+  config.Categories[0].UnknownNested = { member: 0, values: [0] };
+
+  const decision = decideAetherBagsExportPreflight(config);
+
+  assert.equal(decision.allowed, true);
+  assert.equal(decision.blockingFindings.length, 0);
+});
+
 test('serialization fidelity traversal handles cycles and unserializable shapes with controlled findings', () => {
   const cyclic = validConfig();
   cyclic.UnknownRoot = { nested: {} };
@@ -86,6 +135,48 @@ test('serialization fidelity traversal handles cycles and unserializable shapes 
   const accessorFindings = jsonSerializationFidelityFindings(accessor);
   assert.equal(getterCalls, 0);
   assert.ok(accessorFindings.some(item => item.field === '$.UnknownAccessor' && /accessor property/.test(item.message)));
+});
+
+test('enumerable and non-enumerable own toJSON accessors block without invoking getters or serializers', async () => {
+  for (const enumerable of [true, false]) {
+    const config = validConfig();
+    config.Categories[0].UnknownNested = { preserved: true };
+    let getterCalls = 0;
+    let serializerCalls = 0;
+    let exportCallbacks = 0;
+    Object.defineProperty(config.Categories[0].UnknownNested, 'toJSON', {
+      enumerable,
+      get() {
+        getterCalls++;
+        return () => {
+          serializerCalls++;
+          return { replaced: true };
+        };
+      }
+    });
+
+    const result = await runAetherBagsExportPreflight(config, async () => { exportCallbacks++; });
+
+    assert.equal(result.allowed, false);
+    assert.equal(getterCalls, 0);
+    assert.equal(serializerCalls, 0);
+    assert.equal(exportCallbacks, 0);
+    assert.ok(result.blockingFindings.some(item => item.field === '$.Categories[0].UnknownNested.toJSON' && /custom JSON serialization accessor/.test(item.message)));
+  }
+});
+
+test('function-valued own toJSON remains a path-specific custom-serialization blocker', () => {
+  const config = validConfig();
+  config.UnknownNested = { preserved: true };
+  Object.defineProperty(config.UnknownNested, 'toJSON', {
+    enumerable: false,
+    value() { return { replaced: true }; }
+  });
+
+  const decision = decideAetherBagsExportPreflight(config);
+
+  assert.equal(decision.allowed, false);
+  assert.ok(decision.blockingFindings.some(item => item.field === '$.UnknownNested.toJSON' && /custom JSON serialization/.test(item.message)));
 });
 
 test('root envelope requires the exact format, numeric version, and category array', () => {

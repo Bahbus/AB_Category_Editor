@@ -119,7 +119,7 @@ This avoids unnecessary rerenders and focus disruption.
 
 `src/categoryChanges.js` contains DOM-free behavior used by the application and direct tests:
 
-- JSON-semantic equality ignores object key order while preserving array order and primitive types.
+- JSON-semantic equality ignores object key order while preserving array order, primitive types, and the distinction between negative and ordinary zero.
 - manual renumbering writes one-based numeric `Order`/`Priority` values and reports whether category data changed.
 - sorting detects array-order changes by object identity and resolves the selected object's new index.
 - selected and full Raw JSON helpers keep normalization, confirmation, and live-state mutation boundaries directly testable.
@@ -231,6 +231,8 @@ The pre/post import merge helper is DOM-free. Category-scoped findings receive a
 Deserialization/use failures are blocking. Predictable post-deserialization behavior such as upstream property defaults, ignored Format/Version values, unsupported/duplicate/defaulted Item Sort Criteria, or unsupported numeric State values is a warning and remains exportable. Blank string patterns retain Phase 48's review finding but do not become an AetherBags deserialization blocker; non-string pattern elements do block. Unknown properties remain preserved and are not schema errors merely because the editor does not interpret them.
 
 Phase 50.1 adds a serialization-fidelity pass ahead of the envelope analysis. Its iterative, cycle-safe traversal inspects every enumerable value and reports stable JSON paths without mutation. Finite plain JSON values pass unchanged; non-finite numbers, cycles, BigInt, undefined/function/symbol values, array holes or extra properties, accessors/custom serialization, non-plain objects, and controlled final serialization failures block before export callbacks. This makes unknown-property preservation include the value that will actually survive JSON serialization rather than only the in-memory property name/shape.
+
+Phase 50.2 makes that traversal reject negative zero at its exact JSON path before `JSON.stringify` can normalize it to `0`. It also inspects every own `toJSON` descriptor before enumerability filtering: function-valued data properties and accessor descriptors block, while accessor values are never read and no getter, setter, serializer, or export callback is invoked. Other non-enumerable members remain ignored when they cannot influence JSON output.
 
 The pinned `CategoryExportData` defaults missing Format to `AetherBags_Category` and Version to `1`, while its current import path only tests that Categories is non-null and non-empty. Correctly assignable but unexpected Format/Version values are ignored. `UserCategoryDefinition`, `CategoryRuleSet`, nested filters, `Vector4`, and sort criteria likewise supply initializers or CLR value defaults for omitted members. The analyzer reports those effects as reviewable defaulting/semantic warnings; explicit null, malformed, or incompatible JSON types remain blocking unless the complete import/use path is demonstrably safe.
 
@@ -588,6 +590,8 @@ Both Export / Copy and Download call the same compatibility-preflight wrapper af
 
 The shared preflight now runs serialization-fidelity analysis first. Blocking paths therefore include unknown nested values such as `$.Categories[0].UnknownNested.overflow`, and `JSON.stringify` cannot silently turn an imported overflow into `null` before the user sees the problem. Modal copy separates unsafe serialization/read failures from upstream defaults and ignored values. Modal title and validation-path wrapping keep the summary inside desktop, 840px, and 390px viewports.
 
+Negative zero uses the same boundary: Raw JSON change decisions do not collapse it into ordinary zero, and export preflight blocks it with a readable path before snapshot generation. An own `toJSON` accessor is classified entirely from its descriptor, so blocked analysis cannot execute user serialization code.
+
 Browser support errors should be explicit for missing `CompressionStream`/`DecompressionStream`.
 
 ---
@@ -631,6 +635,8 @@ Phase 49.1 adds exact Int32 boundary classification and repair coverage, exact u
 Phase 50 adds direct compatibility-envelope, Int32 Order/Priority, exact uint list, unsafe-digit-string, top-level/category scalar, Item Sort Criteria, unknown-property, Color overflow repair, rarity materiality, and shared preflight behavior coverage. Its local `npm run check` run syntax-checked 63 files, resolved all static relative imports, and passed all 29 test files / 370 tests; `git diff --check origin/main` passed with no output. Upstream AetherBags `master` remained `368bd4677b16594d9d4624efc8269ada7408d4f5`. In-app browser QA was attempted twice but unavailable because the browser transport closed during initialization; CI and Pages were not run.
 
 Phase 50.1 adds direct nested root/category/rule fidelity coverage, exact non-finite JSON paths, callback suppression and non-mutation, finite unknown round trips, cycles/BigInt/sparse arrays/accessors, upstream root defaults/ignored values, omitted category/rule/nested defaults, explicit-null blockers, accurate modal copy, unchanged shared callback wiring, and narrow path/title wrapping. Its local `npm run check` run syntax-checked 63 files, resolved all static relative imports, and passed all 29 test files / 375 tests; `git diff --check origin/main` passed with no output. Browser QA passed both blocked actions, accessible focus/inert/return behavior, unchanged saved-state behavior, and overflow-free desktop, 840px, and 390px layouts. CI and Pages were not run because publication remains separate.
+
+Phase 50.2 adds direct zero-sign equality and Raw JSON decision coverage, exact root/category/rule/object/array negative-zero paths, both export-callback suppression paths, ordinary-zero allowance, enumerable/non-enumerable `toJSON` accessor invocation counters, and retained function-valued `toJSON`, accessor, sparse-array, cycle, non-finite, unknown-property, and default/ignored-member coverage. Its local `npm run check` run syntax-checked 63 files, resolved all static relative imports, and passed all 29 test files / 381 tests; `git diff --check origin/main` passed with no output. Browser QA passed both blocked actions, dirty-state and focus/inert restoration, no-download verification, and overflow-free 1280px, 840px, and 390px layouts. CI and Pages were not run because publication remains separate.
 
 Testing styles:
 

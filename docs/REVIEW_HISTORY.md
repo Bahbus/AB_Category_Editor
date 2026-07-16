@@ -1030,6 +1030,30 @@ Validation actually run:
 - in-app browser QA imported nested unknown `1e400`, confirmed Export / Copy and Download both blocked at `$.Categories[0].UnknownNested.overflow` before busy/output work, preserved saved/dirty state, confirmed modal inert/focus/return behavior, and passed desktop, 840px, and 390px overflow checks,
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+## Phase 50.2
+
+Post-Phase-50.1 review confirmed three remaining serialization-fidelity defects:
+
+- valid JSON negative zero passed traversal and was normalized to `0` by export serialization,
+- JSON-semantic equality collapsed `-0` and `0`, allowing Raw JSON sign-only changes to be discarded as false no-ops,
+- a non-enumerable own `toJSON` accessor escaped descriptor classification and could be invoked by final serialization.
+
+Resolution on `agent/phase-50-2-serialization-fidelity-completion`:
+
+- JSON-semantic equality now distinguishes negative and ordinary zero without changing established behavior for other JSON values,
+- the shared iterative traversal blocks negative zero at exact root, category, rule, object-member, and array-member paths before either export callback,
+- every own `toJSON` descriptor is inspected regardless of enumerability; function-valued data properties and accessors are path-specific blockers,
+- accessor descriptors are classified without reading them, so getter, setter, serializer, and export-callback counts remain zero on blocked preflight,
+- ordinary finite zero and unrelated non-enumerable members retain their prior allowed/ignored behavior,
+- both Export / Copy and Download retain the same shared preflight and all Phase 50/50.1 classifications and UI/state contracts.
+
+Validation actually run:
+
+- `npm run check` passed: 63 JavaScript files syntax-checked, all static relative imports resolved, and all 29 test files / 381 tests passed,
+- `git diff --check origin/main` passed with no output,
+- in-app browser QA applied valid Raw JSON containing `$.Phase502Nested.negativeZero`, confirmed Export / Copy and Download both blocked with that readable path while dirty state remained `Changes not exported`, observed no download event, verified focus return and modal inert/ARIA restoration, and found no horizontal overflow at 1280px, 840px, or 390px widths,
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Review Phase 50.1 locally. Commit or publish it only when separately requested.
+Review Phase 50.2 locally. Commit or publish it only when separately requested.
