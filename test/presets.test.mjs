@@ -74,3 +74,23 @@ test('bundled presets validate through config validation when decompression is a
     assert.ok(validation.config.Categories.length > 0, `${preset.id} validated config should contain at least one category`);
   }
 });
+
+test('advanced preset retains 55 categories with corrected descriptions', async t => {
+  if (!('DecompressionStream' in globalThis)) {
+    t.skip('DecompressionStream unavailable');
+    return;
+  }
+
+  const advanced = await parseImportedText(ADVANCED_PRESET_BASE64);
+  const descriptionsByName = new Map(advanced.Categories.map(category => [category.Name, category.Description]));
+
+  assert.equal(advanced.Categories.length, 55);
+  assert.equal(descriptionsByName.get('Weapons'), 'Arms used by Disciples of War or Magic.');
+  assert.equal(descriptionsByName.get('Craftsmanship Potions'), 'Potions for Disciples of Hand that increase the Craftsmanship stat.');
+  assert.equal(descriptionsByName.get('Control Potions'), 'Potions for Disciples of Hand that increase the Control stat.');
+  assert.equal(descriptionsByName.get('CP Potions'), 'Potions for Disciples of Hand that increase the amount of CP you can use.');
+  assert.equal(descriptionsByName.get('Tools'), 'Tools used by Disciples of Hand and Land.');
+  assert.equal(descriptionsByName.get('Spell Speed Materia'), 'Materia that increases the Spell Speed stat.');
+  assert.equal(descriptionsByName.get('Skill Speed Materia'), 'Materia that increases the Skill Speed stat.');
+  assert.equal(advanced.Categories.some(category => category.Description?.includes('Desciples')), false);
+});

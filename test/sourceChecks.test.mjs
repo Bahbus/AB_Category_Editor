@@ -570,7 +570,20 @@ test('list add and lookup icon controls track useful input and unresolved IDs', 
   assert.match(list, /pillsWrap\.classList\.toggle\('has-pill-lookup', showLookup\)/);
   assert.match(list, /pillsWrap\.appendChild\(lookupButton\)/);
   assert.doesNotMatch(list, /row\.append\(lookupButton\)/);
+  assert.match(styles, /--pill-list-border-width:\s*1px;/);
+  assert.match(styles, /--pill-list-padding:\s*8px;/);
+  assert.match(styles, /--pill-row-height:\s*28px;/);
+  assert.match(styles, /\.pill-list\s*{[\s\S]*?padding:\s*var\(--pill-list-padding\);[\s\S]*?border:\s*var\(--pill-list-border-width\) dashed var\(--border\);/);
+  assert.match(styles, /\.pill-lookup-button\s*{[\s\S]*?top:\s*calc\(var\(--pill-list-border-width\) \+ var\(--pill-list-padding\) \+ \(var\(--pill-row-height\) - var\(--button-icon-target\)\) \/ 2\);[\s\S]*?right:\s*7px;/);
+  assert.match(styles, /:root\s*{[\s\S]*?--button-icon-target:\s*30px;/);
+  assert.match(styles, /:root\[data-density="compact"\]\s*{[\s\S]*?--button-icon-target:\s*26px;/);
   assert.match(styles, /\.pill-lookup-button\[hidden\]\s*{[\s\S]*?display:\s*none !important;/);
+
+  const firstPillCenter = 1 + 8 + (28 / 2);
+  for (const target of [30, 26]) {
+    const lookupTop = 1 + 8 + ((28 - target) / 2);
+    assert.equal(lookupTop + (target / 2), firstPillCenter);
+  }
 });
 
 test('modal requestAnimationFrame work is guarded against fast close', () => {

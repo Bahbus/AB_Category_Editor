@@ -1187,6 +1187,32 @@ Validation actually run:
 - Comfortable and Compact passed 1280px, 840px, and 390px checks with clean wrapping/stacking and zero body/document horizontal overflow;
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+## Phase 54
+
+Confirmed review defects:
+
+- the advanced preset contained five `Desciples` misspellings and swapped the Spell Speed Materia and Skill Speed Materia stat descriptions,
+- the contextual lookup action used a fixed 7px top offset, placing its center 1px above the first pill in Comfortable density and 3px above it in Compact density.
+
+Resolution on `agent/phase-54-preset-copy-lookup-alignment`:
+
+- decoded the advanced preset through the normal importer, corrected exactly the five misspellings and two swapped Materia descriptions, and regenerated its gzip+Base64 payload through the established exporter,
+- retained exactly 55 advanced categories and left the basic preset byte-for-byte unchanged,
+- decoded recursive comparison against `origin/main` reports only `$.Categories[0].Description`, `$.Categories[8].Description`, `$.Categories[9].Description`, `$.Categories[10].Description`, `$.Categories[17].Description`, `$.Categories[18].Description`, and `$.Categories[46].Description`; every other root, category, rule, flag, ordering, and unknown value remains unchanged,
+- made the pill-list border, padding, and first-row height explicit tokens and derived lookup positioning from those values plus the existing density-aware square target,
+- retained top-right placement, 30px/26px sizing, glyph and accessible name/title, unresolved-only visibility, reserved space, lookup behavior, cache/busy coordination, wrapping, and first-row rather than full-container alignment,
+- added focused normal-importer preset assertions and CSS/source coverage without testing the opaque payload string itself.
+
+Validation actually run:
+
+- focused preset and source coverage passed all 84 tests before the full run,
+- `npm run check` passed: 66 JavaScript files syntax-checked, all static relative imports resolved, and all 30 test files / 419 tests passed,
+- `git diff --check origin/main` passed with no output,
+- in-app browser QA loaded the advanced preset and verified all seven corrected descriptions; unresolved Item and ItemUICategory actions were visible while resolved/empty states hid them,
+- Comfortable and Compact measurements at 1280px, 840px, and 390px retained 30px/26px square targets, a 7px right inset, reserved list space, a zero-pixel lookup/first-pill center offset, and zero body/document horizontal overflow,
+- the ItemUICategory test list contained 25 pills and wrapped across multiple rows at every width while the action stayed aligned to the first row,
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Review Phase 53.1 locally. Commit or publish only when separately requested.
+Review Phase 54 locally. Commit or publish only when separately requested.

@@ -29,6 +29,9 @@
   --pill-padding-block: 4px;
   --pill-padding-inline: 8px;
   --pill-gap: 6px;
+  --pill-list-border-width: 1px;
+  --pill-list-padding: 8px;
+  --pill-row-height: 28px;
   --button-icon-target: 30px;
   --button-icon-glyph-size: 14px;
   --input-control-height: 38px;
@@ -905,8 +908,8 @@ details.card > .details-body {
   display: flex;
   flex-wrap: wrap;
   gap: var(--pill-gap);
-  padding: 8px;
-  border: 1px dashed var(--border);
+  padding: var(--pill-list-padding);
+  border: var(--pill-list-border-width) dashed var(--border);
   border-radius: 10px;
   min-height: 40px;
 }
@@ -918,7 +921,8 @@ details.card > .details-body {
 }
 .pill-lookup-button {
   position: absolute;
-  top: 7px;
+  /* Align the button box with the first pill row, independent of later wrapping. */
+  top: calc(var(--pill-list-border-width) + var(--pill-list-padding) + (var(--pill-row-height) - var(--button-icon-target)) / 2);
   right: 7px;
 }
 .pill-lookup-button[hidden] {
