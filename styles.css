@@ -579,6 +579,74 @@ details.card.has-validation-issues:not([open]) > summary {
 details.card > .details-body {
   padding: 0 14px 14px;
 }
+.item-ordering-body {
+  display: grid;
+  gap: 14px;
+}
+.ordering-intro,
+.ordering-section > h3,
+.ordering-section > p {
+  margin-block: 0;
+}
+.ordering-section {
+  display: grid;
+  gap: 10px;
+}
+.ordering-criteria-list {
+  display: grid;
+  gap: 8px;
+}
+.ordering-criterion-row {
+  display: grid;
+  grid-template-columns: minmax(11rem, 1fr) minmax(9rem, .8fr) auto;
+  gap: 10px;
+  align-items: end;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel3);
+}
+.ordering-criterion-row label,
+.ordering-add-row label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  margin-bottom: 0;
+}
+.ordering-criterion-row select,
+.ordering-add-row select {
+  width: 100%;
+  min-width: 0;
+}
+.ordering-row-actions {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 8px;
+  align-self: end;
+}
+.ordering-row-actions > button,
+.ordering-add-row > button {
+  height: 35px;
+}
+.ordering-add-row {
+  display: grid;
+  grid-template-columns: minmax(11rem, 18rem) auto;
+  gap: 8px;
+  align-items: end;
+  justify-content: start;
+}
+.ordering-normalization-action,
+.ordering-raw-correction {
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+}
+.custom-order-list-editor {
+  box-shadow: none;
+}
+.pill .pill-move {
+  font-weight: 700;
+}
 .nested-card {
   background: var(--panel3);
   border: 1px solid var(--border);
@@ -1056,6 +1124,8 @@ details.card > .details-body {
 :root[data-density="compact"] input,
 :root[data-density="compact"] textarea,
 :root[data-density="compact"] select { padding: 5px 7px; }
+:root[data-density="compact"] .ordering-row-actions > button,
+:root[data-density="compact"] .ordering-add-row > button { height: 31px; }
 :root[data-density="compact"] .topbar { padding: 8px; gap: 7px; }
 :root[data-density="compact"] .topbar-group { padding: 4px 6px; gap: 6px; }
 :root[data-density="compact"] .editor { padding: 10px; gap: 10px; }
@@ -1417,6 +1487,17 @@ input[aria-invalid="true"], textarea[aria-invalid="true"] {
   align-items: flex-start;
 }
 @media (max-width: 640px) {
+  .ordering-criterion-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .ordering-add-row {
+    grid-template-columns: 1fr;
+    justify-content: stretch;
+  }
+  .ordering-add-row > button {
+    justify-self: start;
+  }
   .description-generate-row {
     grid-template-columns: 1fr;
   }

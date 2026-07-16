@@ -128,6 +128,21 @@ test('collectReferencedIds ignores invalid preserved row ID values', () => {
   assert.deepEqual([...ids.ItemUICategory], [456]);
 });
 
+test('collectReferencedIds includes active and retained inactive Custom Item Order IDs', () => {
+  const categories = [
+    { ItemSortCriteria: [{ Field: 5, Direction: 0 }], CustomItemOrder: [700, '701', null, -1], Rules: {} },
+    { ItemSortCriteria: [{ Field: 0, Direction: 0 }], CustomItemOrder: [702, 700], Rules: {} },
+    { CustomItemOrder: { malformed: true }, Rules: {} }
+  ];
+  const ensureShape = category => {
+    category.Rules ||= {};
+    category.Rules.AllowedItemIds ||= [];
+    category.Rules.AllowedUiCategoryIds ||= [];
+  };
+  const ids = collectReferencedIds(categories, ensureShape);
+  assert.deepEqual([...ids.Item].sort((a, b) => a - b), [700, 701, 702]);
+});
+
 test('countUncachedReferencedIds counts missing and unusable cached lookup names', () => {
   const ids = {
     Item: new Set([1, 2, 3, 4, 5]),

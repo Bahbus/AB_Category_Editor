@@ -19,6 +19,58 @@ function sourceFiles(dir) {
   return out;
 }
 
+test('Item Ordering is placed between the top editor grid and matching rule grid', () => {
+  const source = read('src/ui/categoryEditor.js');
+  const top = source.indexOf('root.appendChild(topEditorGrid)');
+  const ordering = source.indexOf('renderItemOrderingEditor(cat', top);
+  const rules = source.indexOf("ruleGrid.className = 'grid cols-2'", ordering);
+  assert.ok(top >= 0 && ordering > top && rules > ordering);
+});
+
+test('Item Ordering uses shared summary, issue styling, accessible controls, and explicit correction actions', () => {
+  const source = read('src/ui/itemOrderingEditor.js');
+  assert.match(source, /setDetailsSummary\(details, orderingSummary/);
+  assert.match(source, /issueCount/);
+  assert.match(source, /setAttribute\('aria-label', `Field for sort criterion/);
+  assert.match(source, /aria-describedby/);
+  assert.match(source, /\['Move up', -1\], \['Move down', 1\]/);
+  assert.match(source, /`\$\{label\} sort criterion \$\{index \+ 1\}`/);
+  assert.match(source, /`Remove sort criterion \$\{index \+ 1\}`/);
+  assert.match(source, /Replace with AetherBags-normalized criteria/);
+  assert.match(source, /Edit in Raw JSON/);
+  assert.match(source, /ITEM_SORT_FIELDS\.filter\(option => option\.value !== 5\)[\s\S]*ITEM_SORT_FIELDS\.find\(option => option\.value === 5\)/);
+  assert.doesNotMatch(source, /className = 'row ordering-(?:row-actions|add-row)'/);
+  assert.ok(source.indexOf('section.appendChild(addRow)') < source.indexOf('section.appendChild(rows)'));
+});
+
+test('custom ordering reuses strict Item lookup and opt-in ordered list behavior', () => {
+  const ordering = read('src/ui/itemOrderingEditor.js');
+  const list = read('src/ui/listEditor.js');
+  assert.match(ordering, /parseTypedRowIdValue/);
+  assert.match(ordering, /lookupSheet: 'Item'/);
+  assert.match(ordering, /ordered: true/);
+  assert.match(ordering, /listEditorDeps/);
+  assert.match(list, /ordered = false/);
+  assert.match(list, /preserveInputOnNoop = false/);
+  assert.match(ordering, /preserveInputOnNoop: true/);
+  assert.match(list, /Move .* from rank .* up in/);
+  assert.match(list, /Move .* from rank .* down in/);
+});
+
+test('ordering edits refresh local validation and sidebar without a whole-editor render', () => {
+  const source = read('src/ui/itemOrderingEditor.js');
+  const change = source.match(/function afterChange[\s\S]*?\n  }/)?.[0] || '';
+  assert.match(change, /onValidationChanged\(\)/);
+  assert.match(change, /renderList\(\)/);
+  assert.doesNotMatch(change, /renderAll/);
+});
+
+test('rendering effective Use Global never inserts ordering properties', () => {
+  const source = read('src/ui/itemOrderingEditor.js');
+  const render = source.match(/function renderBody[\s\S]*?\n  }/)?.[0] || '';
+  assert.doesNotMatch(render, /category\.(?:ItemSortCriteria|CustomItemOrder)\s*=/);
+});
+
 test('HTML/template source does not contain duplicate class attributes on one tag', () => {
   const files = ['index.html', ...sourceFiles('src')];
   const duplicateClassTag = /<[^>]*\bclass\s*=\s*['"][^'"]*['"][^>]*\bclass\s*=\s*['"]/i;

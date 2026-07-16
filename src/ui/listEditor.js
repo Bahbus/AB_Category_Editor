@@ -27,7 +27,9 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     dedupeValues = false,
     dedupeKey = value => value,
     splitInputOnCommas = true,
-    inputPlaceholder = 'Add one value, or comma-separated values'
+    inputPlaceholder = 'Add one value, or comma-separated values',
+    ordered = false,
+    preserveInputOnNoop = false
   } = options;
 
   const card = document.createElement('div');
@@ -76,6 +78,38 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
 
       const valueLabel = formatter(v);
       pill.innerHTML = `<span>${escapeHtml(valueLabel)}</span>${extra}`;
+      if (ordered) {
+        const rank = i + 1;
+        const moveUp = document.createElement('button');
+        moveUp.type = 'button';
+        moveUp.className = 'pill-move';
+        moveUp.textContent = '↑';
+        moveUp.disabled = i === 0;
+        moveUp.title = `Move ${valueLabel} up`;
+        moveUp.setAttribute('aria-label', `Move ${valueLabel} from rank ${rank} up in ${title}`);
+        moveUp.onclick = () => {
+          if (i === 0) return;
+          [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]];
+          markDirty();
+          renderPills();
+          notifyItemsChanged();
+        };
+        const moveDown = document.createElement('button');
+        moveDown.type = 'button';
+        moveDown.className = 'pill-move';
+        moveDown.textContent = '↓';
+        moveDown.disabled = i === arr.length - 1;
+        moveDown.title = `Move ${valueLabel} down`;
+        moveDown.setAttribute('aria-label', `Move ${valueLabel} from rank ${rank} down in ${title}`);
+        moveDown.onclick = () => {
+          if (i === arr.length - 1) return;
+          [arr[i], arr[i + 1]] = [arr[i + 1], arr[i]];
+          markDirty();
+          renderPills();
+          notifyItemsChanged();
+        };
+        pill.append(moveUp, moveDown);
+      }
       const removeButton = document.createElement('button');
       removeButton.type = 'button';
       removeButton.title = `Remove ${valueLabel}`;
@@ -146,12 +180,13 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         arr.push(part);
         added++;
       }
-      input.value = '';
       if (!added) {
+        if (!preserveInputOnNoop) input.value = '';
         setStatus('No new values added; all were already present.');
         renderValidation();
         return;
       }
+      input.value = '';
       markDirty();
       renderPills();
       notifyItemsChanged();

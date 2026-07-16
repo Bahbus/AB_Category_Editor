@@ -296,3 +296,12 @@ test('generated descriptions keep usable cached names while omitting unusable na
   assert.match(text, /Grade IX Strength Tincture|tincture|potion/i);
   assert.doesNotMatch(text, /name unavailable|unknown|not looked up|unnamed/i);
 });
+
+test('generated descriptions mention only active usable custom ordering', () => {
+  const retained = category({ Name: 'Misc', ItemSortCriteria: [{ Field: 0, Direction: 0 }], CustomItemOrder: [10, 11] });
+  assert.doesNotMatch(generateCategoryDescription(retained), /custom item ordering/i);
+  const active = category({ Name: 'Misc', ItemSortCriteria: [{ Field: 5, Direction: 0 }], CustomItemOrder: [10, 11] });
+  assert.match(generateCategoryDescription(active), /custom item ordering/i);
+  const emptyActive = category({ Name: 'Misc', ItemSortCriteria: [{ Field: 5, Direction: 0 }], CustomItemOrder: [] });
+  assert.doesNotMatch(generateCategoryDescription(emptyActive), /custom item ordering/i);
+});
