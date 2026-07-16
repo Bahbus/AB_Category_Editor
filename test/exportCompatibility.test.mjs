@@ -40,6 +40,19 @@ test('complete valid exports and unknown properties remain compatible without mu
   assert.deepEqual(JSON.parse(JSON.stringify(config)), before);
 });
 
+test('unknown sort-criterion properties remain export-compatible and preserved', () => {
+  const config = validConfig();
+  config.Categories[0].ItemSortCriteria = [{ Field: 2, Direction: 0, FutureOption: true }];
+  const before = structuredClone(config);
+
+  const decision = decideAetherBagsExportPreflight(config);
+
+  assert.equal(decision.allowed, true);
+  assert.equal(decision.analysis.findings.filter(item => item.field === 'ItemSortCriteria').length, 0);
+  assert.deepEqual(config, before);
+  assert.deepEqual(JSON.parse(JSON.stringify(config)), before);
+});
+
 test('nested unknown non-finite numbers block before the export callback without mutation', async () => {
   const config = validConfig();
   config.UnknownRoot = JSON.parse('{"nested":{"positive":1e400,"values":[0,-1e400]}}');

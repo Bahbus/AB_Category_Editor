@@ -71,6 +71,28 @@ test('rendering effective Use Global never inserts ordering properties', () => {
   assert.doesNotMatch(render, /category\.(?:ItemSortCriteria|CustomItemOrder)\s*=/);
 });
 
+test('extra-member criteria route to selected-category Raw JSON without structured mutation controls', () => {
+  const source = read('src/ui/itemOrderingEditor.js');
+  const guard = source.match(/if \(!analysis\.criteriaStructuredEditable\)[\s\S]*?return section;/)?.[0] || '';
+  assert.match(guard, /additional properties/);
+  assert.match(guard, /selected-category Raw JSON/);
+  assert.match(guard, /preserved exactly/);
+  assert.doesNotMatch(guard, /decideCriterion(?:Add|Change|Remove)|decideOrderedMove|decideCanonicalCriteriaRepair/);
+});
+
+test('ordering rerenders use deterministic enabled focus fallbacks', () => {
+  const ordering = read('src/ui/itemOrderingEditor.js');
+  const list = read('src/ui/listEditor.js');
+  assert.match(ordering, /listMutationFocusPlan\('add'/);
+  assert.match(ordering, /listMutationFocusPlan\('move'/);
+  assert.match(ordering, /listMutationFocusPlan\('remove'/);
+  assert.match(ordering, /target && !target\.disabled && !target\.hidden/);
+  assert.match(list, /listMutationFocusPlan\('move'/);
+  assert.match(list, /listMutationFocusPlan\('remove'/);
+  assert.match(list, /focusOrderedControl\(\['input'\]\)/);
+  assert.match(list, /target && !target\.disabled && !target\.hidden/);
+});
+
 test('HTML/template source does not contain duplicate class attributes on one tag', () => {
   const files = ['index.html', ...sourceFiles('src')];
   const duplicateClassTag = /<[^>]*\bclass\s*=\s*['"][^'"]*['"][^>]*\bclass\s*=\s*['"]/i;

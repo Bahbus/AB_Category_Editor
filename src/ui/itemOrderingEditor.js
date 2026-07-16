@@ -8,7 +8,8 @@ import {
   decideCriterionAdd,
   decideCriterionChange,
   decideCriterionRemove,
-  decideOrderedMove
+  decideOrderedMove,
+  listMutationFocusPlan
 } from '../itemOrdering.js';
 import { setDetailsSummary } from './detailsSummary.js';
 import { listEditor } from './listEditor.js';
@@ -62,7 +63,14 @@ export function renderItemOrderingEditor(category, deps = {}) {
     category.ItemSortCriteria = decision.value;
     afterChange(message);
     renderBody();
-    if (focusKey) body.querySelector(`[data-ordering-focus="${focusKey}"]`)?.focus();
+    const focusKeys = Array.isArray(focusKey) ? focusKey : [focusKey];
+    for (const key of focusKeys.filter(Boolean)) {
+      const target = body.querySelector(`[data-ordering-focus="${key}"]`);
+      if (target && !target.disabled && !target.hidden) {
+        target.focus();
+        break;
+      }
+    }
     return true;
   }
 
@@ -94,8 +102,11 @@ export function renderItemOrderingEditor(category, deps = {}) {
     const section = document.createElement('section');
     section.className = 'ordering-section';
     section.innerHTML = '<h3>Item Sort Criteria</h3><p class="hint">The first criterion sorts matched items; each later criterion breaks ties.</p>';
-    if (!analysis.criteriaRepresentable) {
-      section.appendChild(rawCorrectionAction('Edit in Raw JSON', 'The stored criteria cannot be represented safely by these controls. Open Advanced and correct ItemSortCriteria directly; the raw value has been preserved.'));
+    if (!analysis.criteriaStructuredEditable) {
+      const description = analysis.criteriaHasAdditionalProperties
+        ? 'The stored ItemSortCriteria contains additional properties that these structured controls do not represent. Use selected-category Raw JSON to edit it without discarding those properties; the stored value has been preserved exactly.'
+        : 'The stored criteria cannot be represented safely by these controls. Open selected-category Raw JSON and correct ItemSortCriteria directly; the raw value has been preserved.';
+      section.appendChild(rawCorrectionAction('Edit selected category Raw JSON', description));
       return section;
     }
 
@@ -140,7 +151,16 @@ export function renderItemOrderingEditor(category, deps = {}) {
         button.disabled = index + offset < 0 || index + offset >= criteria.length;
         button.setAttribute('aria-label', `${label} sort criterion ${index + 1}`);
         button.dataset.orderingFocus = `move-${offset}-${index}`;
-        button.onclick = () => applyCriteriaDecision(decideOrderedMove(criteria, index, offset), '', `move-${offset}-${index + offset}`);
+        button.onclick = () => {
+          const plan = listMutationFocusPlan('move', index, criteria.length, offset);
+          const movedIndex = plan.indices[0];
+          applyCriteriaDecision(decideOrderedMove(criteria, index, offset), '', [
+            `move-${offset}-${movedIndex}`,
+            `move-${offset * -1}-${movedIndex}`,
+            `field-${movedIndex}`,
+            'add-field'
+          ]);
+        };
         actions.appendChild(button);
       }
       const remove = document.createElement('button');
@@ -149,7 +169,13 @@ export function renderItemOrderingEditor(category, deps = {}) {
       remove.textContent = 'Remove';
       remove.setAttribute('aria-label', `Remove sort criterion ${index + 1}`);
       remove.dataset.orderingFocus = `remove-${index}`;
-      remove.onclick = () => applyCriteriaDecision(decideCriterionRemove(criteria, index));
+      remove.onclick = () => {
+        const plan = listMutationFocusPlan('remove', index, criteria.length - 1);
+        applyCriteriaDecision(decideCriterionRemove(criteria, index), '', [
+          ...plan.indices.map(position => `remove-${position}`),
+          'add-field'
+        ]);
+      };
       actions.appendChild(remove);
       row.append(fieldLabel, directionLabel, actions);
       rows.appendChild(row);
@@ -168,7 +194,16 @@ export function renderItemOrderingEditor(category, deps = {}) {
       const add = document.createElement('button');
       add.type = 'button';
       add.textContent = 'Add criterion';
-      add.onclick = () => applyCriteriaDecision(decideCriterionAdd(criteria, Number(select.value), 0));
+      add.dataset.orderingFocus = 'add-button';
+      add.onclick = () => {
+        const decision = decideCriterionAdd(criteria, Number(select.value), 0);
+        const plan = listMutationFocusPlan('add', 0, decision.value.length);
+        applyCriteriaDecision(decision, '', [
+          ...plan.indices.map(position => `field-${position}`),
+          'add-field',
+          'add-button'
+        ]);
+      };
       addRow.append(label, add);
       section.appendChild(addRow);
     }

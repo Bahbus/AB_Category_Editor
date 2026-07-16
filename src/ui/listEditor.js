@@ -2,6 +2,7 @@ import { escapeHtml, setStatus, showBusy, updateBusy, hideBusy } from '../dom.js
 import { sheetLabel, normalizeLookupIds, rowId, rowName } from '../xivapi.js';
 import { normalizeRowIdValue } from '../rowIds.js';
 import { isUsefulLookupName } from '../lookupNames.js';
+import { listMutationFocusPlan } from '../itemOrdering.js';
 
 export function tokenizeListInput(rawInput, splitOnCommas = true) {
   const trimmedInput = rawInput.trim();
@@ -59,6 +60,17 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
   const pills = document.createElement('div');
   pills.className = 'pill-list';
 
+  function focusOrderedControl(keys) {
+    if (!ordered) return;
+    for (const key of keys) {
+      const target = card.querySelector(`[data-list-focus="${key}"]`);
+      if (target && !target.disabled && !target.hidden) {
+        target.focus();
+        break;
+      }
+    }
+  }
+
   function notifyItemsChanged() {
     if (typeof onItemsChanged === 'function') onItemsChanged(arr);
   }
@@ -87,11 +99,14 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         moveUp.disabled = i === 0;
         moveUp.title = `Move ${valueLabel} up`;
         moveUp.setAttribute('aria-label', `Move ${valueLabel} from rank ${rank} up in ${title}`);
+        moveUp.dataset.listFocus = `move-up-${i}`;
         moveUp.onclick = () => {
           if (i === 0) return;
+          const plan = listMutationFocusPlan('move', i, arr.length, -1);
           [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]];
           markDirty();
           renderPills();
+          focusOrderedControl([`move-up-${plan.indices[0]}`, `move-down-${plan.indices[0]}`, `remove-${plan.indices[0]}`, 'input']);
           notifyItemsChanged();
         };
         const moveDown = document.createElement('button');
@@ -101,11 +116,14 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         moveDown.disabled = i === arr.length - 1;
         moveDown.title = `Move ${valueLabel} down`;
         moveDown.setAttribute('aria-label', `Move ${valueLabel} from rank ${rank} down in ${title}`);
+        moveDown.dataset.listFocus = `move-down-${i}`;
         moveDown.onclick = () => {
           if (i === arr.length - 1) return;
+          const plan = listMutationFocusPlan('move', i, arr.length, 1);
           [arr[i], arr[i + 1]] = [arr[i + 1], arr[i]];
           markDirty();
           renderPills();
+          focusOrderedControl([`move-down-${plan.indices[0]}`, `move-up-${plan.indices[0]}`, `remove-${plan.indices[0]}`, 'input']);
           notifyItemsChanged();
         };
         pill.append(moveUp, moveDown);
@@ -115,10 +133,13 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       removeButton.title = `Remove ${valueLabel}`;
       removeButton.setAttribute('aria-label', `Remove ${valueLabel} from ${title}`);
       removeButton.textContent = '×';
+      if (ordered) removeButton.dataset.listFocus = `remove-${i}`;
       removeButton.onclick = () => {
+        const plan = listMutationFocusPlan('remove', i, arr.length - 1);
         arr.splice(i, 1);
         markDirty();
         renderPills();
+        focusOrderedControl([...plan.indices.map(position => `remove-${position}`), 'input']);
         notifyItemsChanged();
       };
       pill.appendChild(removeButton);
@@ -148,6 +169,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
   input.id = inputId;
   input.className = 'inline-input';
   input.placeholder = inputPlaceholder;
+  if (ordered) input.dataset.listFocus = 'input';
 
   const add = document.createElement('button');
   add.textContent = 'Add';
@@ -189,6 +211,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       input.value = '';
       markDirty();
       renderPills();
+      focusOrderedControl(['input']);
       notifyItemsChanged();
       if (skippedDuplicates) {
         setStatus(`Added ${added} value(s); skipped ${skippedDuplicates} duplicate(s).`);
