@@ -2,6 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { defaultCategory } from '../src/config.js';
+import { parseImportedText } from '../src/importExport.js';
+import { shouldShowImportValidationModal } from '../src/importValidationSummary.js';
+import { ADVANCED_PRESET_BASE64, BASIC_PRESET_BASE64 } from '../src/presets.js';
+import { analyzeImportedConfig, getCategoryIssueCounts } from '../src/validation.js';
 import {
   analyzeAetherBagsCompatibility,
   decideAetherBagsExportPreflight,
@@ -218,7 +222,7 @@ test('root defaults and ignored correctly typed envelope values are warnings, wh
   }
 });
 
-test('omitted upstream-defaulted category and rule properties warn without becoming unreadable blockers', () => {
+test('omitted upstream-defaulted category and rule properties warn without treating ordering defaults as issues', () => {
   const config = validConfig();
   const category = config.Categories[0];
   for (const field of ['Enabled', 'Pinned', 'Id', 'Name', 'Description', 'Order', 'Priority', 'Color', 'ItemSortCriteria', 'CustomItemOrder', 'Rules']) delete category[field];
@@ -226,9 +230,10 @@ test('omitted upstream-defaulted category and rule properties warn without becom
   const decision = decideAetherBagsExportPreflight(config);
 
   assert.equal(decision.allowed, true);
-  for (const field of ['Enabled', 'Pinned', 'Id', 'Name', 'Description', 'Order', 'Priority', 'Color', 'ItemSortCriteria', 'CustomItemOrder', 'Rules']) {
+  for (const field of ['Enabled', 'Pinned', 'Id', 'Name', 'Description', 'Order', 'Priority', 'Color', 'Rules']) {
     assert.ok(decision.analysis.findings.some(item => item.field === field && item.severity === 'warning' && /omitted/.test(item.message)), `missing default warning for ${field}`);
   }
+  assert.equal(decision.analysis.findings.some(item => item.field === 'ItemSortCriteria' || item.field === 'CustomItemOrder'), false);
 });
 
 test('omitted nested initialized members warn while explicit null and malformed members still block', () => {
@@ -329,6 +334,130 @@ test('AetherBags sort-criterion normalization is reviewable but does not block d
   assert.ok(decision.analysis.findings.some(item => item.field === 'ItemSortCriteria' && item.severity === 'warning'));
 });
 
+test('omitted and explicitly empty ordering defaults are silent Use Global behavior without mutation', () => {
+  for (const criteriaState of ['omitted', 'empty']) {
+    for (const customState of ['omitted', 'empty']) {
+      const config = validConfig();
+      const category = config.Categories[0];
+      if (criteriaState === 'omitted') delete category.ItemSortCriteria;
+      else category.ItemSortCriteria = [];
+      if (customState === 'omitted') delete category.CustomItemOrder;
+      else category.CustomItemOrder = [];
+      const before = JSON.stringify(config);
+
+      const decision = decideAetherBagsExportPreflight(config);
+
+      assert.equal(decision.allowed, true);
+      assert.equal(decision.analysis.findings.some(item => item.field === 'ItemSortCriteria' || item.field === 'CustomItemOrder'), false);
+      assert.equal(JSON.stringify(config), before);
+      assert.equal(Object.hasOwn(category, 'ItemSortCriteria'), criteriaState === 'empty');
+      assert.equal(Object.hasOwn(category, 'CustomItemOrder'), customState === 'empty');
+    }
+  }
+});
+
+test('normalized Custom Order with no custom list produces one stable actionable warning', () => {
+  for (const customState of ['omitted', 'empty']) {
+    const config = validConfig();
+    const category = config.Categories[0];
+    category.Id = 'stable-custom-order';
+    category.Name = 'Stable Custom Order';
+    category.ItemSortCriteria = [{ Field: 5, Direction: 0 }];
+    if (customState === 'omitted') delete category.CustomItemOrder;
+    else category.CustomItemOrder = [];
+
+    const findings = decideAetherBagsExportPreflight(config).analysis.findings
+      .filter(item => item.field === 'CustomItemOrder');
+
+    assert.equal(findings.length, 1);
+    assert.equal(findings[0].severity, 'warning');
+    assert.equal(findings[0].categoryId, 'stable-custom-order');
+    assert.equal(findings[0].categoryName, 'Stable Custom Order');
+    assert.equal(findings[0].categoryIndex, 0);
+    assert.match(findings[0].message, /fall back to a different ordering/);
+  }
+});
+
+test('Use Global anywhere overrides Custom Order before cross-field fallback analysis', () => {
+  const config = validConfig();
+  const category = config.Categories[0];
+  category.ItemSortCriteria = [
+    { Field: 5, Direction: 0 },
+    { Field: 2, Direction: 1 },
+    { Field: 0, Direction: 1 }
+  ];
+  delete category.CustomItemOrder;
+
+  const decision = decideAetherBagsExportPreflight(config);
+
+  assert.equal(decision.allowed, true);
+  assert.ok(decision.analysis.findings.some(item => item.field === 'ItemSortCriteria' && /single Use Global/.test(item.message)));
+  assert.equal(decision.analysis.findings.some(item => item.field === 'CustomItemOrder'), false);
+});
+
+test('supplied ordering loss remains reviewable and malformed ordering values remain blocking', () => {
+  const reviewable = validConfig();
+  reviewable.Categories[0].ItemSortCriteria = [
+    { Field: 1, Direction: 1 },
+    { Field: 1, Direction: 0 },
+    { Field: 99, Direction: 0 },
+    { Field: 0, Direction: 1 }
+  ];
+  reviewable.Categories[0].CustomItemOrder = [7, 7, 8];
+  const reviewDecision = decideAetherBagsExportPreflight(reviewable);
+  assert.equal(reviewDecision.allowed, true);
+  assert.ok(reviewDecision.analysis.findings.some(item => item.field === 'ItemSortCriteria' && /repeats Field/.test(item.message)));
+  assert.ok(reviewDecision.analysis.findings.some(item => item.field === 'ItemSortCriteria' && /unsupported/.test(item.message)));
+  assert.ok(reviewDecision.analysis.findings.some(item => item.field === 'ItemSortCriteria' && /single Use Global/.test(item.message)));
+  assert.equal(reviewDecision.analysis.findings.some(item => item.field === 'CustomItemOrder'), false);
+
+  const duplicateCustomOrder = validConfig();
+  duplicateCustomOrder.Categories[0].ItemSortCriteria = [{ Field: 5, Direction: 0 }];
+  duplicateCustomOrder.Categories[0].CustomItemOrder = [7, 7, 8];
+  assert.ok(decideAetherBagsExportPreflight(duplicateCustomOrder).analysis.findings
+    .some(item => item.field === 'CustomItemOrder' && /duplicate item IDs/.test(item.message)));
+
+  for (const criteria of [null, {}, [null], [{ Field: 2147483648, Direction: 0 }], [{ Field: 1, Direction: '0' }]]) {
+    const config = validConfig();
+    config.Categories[0].ItemSortCriteria = criteria;
+    assert.ok(decideAetherBagsExportPreflight(config).blockingFindings.some(item => item.field === 'ItemSortCriteria'));
+  }
+  for (const customOrder of [null, {}, ['1'], [4294967296]]) {
+    const config = validConfig();
+    config.Categories[0].CustomItemOrder = customOrder;
+    assert.ok(decideAetherBagsExportPreflight(config).blockingFindings.some(item => item.field === 'CustomItemOrder'));
+  }
+});
+
+test('bundled presets retain their exact JSON shape while ordering findings become actionable', async () => {
+  const basic = await parseImportedText(BASIC_PRESET_BASE64);
+  const advanced = await parseImportedText(ADVANCED_PRESET_BASE64);
+  const basicBefore = JSON.stringify(basic);
+  const advancedBefore = JSON.stringify(advanced);
+
+  assert.equal(basic.Categories.length, 24);
+  assert.ok(basic.Categories.every(category => !Object.hasOwn(category, 'ItemSortCriteria') && !Object.hasOwn(category, 'CustomItemOrder')));
+  const basicAnalysis = analyzeImportedConfig(basic);
+  assert.equal(basicAnalysis.findings.some(item => item.field === 'ItemSortCriteria' || item.field === 'CustomItemOrder'), false);
+  assert.ok([...getCategoryIssueCounts(basic.Categories).values()].every(count => count === 0));
+  assert.equal(shouldShowImportValidationModal({ analysis: basicAnalysis, repairs: [] }), false);
+
+  const advancedAnalysis = analyzeImportedConfig(advanced);
+  const advancedWarnings = advancedAnalysis.findings.filter(item => item.severity === 'warning');
+  assert.equal(advancedWarnings.length, 3);
+  assert.ok(advancedWarnings.every(item => item.field === 'SortPosition'));
+
+  assert.equal(decideAetherBagsExportPreflight(basic).allowed, true);
+  assert.equal(decideAetherBagsExportPreflight(advanced).allowed, true);
+  let harmlessExportCallbacks = 0;
+  assert.equal((await runAetherBagsExportPreflight(basic, async () => { harmlessExportCallbacks++; return 'copy'; })).value, 'copy');
+  assert.equal((await runAetherBagsExportPreflight(basic, async () => { harmlessExportCallbacks++; return 'download'; })).value, 'download');
+  assert.equal(harmlessExportCallbacks, 2);
+  assert.equal(JSON.stringify(basic), basicBefore);
+  assert.equal(JSON.stringify(advanced), advancedBefore);
+  assert.ok(basic.Categories.every(category => !Object.hasOwn(category, 'ItemSortCriteria') && !Object.hasOwn(category, 'CustomItemOrder')));
+});
+
 test('Color requires finite values that remain finite as single precision', () => {
   for (const value of [Infinity, -Infinity, NaN, 3.5e38, '1', null]) {
     const config = validConfig();
@@ -375,11 +504,11 @@ test('one shared preflight blocks copy and download work but permits valid confi
 test('analysis exposes stable severity and count fields', () => {
   const config = validConfig();
   config.Categories[0].Order = '1';
-  config.Categories[0].ItemSortCriteria = [];
+  config.Categories[0].ItemSortCriteria = [{ Field: 99, Direction: 0 }];
   const analysis = analyzeAetherBagsCompatibility(config);
 
   assert.equal(analysis.counts.error, 1);
-  assert.equal(analysis.counts.warning, 1);
+  assert.equal(analysis.counts.warning, 2);
   assert.equal(analysis.counts.blocking, 1);
   assert.equal(analysis.findings[0].categoryIndex, 0);
 });
