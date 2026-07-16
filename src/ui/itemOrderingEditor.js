@@ -143,13 +143,15 @@ export function renderItemOrderingEditor(category, deps = {}) {
 
       const actions = document.createElement('div');
       actions.className = 'ordering-row-actions';
-      for (const [label, offset] of [['Move up', -1], ['Move down', 1]]) {
+      for (const [glyph, directionName, offset] of [['↑', 'up', -1], ['↓', 'down', 1]]) {
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = 'small';
-        button.textContent = label;
+        button.className = 'icon-button movement-button';
+        button.textContent = glyph;
         button.disabled = index + offset < 0 || index + offset >= criteria.length;
-        button.setAttribute('aria-label', `${label} sort criterion ${index + 1}`);
+        const movementLabel = `Move sort criterion ${index + 1} ${directionName}`;
+        button.setAttribute('aria-label', movementLabel);
+        button.title = movementLabel;
         button.dataset.orderingFocus = `move-${offset}-${index}`;
         button.onclick = () => {
           const plan = listMutationFocusPlan('move', index, criteria.length, offset);
@@ -165,9 +167,11 @@ export function renderItemOrderingEditor(category, deps = {}) {
       }
       const remove = document.createElement('button');
       remove.type = 'button';
-      remove.className = 'small';
-      remove.textContent = 'Remove';
-      remove.setAttribute('aria-label', `Remove sort criterion ${index + 1}`);
+      remove.className = 'icon-button danger';
+      remove.textContent = '×';
+      const removeLabel = `Remove sort criterion ${index + 1}`;
+      remove.setAttribute('aria-label', removeLabel);
+      remove.title = removeLabel;
       remove.dataset.orderingFocus = `remove-${index}`;
       remove.onclick = () => {
         const plan = listMutationFocusPlan('remove', index, criteria.length - 1);
@@ -193,7 +197,10 @@ export function renderItemOrderingEditor(category, deps = {}) {
       label.appendChild(select);
       const add = document.createElement('button');
       add.type = 'button';
-      add.textContent = 'Add criterion';
+      add.className = 'icon-button add-icon-button';
+      add.textContent = '+';
+      add.setAttribute('aria-label', 'Add sort criterion');
+      add.title = 'Add sort criterion';
       add.dataset.orderingFocus = 'add-button';
       add.onclick = () => {
         const decision = decideCriterionAdd(criteria, Number(select.value), 0);

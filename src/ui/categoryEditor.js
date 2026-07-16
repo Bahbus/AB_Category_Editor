@@ -318,10 +318,10 @@ export function renderEditor(deps) {
         </div>
       </div>
       <div class="row category-header-actions">
-        <button id="moveUp" class="small">Move up</button>
-        <button id="moveDown" class="small">Move down</button>
+        <button id="moveUp" class="icon-button movement-button">↑</button>
+        <button id="moveDown" class="icon-button movement-button">↓</button>
         <button id="duplicateCat" class="small">Duplicate</button>
-        <button id="deleteCat" class="small danger">Delete</button>
+        <button id="deleteCat" class="icon-button danger">🗑</button>
       </div>
     </div>
   `;

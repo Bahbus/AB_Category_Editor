@@ -395,6 +395,12 @@ Do not decrement shared busy state for an operation that returned before `showBu
 
 The ordered-list option uses the shared DOM-free list-mutation focus plan after add, move, and removal. Move actions first try the corresponding action on the moved pill and then another enabled action on that pill. Removal prefers the next surviving Remove control, then the previous one, and finally the persistent input. Focus helpers explicitly skip disabled and hidden targets. Non-ordered list editors retain their established behavior.
 
+### Button roles in lists
+
+List pills deliberately do not use the standalone square icon-button target. Their ordered movement and removal controls use an 18px borderless `.pill-icon-button` target so the pill itself stays compact. Enabled movement glyphs gain an accent-colored text glow on hover/focus; destructive `×` glyphs use the danger color/glow; disabled glyphs remain muted without a glow. The complete value/list meaning is carried by matching `aria-label` and `title` attributes. Non-ordered pills receive only the destructive removal control; movement remains opt-in with ordered behavior.
+
+Lookup-enabled lists wrap the pill list in `.pill-list-shell`. The contextual search icon is positioned inside that shell and hidden unless the list has an unresolved valid ID. The pill list reserves icon space only when lookup is supported. List-entry `+` buttons are disabled from the trimmed value of the adjacent text input and resynchronize after input and successful/no-op clears.
+
 ---
 
 ## 8. Form controls
@@ -607,6 +613,26 @@ Negative zero uses the same boundary: Raw JSON change decisions do not collapse 
 
 Browser support errors should be explicit for missing `CompressionStream`/`DecompressionStream`.
 
+### Static button taxonomy
+
+`styles.css` keeps the dependency-free button taxonomy close to the established element/class rules:
+
+- unclassified `button` is the standard text action,
+- `.small` and `.button-compact` are compact text actions,
+- `.icon-button` is the reusable square icon target,
+- `.primary` marks the main forward action,
+- `.danger` marks destructive actions,
+- `.link-button` remains the inline link-style action,
+- `.movement-button` is a neutral semantic refinement for reordering icons.
+
+The shared standalone icon target is 30px in comfortable density and 26px in compact density, while `--button-icon-glyph-size` controls the visible glyph independently. The Help control intentionally retains its existing 32px topbar target. Category and criterion movement share `↑`/`↓` plus precise context-specific names/titles; native `disabled` remains the availability authority. Pill actions use the deliberate compact exception described above.
+
+Ordering-row legacy height alignment applies only to non-icon text buttons. Icon actions next to criterion selects retain the same square target dimensions as other standalone icons rather than stretching to the select/text-action height.
+
+High Contrast and Aetherial retain their established focus-visible overrides. The generic button focus-visible rule supplies the accent outline for all other themes. Topbar, category-action, criterion-action, pill, and modal rows continue to wrap through their existing flex/grid rules.
+
+The visible-label audit changes `Sort by Order` to `Sort by order`, exact Add actions to `+`, criterion removal to `×`, category deletion to `🗑`, and batch lookup to `🔍`. Each symbol-only control has a contextual accessible name and title. Duplicate remains descriptive text; manual lookup search remains `Search`; acronyms such as JSON and IDs and product actions such as `Import/Paste` and `Export/Copy` remain unchanged.
+
 ---
 
 ## 16. Testing architecture
@@ -656,6 +682,8 @@ Phase 51 adds direct omitted/empty Use Global equivalence, Custom Order fallback
 Phase 52 adds `src/itemOrdering.js` as the shared non-mutating authority used by compatibility analysis, structured UI, global referenced-ID collection, and generated descriptions. `src/ui/itemOrderingEditor.js` owns the disclosure card and local refresh boundary; it never writes ordering properties during analysis/render. Criteria and custom-rank changes are delegated to DOM-free decisions or the reusable list editor's opt-in ordered mode. Blocking containers stay outside structured mutation and route to the existing selected-category Raw JSON control. Valid custom IDs participate in Item lookup even when the list is retained inactive. The local `npm run check` run syntax-checked 66 files, resolved all static relative imports, and passed all 30 test files / 403 tests; `git diff --check origin/main` passed. Browser QA verified omitted-shape export fidelity, normalization repair, local issue clearing, malformed-data preservation/routing/focus, rank validation/add/reorder/duplicate/lookup/retained-inactive behavior, focus continuity, and desktop/840px/390px overflow. CI and Pages were not run because publication remains separate.
 
 Phase 52.1 separates compatible export representation from safe structured criterion editing, routes extra-member criteria to selected-category Raw JSON without mutation, and adds shared DOM-free focus planning for criterion and ordered custom-rank add/move/remove rerenders. Its local `npm run check` run syntax-checked 66 files, resolved all static relative imports, and passed all 30 test files / 408 tests; `git diff --check origin/main` passed. In-app browser QA remained unavailable after the original two attempts and a later two-tab retry because the browser webview did not attach, so desktop/840px/390px runtime checks were not completed. CI and Pages were not run because publication remains separate.
+
+Phase 53 adds focused source coverage for the shared text/compact/icon/primary/danger/link taxonomy, 30px/26px standalone icon targets, the compact 18px pill exception, neutral movement versus destructive removal, contextual accessible names/titles, native disabled boundaries, blank-input Add disabling, unresolved-lookup visibility/placement, and the intentional final glyph labels. Its local `npm run check` run syntax-checked 66 files, resolved all static relative imports, and passed all 30 test files / 412 tests; `git diff --check origin/main` passed. Final-build in-app browser QA passed all six themes, both densities, and 1280px/840px/390px: every matrix entry kept 18×18 pill actions inside 28px pills, 30px/26px standalone minima, and zero horizontal overflow. Runtime interaction also verified blank-input Add transitions, contextual lookup placement/visibility, glyph names/titles, and disabled boundaries. Browser automation did not produce pointer hover or keyboard focus traversal, so glow/focus-visible rendering remains source/test verified. CI and Pages were not run because publication remains separate.
 
 Testing styles:
 

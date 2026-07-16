@@ -1125,6 +1125,36 @@ Validation actually run:
 - in-app browser QA was attempted with two fresh tabs and later retried with two additional fresh tabs, but the browser webview did not attach. Extra-member export fidelity, Raw JSON routing, keyboard focus, custom-rank lookup/no-op behavior, and desktop/840px/390px overflow could not be verified at runtime;
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+## Phase 53
+
+Phase 53 standardizes button roles and movement presentation without changing application behavior.
+
+Resolution on `agent/phase-53-button-system-consistency`:
+
+- existing CSS defines standard text, compact text, square icon, primary, destructive, and link-style actions, with a neutral movement refinement that reuses existing class names where sensible;
+- standalone square icon targets are 30px in comfortable density and 26px in compact density, while the visible glyph remains 14px and the topbar Help control intentionally remains 32px;
+- category-header and sort-criterion Move up/Move down text is replaced by neutral `↑`/`↓` controls with precise category- or criterion-specific accessible names and matching titles;
+- ordered Custom Item Rank arrows and all pill removals use a deliberate 18px borderless pill-icon exception so pills stay compact; enabled movement glyphs glow with the accent, destructive `×` glyphs use the danger color/glow, and disabled glyphs stay muted without glow;
+- exact Add actions display `+`; Add icons beside list text fields are disabled while their trimmed field is blank and update with input/clear state;
+- sort-criterion removal displays `×`, category deletion displays `🗑`, and batch lookup displays `🔍`; every icon retains a contextual accessible name/title;
+- batch lookup is attached to the pill-list shell and hidden when the list has no unresolved valid IDs, while manual name search remains descriptive text;
+- Duplicate remains descriptive text;
+- a final all-button layout audit limits the ordering add-row's legacy fixed height to non-icon text buttons, keeping the criterion `+` square at 30px/26px instead of 30×35px or 26×31px;
+- native disabled movement boundaries remain unchanged and visually muted, and all Phase 52/52.1 mutation, no-op, lookup, dirty-state, rerender, and focus-recovery callbacks are preserved;
+- the visible-label audit made one evidence-backed change, `Sort by Order` to `Sort by order`; established acronyms, slash actions, and descriptive wording remain unchanged.
+
+Validation actually run:
+
+- focused ordering, list, accessibility, label, and CSS coverage passed all 91 tests across the touched suites;
+- `npm run check` passed: 66 JavaScript files syntax-checked, all static relative imports resolved, and all 30 test files / 412 tests passed;
+- `git diff --check origin/main` passed with no output;
+- final-build in-app browser QA populated criterion ordering, three Custom Item Ranks, ordinary ID pills, and an unresolved ID, then covered all six themes, both densities, and 1280px/840px/390px;
+- all 36 theme/density/viewport entries kept pill actions at 18×18 inside 28px pills, standalone icon minima at 30px comfortable/26px compact, and zero document/body horizontal overflow;
+- blank-input `+` controls disabled, enabled after input, and disabled again after clearing; unresolved lookup appeared inside its pill shell while cached/empty lists hid it; category/criterion/pill icons retained contextual names/titles and disabled arrows remained natively unavailable;
+- browser automation did not produce pointer hover or keyboard focus traversal, so glow/focus-visible rendering remains source/test verified rather than runtime asserted;
+- two post-audit browser retry sessions failed to attach across five fresh-tab attempts in total, so the criterion-Add square-height correction is source/test verified while the preceding final-build matrix remains the runtime evidence for the otherwise unchanged button system;
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Review Phase 52.1 locally. Commit or publish only when separately requested.
+Review Phase 53 locally. Commit or publish only when separately requested.

@@ -59,6 +59,18 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
 
   const pills = document.createElement('div');
   pills.className = 'pill-list';
+  const pillsWrap = document.createElement('div');
+  pillsWrap.className = 'pill-list-shell';
+  pillsWrap.appendChild(pills);
+  let lookupButton = null;
+
+  function updateLookupButtonVisibility() {
+    if (!lookupButton) return;
+    const missing = normalizeLookupIds(arr).filter(id => !isUsefulLookupName(lookupName(lookupSheet, id)));
+    const showLookup = missing.length > 0;
+    lookupButton.hidden = !showLookup;
+    pillsWrap.classList.toggle('has-pill-lookup', showLookup);
+  }
 
   function focusOrderedControl(keys) {
     if (!ordered) return;
@@ -94,11 +106,12 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         const rank = i + 1;
         const moveUp = document.createElement('button');
         moveUp.type = 'button';
-        moveUp.className = 'pill-move';
+        moveUp.className = 'pill-icon-button pill-move';
         moveUp.textContent = '↑';
         moveUp.disabled = i === 0;
-        moveUp.title = `Move ${valueLabel} up`;
-        moveUp.setAttribute('aria-label', `Move ${valueLabel} from rank ${rank} up in ${title}`);
+        const moveUpLabel = `Move ${valueLabel} from rank ${rank} up in ${title}`;
+        moveUp.title = moveUpLabel;
+        moveUp.setAttribute('aria-label', moveUpLabel);
         moveUp.dataset.listFocus = `move-up-${i}`;
         moveUp.onclick = () => {
           if (i === 0) return;
@@ -111,11 +124,12 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         };
         const moveDown = document.createElement('button');
         moveDown.type = 'button';
-        moveDown.className = 'pill-move';
+        moveDown.className = 'pill-icon-button pill-move';
         moveDown.textContent = '↓';
         moveDown.disabled = i === arr.length - 1;
-        moveDown.title = `Move ${valueLabel} down`;
-        moveDown.setAttribute('aria-label', `Move ${valueLabel} from rank ${rank} down in ${title}`);
+        const moveDownLabel = `Move ${valueLabel} from rank ${rank} down in ${title}`;
+        moveDown.title = moveDownLabel;
+        moveDown.setAttribute('aria-label', moveDownLabel);
         moveDown.dataset.listFocus = `move-down-${i}`;
         moveDown.onclick = () => {
           if (i === arr.length - 1) return;
@@ -130,8 +144,10 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       }
       const removeButton = document.createElement('button');
       removeButton.type = 'button';
-      removeButton.title = `Remove ${valueLabel}`;
-      removeButton.setAttribute('aria-label', `Remove ${valueLabel} from ${title}`);
+      removeButton.className = 'pill-icon-button pill-remove';
+      const removeLabel = `Remove ${valueLabel} from ${title}`;
+      removeButton.title = removeLabel;
+      removeButton.setAttribute('aria-label', removeLabel);
       removeButton.textContent = '×';
       if (ordered) removeButton.dataset.listFocus = `remove-${i}`;
       removeButton.onclick = () => {
@@ -154,6 +170,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       empty.textContent = 'Empty';
       pills.appendChild(empty);
     }
+    updateLookupButtonVisibility();
   }
 
   const row = document.createElement('div');
@@ -172,7 +189,15 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
   if (ordered) input.dataset.listFocus = 'input';
 
   const add = document.createElement('button');
-  add.textContent = 'Add';
+  add.type = 'button';
+  add.className = 'icon-button add-icon-button';
+  add.textContent = '+';
+  add.setAttribute('aria-label', `Add value to ${title}`);
+  add.title = `Add value to ${title}`;
+  function syncAddButtonState() {
+    add.disabled = input.value.trim().length === 0;
+  }
+  syncAddButtonState();
   add.onclick = () => {
     const raw = input.value.trim();
     if (!raw) return;
@@ -203,12 +228,16 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         added++;
       }
       if (!added) {
-        if (!preserveInputOnNoop) input.value = '';
+        if (!preserveInputOnNoop) {
+          input.value = '';
+          syncAddButtonState();
+        }
         setStatus('No new values added; all were already present.');
         renderValidation();
         return;
       }
       input.value = '';
+      syncAddButtonState();
       markDirty();
       renderPills();
       focusOrderedControl(['input']);
@@ -227,12 +256,18 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       add.click();
     }
   });
+  input.addEventListener('input', syncAddButtonState);
 
   row.append(inputLabel, input, add);
 
   if (lookupSheet) {
-    const lookupButton = document.createElement('button');
-    lookupButton.textContent = `Lookup ${sheetLabel(lookupSheet)} names`;
+    lookupButton = document.createElement('button');
+    lookupButton.type = 'button';
+    lookupButton.className = 'icon-button pill-lookup-button';
+    lookupButton.textContent = '🔍';
+    const lookupLabel = `Lookup ${sheetLabel(lookupSheet)} names`;
+    lookupButton.setAttribute('aria-label', lookupLabel);
+    lookupButton.title = lookupLabel;
     lookupButton.onclick = async () => {
       let busyShown = false;
       let releaseLookupCacheProducer = null;
@@ -278,7 +313,8 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         lookupButton.disabled = false;
       }
     };
-    row.append(lookupButton);
+    pillsWrap.appendChild(lookupButton);
+    updateLookupButtonVisibility();
 
     const searchWrap = document.createElement('div');
     searchWrap.className = 'lookup-search-block';
@@ -321,7 +357,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
 
           const r = document.createElement('div');
           r.className = 'lookup-row';
-          r.innerHTML = `<span>#${escapeHtml(id)}</span><span>${escapeHtml(displayName)}</span><button class="small">Add</button>`;
+          r.innerHTML = `<span>#${escapeHtml(id)}</span><span>${escapeHtml(displayName)}</span><button class="icon-button add-icon-button">+</button>`;
           const addButton = r.querySelector('button');
           addButton.setAttribute('aria-label', `Add ${displayName} #${id} to ${title}`);
           addButton.title = `Add ${displayName} #${id} to ${title}`;
@@ -353,9 +389,9 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       }
     };
 
-    card.append(pills, validationBox, row, searchWrap);
+    card.append(pillsWrap, validationBox, row, searchWrap);
   } else {
-    card.append(pills, validationBox, row);
+    card.append(pillsWrap, validationBox, row);
   }
 
   renderPills();
