@@ -1290,7 +1290,7 @@ The post-Phase-57.1 review confirmed that the approximately 176-line Color card,
 
 Resolution on `agent/phase-58-color-editor-extraction`:
 
-- added `src/ui/colorEditor.js` as the focused owner of the complete existing Color card, native RGB picker, Hex RGBA validity/commit behavior, R/G/B byte controls, alpha slider/output, linked-control synchronization, committed display snapshots, and exported `normalizeRgbInputValue(...)`;
+- added `src/ui/colorEditor.js` as the focused owner of the complete existing Color card, native RGB picker, Hex RGBA validity/commit behavior, R/G/B byte controls, alpha slider/output, picker/Hex/alpha display snapshots, and exported `normalizeRgbInputValue(...)`;
 - moved color-only imports to the leaf and redirected direct normalization/source coverage to the actual owner;
 - made `categoryEditor.js` create and pass a fresh Color-specific scheduled sidebar callback while retaining its separate existing Range/State scheduler instance, preserving independent pending flags without duplicating the scheduler implementation;
 - retained the exact Basics-then-Color top-grid order, markup/classes, labels, accessible names and associations, native input types, ranges/steps, no-op precision, invalid/restore behavior, immediate Hex rendering, scheduled RGB/native/alpha rendering, and single-commit Enter/change/blur sequencing;
@@ -1305,6 +1305,26 @@ Validation actually run:
 - final-build in-app browser QA was attempted with two fresh local tabs, but neither webview attached. Comfortable and Compact checks at 1280px, 840px, and 390px plus live Color synchronization/no-op checks were unavailable;
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+Post-merge browser review found that Phase 58's extraction retained a pre-existing synchronization gap: `updateColorVisuals()` refreshed picker, Hex RGBA, alpha, preview, and their committed snapshots but had no R/G/B input references. Each numeric control kept an isolated stale `lastCommitted`. From visible RGB 128/255/255, committing `#11223344` left those byte fields unchanged; focusing stale R and then G unintentionally changed the color to `#80223344`.
+
+## Phase 58.1
+
+Resolution on `agent/phase-58-1-color-control-synchronization`:
+
+- each R/G/B control registers a private synchronization hook that updates its displayed byte and closure-owned committed snapshot from `category.Color`;
+- `updateColorVisuals()` invokes all three hooks alongside picker, Hex RGBA, alpha, preview, and shared committed-display refreshes, covering every real Hex, native-picker, RGB, and alpha commit through the existing paths;
+- synchronization itself performs no dirty call, duplicate sidebar render, scheduled render, or focus change;
+- blank/non-finite restoration, invalid Hex visibility, canonical equivalent no-ops, higher-precision no-ops, alpha preservation, immediate versus scheduled sidebar behavior, Enter/change/blur single-commit behavior, the Phase 58 ownership boundary, and independent Color versus Range/State scheduler instances remain unchanged;
+- focused source coverage now requires RGB display/baseline refresh and rejects dirty/render/scheduler/focus side effects inside synchronization.
+
+Validation actually run:
+
+- focused Color, accessibility, summary, and application-data-flow coverage passed all 67 tests;
+- `npm run check` passed: 71 JavaScript files syntax-checked, all static relative imports resolved, and all 32 test files / 418 tests passed;
+- `git diff --check origin/main` passed with no output;
+- local browser QA was attempted with two fresh in-app tabs and later retried with two additional fresh tabs, but none of the four webviews attached. Comfortable and Compact checks at 1280px, 840px, and 390px plus Hex-to-RGB, native-to-RGB, RGB-to-linked-controls, alpha preservation, invalid/equivalent input, stale-blur, focus, and horizontal-overflow checks were unavailable;
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Phase 58 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.
+Phase 58.1 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.

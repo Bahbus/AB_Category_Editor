@@ -165,7 +165,7 @@ test('category editor uses shared range defaults and advanced stable summary pat
   assert.match(source, /setDetailsSummary\(advanced, \{ title: 'Advanced', badges: \[\], issueCount: 0 \}\)/);
 });
 
-test('color editor schedules high-frequency sidebar renders and keeps immediate hex commits', () => {
+test('color commits synchronize every linked display and keep established render scheduling', () => {
   const source = fs.readFileSync(new URL('../src/ui/colorEditor.js', import.meta.url), 'utf8');
   const categoryEditor = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
   assert.match(categoryEditor, /function createScheduledRenderList\(renderList\)/);
@@ -178,7 +178,12 @@ test('color editor schedules high-frequency sidebar renders and keeps immediate 
   assert.match(source, /let committedHex = canonicalHexRgba\(colorToHexRGBA\(category\.Color\)\)/);
   assert.match(source, /let committedRgb = colorToHex\(category\.Color\)\.toUpperCase\(\)/);
   assert.match(source, /let committedAlpha = componentTo255\(category\.Color\.W\)/);
-  assert.match(source, /function updateColorVisuals\(\) \{[\s\S]*?committedHex = hex;[\s\S]*?committedRgb = picker\.value\.toUpperCase\(\);[\s\S]*?committedAlpha = a255;/);
+  assert.match(source, /function synchronizeFromColor\(\) \{[\s\S]*?input\.value = String\(displayedValue\);[\s\S]*?lastCommitted = displayedValue;/);
+  assert.match(source, /function updateColorVisuals\(\) \{[\s\S]*?for \(const control of rgbControls\) control\.synchronizeFromColor\(\);[\s\S]*?committedHex = hex;[\s\S]*?committedRgb = picker\.value\.toUpperCase\(\);[\s\S]*?committedAlpha = a255;/);
+  const synchronizeBlock = source.match(/function synchronizeFromColor\(\) \{(?<body>[\s\S]*?)\n    \}/)?.groups.body ?? '';
+  const visualsBlock = source.match(/function updateColorVisuals\(\) \{(?<body>[\s\S]*?)\n  \}/)?.groups.body ?? '';
+  assert.doesNotMatch(synchronizeBlock, /focus\(|markDirty|renderList|scheduleRenderList/);
+  assert.doesNotMatch(visualsBlock, /focus\(|markDirty|renderList|scheduleRenderList/);
   assert.match(source, /picker\.oninput = e => \{[\s\S]*?decideRgbCommit\(e\.target\.value, committedRgb\)[\s\S]*?status !== 'valid-changed'[\s\S]*?hexToRgb01\(decision\.canonical\)/);
   assert.match(source, /function applyHexInput\(\) \{[\s\S]*?decideHexRgbaCommit\(hexInput\.value, committedHex\)[\s\S]*?status === 'invalid'[\s\S]*?status === 'valid-no-change'[\s\S]*?hexToRgba01\(decision\.canonical\)/);
   assert.match(source, /alphaSlider\.oninput = e => \{[\s\S]*?decideAlphaCommit\(e\.target\.value, committedAlpha\)[\s\S]*?status !== 'valid-changed'/);
