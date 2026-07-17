@@ -24,6 +24,22 @@ test('category editor imports shared state filter keys when referenced', () => {
   assert.ok(importFromConstants(source).includes('STATE_FILTER_KEYS'), 'categoryEditor.js references STATE_FILTER_KEYS but does not import it from constants.js');
 });
 
+test('category editor delegates matching-rule composition to its focused module', () => {
+  const categoryEditor = read('src/ui/categoryEditor.js');
+  const matchingRulesEditor = read('src/ui/matchingRulesEditor.js');
+
+  assert.match(categoryEditor, /import \{ renderMatchingRulesEditor \} from ['"]\.\/matchingRulesEditor\.js['"];/);
+  assert.match(categoryEditor, /root\.appendChild\(renderMatchingRulesEditor\(cat, \{/);
+  assert.doesNotMatch(categoryEditor, /\blistEditor\(|renderAllowedRaritiesEditor|parseTypedRowIdValue|normalizeRowIdValue|Allowed Item Name Patterns|Allowed UI Category IDs|Allowed Item IDs|Allowed Rarities/);
+  assert.match(matchingRulesEditor, /export function renderMatchingRulesEditor\(category, deps = \{\}\)/);
+  assert.match(matchingRulesEditor, /ruleGrid\.className = 'grid cols-2'/);
+
+  const itemOrderingIndex = categoryEditor.indexOf('root.appendChild(itemOrdering)');
+  const matchingRulesIndex = categoryEditor.indexOf('root.appendChild(renderMatchingRulesEditor');
+  const rangesIndex = categoryEditor.indexOf("const ranges = document.createElement('details')");
+  assert.ok(itemOrderingIndex < matchingRulesIndex && matchingRulesIndex < rangesIndex);
+});
+
 test('range filter key references are imported or locally declared', () => {
   for (const file of sourceFiles('src')) {
     const source = read(file);

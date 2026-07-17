@@ -53,6 +53,7 @@ Primary layers:
 13. **UI rendering**
    - `src/ui/categoryList.js`
    - `src/ui/categoryEditor.js`
+   - `src/ui/matchingRulesEditor.js`
    - `src/ui/listEditor.js`
    - `src/ui/formControls.js`
    - modal-specific UI modules
@@ -478,22 +479,21 @@ It currently owns:
 - basic fields,
 - color editor,
 - generated-description UI,
-- numeric ID lists,
-- regex patterns,
-- rarity selection,
 - range filters,
 - state filters,
 - raw category JSON,
 - validation UI,
 - actions such as duplicate/delete/move.
 
-This concentration is the main known maintainability risk.
+`src/ui/matchingRulesEditor.js` is the focused leaf owner for the matching-rule grid. It returns the existing two-column grid containing, in order, Allowed UI Category IDs, Allowed Item IDs, Allowed Item Name Patterns with its converter action, and Allowed Rarities. It owns the strict typed row-ID parsers and normalized dedupe wiring, Item and ItemUICategory list lookup composition, structural pattern validation and comma-preserving input configuration, converter placement, and the private rarity checkbox renderer.
+
+`categoryEditor.js` passes the category list, dirty callback, converter launcher, existing list-editor lookup dependencies, and one rule-change callback. That callback retains category-level validation refresh, optional generated-description updates, and sidebar rendering in the established order. The matching-rules module does not depend on `categoryEditor.js`, so the ownership boundary introduces no circular dependency.
 
 Selected-category Raw JSON is parsed and shape-normalized as a local candidate before it replaces the live selected category. JSON-semantically identical candidates retain the existing object identity, selection, and dirty state. Parse or shape failures leave the current category and dirty state unchanged.
 
 The color editor treats its 8-bit controls as displayed representations rather than lossless model values. Hex RGBA, native RGB, and alpha commits compare canonical input against refreshed displayed snapshots before parsing; same-display events therefore preserve higher-precision imported components. Every real color change synchronizes the linked controls and snapshots before later `change`/`blur` events can fire.
 
-Do not split it casually. Refactor when future feature work creates real friction.
+Further splits should remain behavior-preserving ownership extractions driven by demonstrated friction.
 
 ---
 
@@ -715,10 +715,11 @@ Possible future split:
 
 - `basicEditor.js`
 - `colorEditor.js`
-- `ruleListEditors.js`
 - `rangeFiltersEditor.js`
 - `stateFiltersEditor.js`
 - `rawCategoryEditor.js`
+
+Phase 57 completed the matching-rule split through `src/ui/matchingRulesEditor.js`; future work should preserve its narrow dependency and callback boundary rather than moving application orchestration into the leaf module.
 
 ### Source-check growth
 

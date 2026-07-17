@@ -135,23 +135,23 @@ test('manual lookup search reports no usable rendered results separately', () =>
 
 test('numeric list editors use strict row-ID dedupe without deduping name patterns', () => {
   const listEditor = read('src/ui/listEditor.js');
-  const categoryEditor = read('src/ui/categoryEditor.js');
+  const matchingRulesEditor = read('src/ui/matchingRulesEditor.js');
 
   assert.match(listEditor, /dedupeValues\s*=\s*false/);
   assert.match(listEditor, /dedupeKey\s*=\s*value\s*=>\s*value/);
   assert.match(listEditor, /if \(dedupeValues\)/);
 
-  const uiStart = categoryEditor.indexOf("listEditor('Allowed UI Category IDs'");
-  const itemStart = categoryEditor.indexOf("listEditor('Allowed Item IDs'", uiStart);
-  const patternsAppend = categoryEditor.indexOf('patternsCard,', itemStart);
-  const patternStart = categoryEditor.indexOf("const patternsCard = listEditor('Allowed Item Name Patterns'");
-  const converterStart = categoryEditor.indexOf('const converterButton', patternStart);
-  const uiCall = categoryEditor.slice(uiStart, itemStart);
-  const itemCall = categoryEditor.slice(itemStart, patternsAppend);
-  const patternCall = categoryEditor.slice(patternStart, converterStart);
+  const uiStart = matchingRulesEditor.indexOf("listEditor('Allowed UI Category IDs'");
+  const itemStart = matchingRulesEditor.indexOf("listEditor('Allowed Item IDs'", uiStart);
+  const patternsAppend = matchingRulesEditor.indexOf('patternsCard,', itemStart);
+  const patternStart = matchingRulesEditor.indexOf("const patternsCard = listEditor('Allowed Item Name Patterns'");
+  const converterStart = matchingRulesEditor.indexOf('const converterButton', patternStart);
+  const uiCall = matchingRulesEditor.slice(uiStart, itemStart);
+  const itemCall = matchingRulesEditor.slice(itemStart, patternsAppend);
+  const patternCall = matchingRulesEditor.slice(patternStart, converterStart);
 
   assert.match(uiCall, /dedupeValues:\s*true/);
-  assert.match(categoryEditor, /import \{ normalizeRowIdValue, parseTypedRowIdValue \} from ['"]\.\.\/rowIds\.js['"];/);
+  assert.match(matchingRulesEditor, /import \{ normalizeRowIdValue, parseTypedRowIdValue \} from ['"]\.\.\/rowIds\.js['"];/);
   assert.match(uiCall, /dedupeKey:\s*normalizeRowIdValue/);
   assert.match(itemCall, /dedupeValues:\s*true/);
   assert.match(itemCall, /dedupeKey:\s*normalizeRowIdValue/);
@@ -161,21 +161,21 @@ test('numeric list editors use strict row-ID dedupe without deduping name patter
 
 test('name-pattern entry preserves commas while numeric ID editors retain comma-separated input', () => {
   const listEditor = read('src/ui/listEditor.js');
-  const categoryEditor = read('src/ui/categoryEditor.js');
+  const matchingRulesEditor = read('src/ui/matchingRulesEditor.js');
   const addHandler = listEditor.match(/add\.onclick = \(\) => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
 
   assert.match(listEditor, /splitInputOnCommas\s*=\s*true/);
   assert.match(listEditor, /inputPlaceholder\s*=\s*'Add one value, or comma-separated values'/);
   assert.match(listEditor, /tokenizeListInput\(raw, splitInputOnCommas\)/);
 
-  const uiStart = categoryEditor.indexOf("listEditor('Allowed UI Category IDs'");
-  const itemStart = categoryEditor.indexOf("listEditor('Allowed Item IDs'", uiStart);
-  const patternsAppend = categoryEditor.indexOf('patternsCard,', itemStart);
-  const patternStart = categoryEditor.indexOf("const patternsCard = listEditor('Allowed Item Name Patterns'");
-  const converterStart = categoryEditor.indexOf('const converterButton', patternStart);
-  const uiCall = categoryEditor.slice(uiStart, itemStart);
-  const itemCall = categoryEditor.slice(itemStart, patternsAppend);
-  const patternCall = categoryEditor.slice(patternStart, converterStart);
+  const uiStart = matchingRulesEditor.indexOf("listEditor('Allowed UI Category IDs'");
+  const itemStart = matchingRulesEditor.indexOf("listEditor('Allowed Item IDs'", uiStart);
+  const patternsAppend = matchingRulesEditor.indexOf('patternsCard,', itemStart);
+  const patternStart = matchingRulesEditor.indexOf("const patternsCard = listEditor('Allowed Item Name Patterns'");
+  const converterStart = matchingRulesEditor.indexOf('const converterButton', patternStart);
+  const uiCall = matchingRulesEditor.slice(uiStart, itemStart);
+  const itemCall = matchingRulesEditor.slice(itemStart, patternsAppend);
+  const patternCall = matchingRulesEditor.slice(patternStart, converterStart);
 
   assert.doesNotMatch(uiCall, /splitInputOnCommas:\s*false/);
   assert.doesNotMatch(itemCall, /splitInputOnCommas:\s*false/);
@@ -391,9 +391,12 @@ test('clipboard fallback removes its hidden textarea in finally', () => {
 });
 
 test('numeric ID list parsers use exact uint parsing', () => {
-  const source = read('src/ui/categoryEditor.js');
-  const uiBlock = source.match(/listEditor\('Allowed UI Category IDs',[\s\S]*?\n    \}, x => x, \{ hint: 'Game ItemUICategory/)?.[0] ?? '';
-  const itemBlock = source.match(/listEditor\('Allowed Item IDs',[\s\S]*?\n    \}, x => x, \{ hint: 'Specific Item/)?.[0] ?? '';
+  const source = read('src/ui/matchingRulesEditor.js');
+  const uiStart = source.indexOf("listEditor('Allowed UI Category IDs'");
+  const itemStart = source.indexOf("listEditor('Allowed Item IDs'", uiStart);
+  const patternsAppend = source.indexOf('patternsCard,', itemStart);
+  const uiBlock = source.slice(uiStart, itemStart);
+  const itemBlock = source.slice(itemStart, patternsAppend);
 
   assert.match(uiBlock, /parseTypedRowIdValue\(x\)/);
   assert.match(itemBlock, /parseTypedRowIdValue\(x\)/);
