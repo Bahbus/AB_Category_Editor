@@ -1242,6 +1242,30 @@ Validation actually run:
 - browser QA was not required because the runtime diff contains only the two dead helper deletions;
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+## Phase 57
+
+The post-Phase-56 maintainability review confirmed that the 698-line `src/ui/categoryEditor.js` still mixed category-shell orchestration with a cohesive matching-rule leaf area.
+
+Resolution on `agent/phase-57-matching-rules-editor-extraction`:
+
+- added `src/ui/matchingRulesEditor.js` as the focused owner of the existing Allowed UI Category IDs, Allowed Item IDs, Allowed Item Name Patterns, and Allowed Rarities grid;
+- moved the private rarity renderer, strict typed uint parser wiring, normalized numeric dedupe, lookup-aware list composition, structural pattern validation, comma-preserving input configuration, and converter placement without changing their behavior;
+- retained the exact four-card order, two-column/stacked layout classes, card styles, input/button geometry, accessibility names and associations, lookup/search behavior, validation scopes, dirty/no-op behavior, and rarity ordering;
+- kept validation refresh, optional description regeneration, and sidebar refresh in `categoryEditor.js` behind one narrow rule-change callback with the established sequencing;
+- removed moved imports and direct rule-card construction from `categoryEditor.js`, reducing it from 698 to 649 lines without introducing circular dependencies;
+- redirected existing source guards to the new owner without renaming or duplication and added one focused delegation/ownership guard;
+- made no CSS, list-editor, validation, converter, preset, category structural-action, export, Raw JSON, range/state, or color change.
+
+Validation actually run:
+
+- focused category-editor, list-editor, row-ID, validation, pattern, and source coverage passed all 144 tests;
+- source-name accounting confirmed all 76 surviving Phase 56 guard names exactly once, zero missing or duplicate names, and one new ownership guard;
+- `npm run check` passed: 70 JavaScript files syntax-checked, all static relative imports resolved, and all 32 test files / 417 tests passed;
+- `git diff --check origin/main` passed with no output;
+- in-app browser QA passed Comfortable and Compact at 1280px, 840px, and 390px, including exact ordering, desktop two-column placement, narrower stacking, valid/duplicate/invalid numeric behavior, comma-preserving patterns, converter placement/opening, rarity toggling, unresolved lookup visibility/alignment, manual search availability, and zero horizontal overflow;
+- the intentionally submitted invalid `-1` produced the established validation console message; no unexpected module-load or runtime errors were observed;
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Review Phase 56 locally. Commit or publish only when separately requested.
+Review Phase 57 locally. Commit or publish only when separately requested.

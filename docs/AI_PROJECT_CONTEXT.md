@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 54 is merged on `origin/main` at `64aa84f`. Phase 56 on `agent/phase-56-source-guardrail-maintenance` replaces the 1,073-line / 79-test source-check monolith with three responsibility-owned suites and one shared test-only source-reading helper, while preserving all 76 still-valuable source-guard names exactly once. Three redundant source guards were retired only where direct behavior coverage is stronger, including a new multi-chunk lookup-cache test. The test-only production exports `decideUniqueItemAdd(...)` and `decideItemRemove(...)` and their helper-only test were removed; `.button-compact` remains an intentional compact-text taxonomy role with a formatting-tolerant guard. Local `npm run check` passes with 69 JavaScript files, 32 test files, and 416 tests. `git diff --check origin/main` passes. Browser QA was not required because the runtime diff is limited to deleting the two unconsumed helpers. CI and Pages were not run.
+> **Current state:** Phase 56 is merged on `origin/main` at `5a0d33a`. Phase 57 on `agent/phase-57-matching-rules-editor-extraction` moves the complete four-card matching-rule grid and its private rarity renderer from `src/ui/categoryEditor.js` into `src/ui/matchingRulesEditor.js`. `categoryEditor.js` now delegates through one narrow callback boundary while preserving card order, strict row-ID parsing and dedupe, lookup/search behavior, comma-preserving patterns, converter placement, rarity sequencing, validation, dirty state, description regeneration, accessibility, and responsive styling. All 76 Phase 56 source guards remain exactly once and one focused ownership guard was added. Local `npm run check` passes with 70 JavaScript files, 32 test files, and 417 tests. Browser QA passed both densities at desktop, 840px, and 390px. CI and Pages were not run.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -803,4 +803,22 @@ Validation actually run:
 - `npm run check` passed: 69 JavaScript files syntax-checked, all static relative imports resolved, and all 32 test files / 416 tests passed;
 - `git diff --check origin/main` passed with no output;
 - browser QA was not required because the runtime diff is limited to removal of the two unconsumed item-ordering helpers;
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
+## Phase 57 current implementation
+
+- `src/ui/matchingRulesEditor.js` owns the existing `grid cols-2` composition for Allowed UI Category IDs, Allowed Item IDs, Allowed Item Name Patterns, and Allowed Rarities in that exact order.
+- The module owns its required row-ID parser/dedupe imports, structural pattern validation, list-editor composition, converter placement, rarity metadata/normalization, and the private rarity checkbox renderer. It receives only the category list, dirty callback, narrow rule-change callback, converter launcher, and established list-editor lookup dependencies.
+- `src/ui/categoryEditor.js` delegates the grid after Item Ordering and before Range Filters. It retains validation, optional auto-description, and sidebar refresh orchestration through the unchanged validation → description → list-render callback sequence.
+- Existing source guards were redirected to the new owner without renaming or duplication. One application/data-flow guard proves delegation and the absence of the moved parsing, list, rarity, and grid composition from `categoryEditor.js`.
+- No CSS, reusable list-editor behavior, validation semantics, converter behavior, presets, category structural actions, or unrelated UI ownership changed.
+
+Validation actually run:
+
+- focused category-editor, list-editor, row-ID, validation, pattern, and three source-suite coverage passed all 144 tests;
+- source-name accounting confirmed all 76 Phase 56 source-guard names remain exactly once, with zero removals or duplicates, plus one new ownership guard;
+- `npm run check` passed: 70 JavaScript files syntax-checked, all static relative imports resolved, and all 32 test files / 417 tests passed;
+- `git diff --check origin/main` passed with no output;
+- in-app browser QA passed Comfortable and Compact at 1280px, 840px, and 390px: exact card order, desktop two-column layout, narrower single-column stacking, valid/duplicate/invalid numeric entry behavior, comma-preserving pattern entry, converter placement/opening, rarity toggling/order, unresolved lookup visibility and zero-pixel first-pill alignment, manual search availability, and zero body/document horizontal overflow;
+- the only captured console error was the established validation message intentionally triggered by submitting `-1`; no unexpected module-load or runtime errors were observed;
 - CI and GitHub Pages were not run because implementation and publication remain separate.
