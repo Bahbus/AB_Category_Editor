@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 56 is merged on `origin/main` at `5a0d33a`. Phase 57 on `agent/phase-57-matching-rules-editor-extraction` moves the complete four-card matching-rule grid and its private rarity renderer from `src/ui/categoryEditor.js` into `src/ui/matchingRulesEditor.js`. `categoryEditor.js` now delegates through one narrow callback boundary while preserving card order, strict row-ID parsing and dedupe, lookup/search behavior, comma-preserving patterns, converter placement, rarity sequencing, validation, dirty state, description regeneration, accessibility, and responsive styling. All 76 Phase 56 source guards remain exactly once and one focused ownership guard was added. Local `npm run check` passes with 70 JavaScript files, 32 test files, and 417 tests. Browser QA passed both densities at desktop, 840px, and 390px. CI and Pages were not run.
+> **Current state:** Phase 57 merged through PR #97 at `291ad8db3cef2060a5a891963c9ee4103c2b4c58`. `src/ui/matchingRulesEditor.js` owns the complete four-card matching-rule grid, its private rarity renderer, and converter placement; `src/ui/categoryEditor.js` delegates through one narrow callback boundary. The post-merge review confirmed that the local Phase 57 tree and merged `main` were identical. Local `npm run check` passed with 70 JavaScript files, 32 test files, and 417 tests, and `git diff --check origin/main` passed with no output. GitHub post-merge Project verification and GitHub Pages deployment both succeeded for `291ad8d`. In-app browser QA was attempted in two fresh tabs during the post-merge review, but the webview did not attach; the successful Phase 57 implementation-time browser matrix remains historical evidence and is not a post-merge runtime result.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -807,6 +807,8 @@ Validation actually run:
 
 ## Phase 57 current implementation
 
+Phase 57 merged through PR #97 at `291ad8db3cef2060a5a891963c9ee4103c2b4c58`.
+
 - `src/ui/matchingRulesEditor.js` owns the existing `grid cols-2` composition for Allowed UI Category IDs, Allowed Item IDs, Allowed Item Name Patterns, and Allowed Rarities in that exact order.
 - The module owns its required row-ID parser/dedupe imports, structural pattern validation, list-editor composition, converter placement, rarity metadata/normalization, and the private rarity checkbox renderer. It receives only the category list, dirty callback, narrow rule-change callback, converter launcher, and established list-editor lookup dependencies.
 - `src/ui/categoryEditor.js` delegates the grid after Item Ordering and before Range Filters. It retains validation, optional auto-description, and sidebar refresh orchestration through the unchanged validation → description → list-render callback sequence.
@@ -822,3 +824,11 @@ Validation actually run:
 - in-app browser QA passed Comfortable and Compact at 1280px, 840px, and 390px: exact card order, desktop two-column layout, narrower single-column stacking, valid/duplicate/invalid numeric entry behavior, comma-preserving pattern entry, converter placement/opening, rarity toggling/order, unresolved lookup visibility and zero-pixel first-pill alignment, manual search availability, and zero body/document horizontal overflow;
 - the only captured console error was the established validation message intentionally triggered by submitting `-1`; no unexpected module-load or runtime errors were observed;
 - CI and GitHub Pages were not run because implementation and publication remain separate.
+
+Post-merge review evidence:
+
+- the local Phase 57 tree and merged `main` were identical;
+- `npm run check` passed with 70 JavaScript files, all static relative imports resolved, 32 test files, and 417 tests;
+- `git diff --check origin/main` passed with no output;
+- GitHub post-merge Project verification and GitHub Pages deployment both succeeded for `291ad8d`;
+- in-app browser QA was attempted in two fresh tabs, but the webview did not attach, so the post-merge review did not claim runtime QA passed. The successful browser matrix above is implementation-time Phase 57 evidence.

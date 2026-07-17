@@ -1246,6 +1246,8 @@ Validation actually run:
 
 The post-Phase-56 maintainability review confirmed that the 698-line `src/ui/categoryEditor.js` still mixed category-shell orchestration with a cohesive matching-rule leaf area.
 
+Phase 57 merged through PR #97 at `291ad8db3cef2060a5a891963c9ee4103c2b4c58`.
+
 Resolution on `agent/phase-57-matching-rules-editor-extraction`:
 
 - added `src/ui/matchingRulesEditor.js` as the focused owner of the existing Allowed UI Category IDs, Allowed Item IDs, Allowed Item Name Patterns, and Allowed Rarities grid;
@@ -1266,6 +1268,14 @@ Validation actually run:
 - the intentionally submitted invalid `-1` produced the established validation console message; no unexpected module-load or runtime errors were observed;
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+Post-merge review evidence:
+
+- the local Phase 57 tree and merged `main` were identical;
+- `npm run check` passed with 70 JavaScript files syntax-checked, all static relative imports resolved, and all 32 test files / 417 tests passed;
+- `git diff --check origin/main` passed with no output;
+- GitHub post-merge Project verification and GitHub Pages deployment both succeeded for `291ad8d`;
+- in-app browser QA was attempted in two fresh tabs, but the webview did not attach. This post-merge attempt did not produce runtime QA evidence; the successful browser matrix recorded above belongs to Phase 57 implementation time.
+
 # Current next step
 
-Review Phase 57 locally. Commit or publish only when separately requested.
+Phase 57.1 corrects the stale Regex → Item IDs ownership wording and refreshes the durable documentation to this verified post-merge baseline. Phase 55 remains on hold. Commit or publish only when separately requested.
