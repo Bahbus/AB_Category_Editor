@@ -9,8 +9,6 @@ import {
   decideCriterionChange,
   decideCriterionRemove,
   decideOrderedMove,
-  decideUniqueItemAdd,
-  decideItemRemove,
   listMutationFocusPlan
 } from '../src/itemOrdering.js';
 
@@ -108,17 +106,6 @@ test('criterion decisions enforce exclusivity, uniqueness, bounds, and no-ops', 
   assert.equal(decideCriterionRemove(two, 9).changed, false);
   assert.equal(decideOrderedMove(two, 0, -1).changed, false);
   assert.deepEqual(decideOrderedMove(two, 0, 1).value, [two[1], two[0]]);
-});
-
-test('custom-list decisions are atomic, unique, ordered, and boundary aware', () => {
-  const values = [7, 8];
-  assert.equal(decideUniqueItemAdd(values, 7).changed, false);
-  assert.equal(decideUniqueItemAdd(values, '9').changed, false);
-  assert.deepEqual(decideUniqueItemAdd(values, 9).value, [7, 8, 9]);
-  assert.equal(decideOrderedMove(values, 0, -1).changed, false);
-  assert.deepEqual(decideOrderedMove(values, 1, -1).value, [8, 7]);
-  assert.equal(decideItemRemove(values, 4).changed, false);
-  assert.deepEqual(decideItemRemove(values, 0).value, [8]);
 });
 
 test('list mutation focus plans prefer added, moved, next, and previous surviving positions', () => {

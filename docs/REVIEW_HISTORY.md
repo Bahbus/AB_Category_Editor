@@ -1213,6 +1213,35 @@ Validation actually run:
 - the ItemUICategory test list contained 25 pills and wrapped across multiple rows at every width while the action stayed aligned to the first row,
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+## Phase 56
+
+The post-Phase-54 maintenance review confirmed source-guard growth and two genuine test-only production exports:
+
+- `test/sourceChecks.test.mjs` had grown to 1,073 lines and 79 tests spanning unrelated architecture, UI, accessibility, styling, lookup, import/export, modal, and no-op contracts;
+- several regexes depended on exact line breaks even when statement order and ownership were the real contract;
+- `decideUniqueItemAdd(...)` and `decideItemRemove(...)` were imported only by `test/itemOrdering.test.mjs`; runtime custom ordering uses the reusable list editor instead;
+- `.button-compact` has no current markup consumer but is an intentional compact-text taxonomy role and is not an orphan.
+
+Resolution on `agent/phase-56-source-guardrail-maintenance`:
+
+- replaced the monolith with application/data-flow, UI/accessibility/focus/responsive, and lookup/import/export/no-op source suites plus a deterministic test-only repository source reader;
+- preserved 76 still-valuable source-guard names exactly once and relaxed only brittle formatting dependencies while keeping precise structural assertions;
+- retired the source assertion that inspected which module the direct import-summary tests import, because the DOM-free tests themselves prove that dependency boundary;
+- retired the duplicate sort-position implementation regex because direct validation tests prove grouping, stable ordering, finding identity, dedupe, and multi-group behavior;
+- replaced the lookup-chunk implementation regex with a direct multi-chunk behavior test that supplies an out-of-chunk stale row and proves the later owning chunk supplies the cached value;
+- removed `decideUniqueItemAdd(...)`, `decideItemRemove(...)`, their test imports, and the helper-only test; existing criterion coverage retains `decideOrderedMove(...)` boundary and movement behavior;
+- retained `.button-compact`, its compact-text documentation, and its formatting-tolerant taxonomy guard;
+- made no runtime UI, validation, import/export, lookup, dirty-state, focus, responsive CSS, preset, or dependency change.
+
+Validation actually run:
+
+- focused source-guard, item-ordering, and XIVAPI coverage passed all 102 tests;
+- source-name accounting confirmed 79 original names, 3 documented retirements, 76 surviving names, and zero duplicate, missing, or extra names;
+- `npm run check` passed: 69 JavaScript files syntax-checked, all static relative imports resolved, and all 32 test files / 416 tests passed;
+- `git diff --check origin/main` passed with no output;
+- browser QA was not required because the runtime diff contains only the two dead helper deletions;
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Review Phase 54 locally. Commit or publish only when separately requested.
+Review Phase 56 locally. Commit or publish only when separately requested.
