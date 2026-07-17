@@ -156,10 +156,16 @@ test('static fallback empty state matches startup guidance', () => {
 });
 
 test('range filter live edits use scheduled list rendering without full rerender', () => {
-  const source = read('src/ui/categoryEditor.js');
-  assert.match(source, /function createScheduledRenderList\(renderList\)/);
-  assert.match(source, /const scheduleRenderList = createScheduledRenderList\(renderList\)/);
-  assert.match(source, /rangeSliderControl\(filter\.label, obj, \(\) => \{[\s\S]*?scheduleRenderList\(\);[\s\S]*?\}, defaults\)/);
+  const source = read('src/ui/rangeStateFiltersEditor.js');
+  const categoryEditor = read('src/ui/categoryEditor.js');
+  assert.match(categoryEditor, /function createScheduledRenderList\(renderList\)/);
+  assert.match(categoryEditor, /const scheduleRenderList = createScheduledRenderList\(renderList\)/);
+  assert.match(source, /rangeSliderControl\(filter\.label, obj, afterRangeChange, defaults\)/);
+  const afterRangeChange = source.slice(source.indexOf('function afterRangeChange()'), source.indexOf('for (const filter of RANGE_FILTERS)'));
+  const rangeOrder = ['markDirty();', 'setDetailsSummary(ranges, rangeFiltersSummaryParts(rules));', "onFiltersChanged('range filter changed');", 'scheduleRenderList();']
+    .map(statement => afterRangeChange.indexOf(statement));
+  assert.ok(rangeOrder.every(index => index >= 0));
+  assert.deepEqual(rangeOrder, [...rangeOrder].sort((a, b) => a - b));
   const rangeBlock = source.match(/for \(const filter of RANGE_FILTERS\) \{(?<body>[\s\S]*?)\n  \}/)?.groups.body ?? '';
   assert.doesNotMatch(rangeBlock, /renderAll\(\)/);
 });
@@ -212,9 +218,14 @@ test('modal open and close keeps background app inert and aria-hidden only while
 });
 
 test('state filter changes schedule list rendering without full render', () => {
-  const source = read('src/ui/categoryEditor.js');
+  const source = read('src/ui/rangeStateFiltersEditor.js');
   const body = source.match(/function renderStateFilterCard\(filterName, obj\) \{(?<body>[\s\S]*?)\n    return box;/)?.groups.body ?? '';
-  assert.match(body, /scheduleRenderList\(\)/);
+  assert.match(body, /obj\.State = next;[\s\S]*?afterStateChange\(\);/);
+  const afterStateChange = source.slice(source.indexOf('function afterStateChange()'), source.indexOf('function renderStateFilterCard'));
+  const stateOrder = ['markDirty();', 'setDetailsSummary(states, stateFiltersSummaryParts(rules));', "onFiltersChanged('state filter changed');", 'scheduleRenderList();']
+    .map(statement => afterStateChange.indexOf(statement));
+  assert.ok(stateOrder.every(index => index >= 0));
+  assert.deepEqual(stateOrder, [...stateOrder].sort((a, b) => a - b));
   assert.doesNotMatch(body, /renderAll\(\)/);
 });
 

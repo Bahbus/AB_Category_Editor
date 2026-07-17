@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 58.1 is implemented locally on `agent/phase-58-1-color-control-synchronization` from merged Phase 58 baseline `2e29c2594b31dbdece671d2cc5a2145e37339fa2`. `src/ui/colorEditor.js` remains the complete Color-card owner and now refreshes every visible R/G/B byte input plus its private committed snapshot from `category.Color` during the shared visual update. The Phase 58 dependency boundary and separate Color versus Range/State scheduler instances remain unchanged. Local `npm run check` passed with 71 JavaScript files, 32 test files, and 418 tests, and `git diff --check origin/main` passed with no output. Local browser QA was attempted with two fresh in-app tabs and later retried with two additional fresh tabs, but none of the four webviews attached; the requested density/viewport and interactive Color checks were unavailable. CI and GitHub Pages were not run because implementation and publication remain separate.
+> **Current state:** Phase 59 is implemented locally on `agent/phase-59-range-state-filter-extraction` from freshly fetched merged Phase 58.1 `origin/main` at `22aceebc305f5de6583ccbee6d06c20f7e58579b`. `src/ui/rangeStateFiltersEditor.js` now owns the unchanged Range Filters and State Filters disclosure cards, private display-name maps, Range bounds/defaults and controls, State segmented controls, and local summary refreshes. `src/ui/categoryEditor.js` retains category validation, optional generated descriptions, card order, and the existing shared Range/State scheduled sidebar callback; Color still receives a distinct scheduler instance. Local `npm run check` passed with 72 JavaScript files, 32 test files, and 419 tests. In-app browser QA passed Comfortable and Compact at 1280px, 840px, and 390px with the established three-column/stacked layouts, zero horizontal overflow, Range/State summaries and interactions, accessible roles/labels, and focus continuity. CI and GitHub Pages were not run because implementation and publication remain separate.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -845,4 +845,22 @@ Validation actually run:
 - `npm run check` passed: 71 JavaScript files syntax-checked, all static relative imports resolved, and all 32 test files / 418 tests passed;
 - `git diff --check origin/main` passed with no output;
 - local browser QA was attempted with two fresh in-app tabs and later retried with two additional fresh tabs, but none of the four webviews attached, so Comfortable/Compact checks at 1280px, 840px, and 390px plus Hex-to-RGB, native-to-RGB, RGB-to-linked-controls, alpha preservation, invalid/equivalent input, stale-blur, focus, and horizontal-overflow checks were unavailable;
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
+## Phase 59 current implementation
+
+- `src/ui/rangeStateFiltersEditor.js` owns both unchanged disclosure cards, their private display-name maps and fallback formatting, Range defaults and width-aware bounds, Range Enabled/number/slider composition, State segmented controls, and local disclosure-summary refreshes.
+- The leaf receives only `cat.Rules` plus dirty, filter-change, and scheduled-render callbacks. It does not import application state, `categoryEditor.js`, or application orchestration.
+- `categoryEditor.js` retains category validation and optional generated-description work behind one narrow callback, retains the shared Range/State scheduler instance, and continues to create a separate Color scheduler with an independent pending flag.
+- Each live edit retains the established sequence: the existing control mutates its filter, the leaf marks dirty and refreshes the relevant local summary, the orchestrator refreshes category validation and optionally generates a description, then the leaf requests one scheduled sidebar render.
+- Item Ordering, matching rules, Range Filters, State Filters, and Advanced retain their exact order. The public filter-summary re-exports remain in `categoryEditor.js`.
+- Existing focused source guards were redirected to the new owner without renaming, and one new ownership/data-flow guard covers delegation, the leaf dependency boundary, scheduler separation, and card order.
+
+Validation actually run:
+
+- focused filter-scalar, form-control, description, validation, category-editor, summary, and three source-suite coverage passed all 197 tests;
+- `npm run check` passed: 72 JavaScript files syntax-checked, all static relative imports resolved, and all 32 test files / 419 tests passed;
+- `git diff --check origin/main` passed with no output;
+- in-app browser QA passed Comfortable and Compact at 1280px, 840px, and 390px: Range/State order and summaries, three-column desktop and single-column narrower layouts, Enabled/Min/slider edits, blank and invalid-value restoration, State segmented changes, labels/roles, focus retention, and zero body/document horizontal overflow;
+- a fresh-tab retry for a separate live Maximum commit did not attach, so Maximum edit behavior remains focused-test/source verified rather than runtime asserted;
 - CI and GitHub Pages were not run because implementation and publication remain separate.

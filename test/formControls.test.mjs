@@ -278,7 +278,7 @@ test('switch markup relies on native checked state instead of mirrored aria-chec
 });
 
 test('segmented state filter legends are accessible without repeating visible headings', () => {
-  const categoryEditorSource = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
+  const categoryEditorSource = fs.readFileSync(new URL('../src/ui/rangeStateFiltersEditor.js', import.meta.url), 'utf8');
   const formControlsSource = fs.readFileSync(new URL('../src/ui/formControls.js', import.meta.url), 'utf8');
   assert.match(categoryEditorSource, /segmentedControl\(displayFilterName\(filterName\)/);
   assert.match(formControlsSource, /<legend class="sr-only">\$\{escapeHtml\(label\)\}<\/legend>/);
