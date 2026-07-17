@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 57 merged through PR #97 at `291ad8db3cef2060a5a891963c9ee4103c2b4c58`. `src/ui/matchingRulesEditor.js` owns the complete four-card matching-rule grid, its private rarity renderer, and converter placement; `src/ui/categoryEditor.js` delegates through one narrow callback boundary. The post-merge review confirmed that the local Phase 57 tree and merged `main` were identical. Local `npm run check` passed with 70 JavaScript files, 32 test files, and 417 tests, and `git diff --check origin/main` passed with no output. GitHub post-merge Project verification and GitHub Pages deployment both succeeded for `291ad8d`. In-app browser QA was attempted in two fresh tabs during the post-merge review, but the webview did not attach; the successful Phase 57 implementation-time browser matrix remains historical evidence and is not a post-merge runtime result.
+> **Current state:** Phase 58 is implemented locally on `agent/phase-58-color-editor-extraction` from merged Phase 57.1 baseline `d531186c6677cfbedb9310d35639eba843edc935`. `src/ui/colorEditor.js` now owns the complete Color card and RGB normalization helper, while `src/ui/categoryEditor.js` retains scheduler creation and appends the returned card after Basics. Color and Range/State events receive separate scheduler instances. Local `npm run check` passed with 71 JavaScript files, 32 test files, and 418 tests, and `git diff --check origin/main` passed with no output. Final-build in-app browser QA was attempted with two fresh local tabs, but neither webview attached; CI and GitHub Pages were not run because implementation and publication remain separate.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -602,10 +602,7 @@ Validation actually run:
 This remains the largest maintainability hotspot. It currently owns:
 
 - basics,
-- color,
 - generated descriptions,
-- numeric/name-pattern list editors,
-- rarities,
 - range filters,
 - state filters,
 - raw category JSON,
@@ -617,8 +614,6 @@ Do not refactor it merely for aesthetics. Split it when future feature work woul
 Possible future modules:
 
 - `basicEditor.js`
-- `colorEditor.js`
-- `ruleListEditors.js`
 - `rangeFiltersEditor.js`
 - `stateFiltersEditor.js`
 - `rawCategoryEditor.js`
@@ -832,3 +827,20 @@ Post-merge review evidence:
 - `git diff --check origin/main` passed with no output;
 - GitHub post-merge Project verification and GitHub Pages deployment both succeeded for `291ad8d`;
 - in-app browser QA was attempted in two fresh tabs, but the webview did not attach, so the post-merge review did not claim runtime QA passed. The successful browser matrix above is implementation-time Phase 57 evidence.
+
+## Phase 58 current implementation
+
+- `src/ui/colorEditor.js` owns the complete existing Color card: native RGB picker, Hex RGBA field and validity state, R/G/B number controls, alpha slider/output, linked-control synchronization, committed display snapshots, and exported `normalizeRgbInputValue(...)`.
+- `src/ui/categoryEditor.js` imports `renderColorEditor(...)`, creates a fresh color-specific scheduled sidebar callback, and appends the returned card after Basics in the unchanged top-grid order. Its existing Range/State scheduler is a separate instance, so Color and filter events cannot share a pending flag.
+- The leaf receives only the category, dirty callbacks, and scheduled callback. It does not import category-editor, application-state, or application-orchestration modules. The scheduler implementation remains owned once by `categoryEditor.js`.
+- Blank/non-finite RGB restore, finite round/clamp, displayed no-ops, higher-precision native/alpha no-ops, invalid/equivalent/changed Hex decisions, immediate Hex rendering, scheduled RGB/native/alpha rendering, linked snapshots, and Enter/change/blur single-commit sequencing are unchanged.
+- Existing direct normalization and source guards now read the new owner. A focused application/data-flow guard proves Color delegation, absence of color-control implementation from `categoryEditor.js`, Basics-before-Color placement, the narrow leaf dependency boundary, and separate Color versus Range/State scheduler instances.
+- `src/ui/categoryEditor.js` is 469 lines after the extraction. Its remaining cohesive pressure points are Basics/generated-description composition, Range filters, State filters, selected-category Raw JSON, validation UI, and category structural actions.
+- No CSS, visual design, color quantization, data shape, reusable form control, matching-rule, Item Ordering, preset, dependency, localization, import/export, selection, focus, or non-color editor behavior changed.
+
+Validation actually run:
+
+- `npm run check` passed: 71 JavaScript files syntax-checked, all static relative imports resolved, and all 32 test files / 418 tests passed;
+- `git diff --check origin/main` passed with no output;
+- final-build in-app browser QA was attempted with two fresh local tabs, but neither webview attached, so Comfortable/Compact checks at 1280px, 840px, and 390px and live synchronization/no-op checks were unavailable;
+- CI and GitHub Pages were not run because implementation and publication remain separate.

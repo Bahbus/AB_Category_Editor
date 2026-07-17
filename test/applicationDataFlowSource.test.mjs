@@ -40,6 +40,23 @@ test('category editor delegates matching-rule composition to its focused module'
   assert.ok(itemOrderingIndex < matchingRulesIndex && matchingRulesIndex < rangesIndex);
 });
 
+test('category editor delegates Color composition while preserving top-grid order and independent scheduling', () => {
+  const categoryEditor = read('src/ui/categoryEditor.js');
+  const colorEditor = read('src/ui/colorEditor.js');
+
+  assert.match(categoryEditor, /import \{ renderColorEditor \} from ['"]\.\/colorEditor\.js['"];/);
+  assert.match(categoryEditor, /const colorCard = renderColorEditor\(cat, \{\s*markDirty,\s*markDirtyAndRenderList,\s*scheduleRenderList: createScheduledRenderList\(renderList\)\s*\}\);/);
+  assert.match(categoryEditor, /topEditorGrid\.append\(basics, colorCard\)/);
+  assert.doesNotMatch(categoryEditor, /colorToHex|colorToHexRGBA|hexToRgb01|hexToRgba01|rgbaCss|componentTo255|canonicalHexRgba|decideHexRgbaCommit|decideRgbCommit|decideAlphaCommit|renderColorSection|color-native-input|hex-color-input|alpha-slider/);
+  assert.match(colorEditor, /export function renderColorEditor\(category, deps = \{\}\)/);
+  assert.match(colorEditor, /export function normalizeRgbInputValue\(value, committedValue\)/);
+  assert.doesNotMatch(colorEditor, /categoryEditor\.js|createScheduledRenderList|\brenderList\s*[=,}]|getCategories|getSelectedIndex|renderAll/);
+
+  const filterSchedule = categoryEditor.indexOf('const scheduleRenderList = createScheduledRenderList(renderList)');
+  const colorSchedule = categoryEditor.indexOf('scheduleRenderList: createScheduledRenderList(renderList)');
+  assert.ok(filterSchedule >= 0 && colorSchedule > filterSchedule, 'Color and Range/State filters must receive distinct scheduler instances');
+});
+
 test('range filter key references are imported or locally declared', () => {
   for (const file of sourceFiles('src')) {
     const source = read(file);

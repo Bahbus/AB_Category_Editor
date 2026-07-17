@@ -53,6 +53,7 @@ Primary layers:
 13. **UI rendering**
    - `src/ui/categoryList.js`
    - `src/ui/categoryEditor.js`
+   - `src/ui/colorEditor.js`
    - `src/ui/matchingRulesEditor.js`
    - `src/ui/listEditor.js`
    - `src/ui/formControls.js`
@@ -477,13 +478,16 @@ Important behavior:
 It currently owns:
 
 - basic fields,
-- color editor,
 - generated-description UI,
 - range filters,
 - state filters,
 - raw category JSON,
 - validation UI,
 - actions such as duplicate/delete/move.
+
+`src/ui/colorEditor.js` is the focused leaf owner for the complete Color card. It returns the existing `card color-card` composition containing the native RGB picker, Hex RGBA field, R/G/B byte controls, and alpha slider/output. It owns color conversion/decision imports, validity presentation, linked-control synchronization, committed display snapshots, and `normalizeRgbInputValue(...)`.
+
+`categoryEditor.js` passes only the selected category, dirty callbacks, and a fresh scheduled sidebar callback to the Color leaf. The shared `createScheduledRenderList(...)` implementation remains in `categoryEditor.js`: one instance is retained for Range/State filters and a distinct instance is passed to Color, preserving independent pending flags. The leaf does not import `categoryEditor.js`, application state, or application orchestration.
 
 `src/ui/matchingRulesEditor.js` is the focused leaf owner for the matching-rule grid. It returns the existing two-column grid containing, in order, Allowed UI Category IDs, Allowed Item IDs, Allowed Item Name Patterns with its converter action, and Allowed Rarities. It owns the strict typed row-ID parsers and normalized dedupe wiring, Item and ItemUICategory list lookup composition, structural pattern validation and comma-preserving input configuration, converter placement, and the private rarity checkbox renderer.
 
@@ -492,6 +496,8 @@ It currently owns:
 Selected-category Raw JSON is parsed and shape-normalized as a local candidate before it replaces the live selected category. JSON-semantically identical candidates retain the existing object identity, selection, and dirty state. Parse or shape failures leave the current category and dirty state unchanged.
 
 The color editor treats its 8-bit controls as displayed representations rather than lossless model values. Hex RGBA, native RGB, and alpha commits compare canonical input against refreshed displayed snapshots before parsing; same-display events therefore preserve higher-precision imported components. Every real color change synchronizes the linked controls and snapshots before later `change`/`blur` events can fire.
+
+RGB byte controls reject blank and non-finite live input without mutation, restore the last committed byte on blur, and round/clamp deliberate finite input to `0..255`. Displayed no-ops do not dirty or schedule. Native RGB and alpha real changes mark dirty and use the Color-specific scheduled callback; Hex RGBA real changes retain the established immediate dirty-and-render path. Invalid Hex remains visible and reported, equivalent canonical input is restored as a no-op, and Enter/change/blur sequencing cannot commit one edit twice.
 
 Further splits should remain behavior-preserving ownership extractions driven by demonstrated friction.
 
@@ -698,6 +704,8 @@ Phase 56 replaces the single 1,073-line / 79-test source-check file with three o
 
 Phase 57 moved the complete matching-rule grid and private rarity renderer into `src/ui/matchingRulesEditor.js`, including strict typed row-ID and dedupe wiring, lookup/search composition, comma-preserving pattern configuration, converter placement, and rarity normalization. `categoryEditor.js` supplies the converter launcher and retains category-level validation, optional generated-description, and sidebar-refresh orchestration through one narrow callback. Phase 57 merged through PR #97 at `291ad8db3cef2060a5a891963c9ee4103c2b4c58`. Its implementation-time browser QA passed both densities at 1280px, 840px, and 390px. The post-merge review then confirmed an identical local/merged tree, passed `npm run check` with 70 JavaScript files, 32 test files, and 417 tests, and passed `git diff --check origin/main` with no output. GitHub post-merge Project verification and Pages deployment succeeded for `291ad8d`. The post-merge in-app browser attempt used two fresh tabs, but the webview did not attach, so no post-merge runtime pass is claimed.
 
+Phase 58 moves the complete Color card and `normalizeRgbInputValue(...)` into `src/ui/colorEditor.js`. `categoryEditor.js` retains the single scheduler implementation, creates a fresh Color-specific instance for the leaf, and retains a separate instance for Range/State filters. The local `npm run check` run syntax-checked 71 files, resolved all static relative imports, and passed all 32 test files / 418 tests; `git diff --check origin/main` passed with no output. Final-build in-app browser QA was attempted with two fresh local tabs, but neither webview attached, so the Comfortable/Compact 1280px/840px/390px matrix and live Color synchronization/no-op checks remain unavailable. CI and Pages were not run because implementation and publication remain separate.
+
 Testing styles:
 
 - direct unit tests for pure logic,
@@ -711,17 +719,16 @@ Use source checks carefully; avoid brittle exact-format matching when a behavior
 
 ### Large category editor
 
-`src/ui/categoryEditor.js` is the biggest maintainability hotspot.
+`src/ui/categoryEditor.js` remains the biggest maintainability hotspot, reduced to 469 lines by the Phase 57 matching-rule and Phase 58 Color extractions.
 
 Possible future split:
 
 - `basicEditor.js`
-- `colorEditor.js`
 - `rangeFiltersEditor.js`
 - `stateFiltersEditor.js`
 - `rawCategoryEditor.js`
 
-Phase 57 completed the matching-rule split through `src/ui/matchingRulesEditor.js`; future work should preserve its narrow dependency and callback boundary rather than moving application orchestration into the leaf module.
+Phase 57 completed the matching-rule split through `src/ui/matchingRulesEditor.js`, and Phase 58 completed the Color split through `src/ui/colorEditor.js`. Future work should preserve both narrow dependency/callback boundaries rather than moving application orchestration into either leaf. Remaining pressure is concentrated in Basics/generated descriptions, Range/State filters, Raw JSON, validation UI, and category structural actions.
 
 ### Source-check growth
 

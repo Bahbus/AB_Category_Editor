@@ -400,7 +400,7 @@ test('regex converter action is composed into the name-pattern list row', () => 
 });
 
 test('RGB blur restores committed values and only dirties actual component changes', () => {
-  const source = read('src/ui/categoryEditor.js');
+  const source = read('src/ui/colorEditor.js');
   const rgbBlock = source.match(/function makeRgbaNumber\(label, getValue, setValue\) \{(?<body>[\s\S]*?)\n  \}/)?.groups.body ?? '';
 
   assert.match(source, /export function normalizeRgbInputValue/);
