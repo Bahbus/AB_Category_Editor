@@ -36,6 +36,7 @@ export function renderColorEditor(category, deps = {}) {
 
   const nums = document.createElement('div');
   nums.className = 'grid cols-3 rgb-grid';
+  const rgbControls = [];
 
   function makeRgbaNumber(label, getValue, setValue) {
     const wrap = document.createElement('div');
@@ -43,6 +44,11 @@ export function renderColorEditor(category, deps = {}) {
     wrap.innerHTML = `<label for="${id}">${label}</label><input id="${id}" type="number" min="0" max="255" step="1" value="${escapeHtml(getValue())}">`;
     const input = wrap.querySelector('input');
     let lastCommitted = getValue();
+    function synchronizeFromColor() {
+      const displayedValue = getValue();
+      input.value = String(displayedValue);
+      lastCommitted = displayedValue;
+    }
     function commitFinite(rawValue, options = {}) {
       if (String(rawValue).trim() === '' || !Number.isFinite(Number(rawValue))) return false;
       const n = normalizeRgbInputValue(rawValue, lastCommitted);
@@ -66,6 +72,7 @@ export function renderColorEditor(category, deps = {}) {
     input.addEventListener('keydown', e => {
       if (e.key === 'Enter') e.currentTarget.blur();
     });
+    rgbControls.push({ synchronizeFromColor });
     return wrap;
   }
 
@@ -107,6 +114,7 @@ export function renderColorEditor(category, deps = {}) {
     hexInput.value = hex;
     alphaSlider.value = String(a255);
     alphaValue.textContent = String(a255);
+    for (const control of rgbControls) control.synchronizeFromColor();
     committedHex = hex;
     committedRgb = picker.value.toUpperCase();
     committedAlpha = a255;

@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 58 is implemented locally on `agent/phase-58-color-editor-extraction` from merged Phase 57.1 baseline `d531186c6677cfbedb9310d35639eba843edc935`. `src/ui/colorEditor.js` now owns the complete Color card and RGB normalization helper, while `src/ui/categoryEditor.js` retains scheduler creation and appends the returned card after Basics. Color and Range/State events receive separate scheduler instances. Local `npm run check` passed with 71 JavaScript files, 32 test files, and 418 tests, and `git diff --check origin/main` passed with no output. Final-build in-app browser QA was attempted with two fresh local tabs, but neither webview attached; CI and GitHub Pages were not run because implementation and publication remain separate.
+> **Current state:** Phase 58.1 is implemented locally on `agent/phase-58-1-color-control-synchronization` from merged Phase 58 baseline `2e29c2594b31dbdece671d2cc5a2145e37339fa2`. `src/ui/colorEditor.js` remains the complete Color-card owner and now refreshes every visible R/G/B byte input plus its private committed snapshot from `category.Color` during the shared visual update. The Phase 58 dependency boundary and separate Color versus Range/State scheduler instances remain unchanged. Local `npm run check` passed with 71 JavaScript files, 32 test files, and 418 tests, and `git diff --check origin/main` passed with no output. Local browser QA was attempted with two fresh in-app tabs and later retried with two additional fresh tabs, but none of the four webviews attached; the requested density/viewport and interactive Color checks were unavailable. CI and GitHub Pages were not run because implementation and publication remain separate.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -828,13 +828,15 @@ Post-merge review evidence:
 - GitHub post-merge Project verification and GitHub Pages deployment both succeeded for `291ad8d`;
 - in-app browser QA was attempted in two fresh tabs, but the webview did not attach, so the post-merge review did not claim runtime QA passed. The successful browser matrix above is implementation-time Phase 57 evidence.
 
-## Phase 58 current implementation
+## Phase 58 and Phase 58.1 current implementation
 
-- `src/ui/colorEditor.js` owns the complete existing Color card: native RGB picker, Hex RGBA field and validity state, R/G/B number controls, alpha slider/output, linked-control synchronization, committed display snapshots, and exported `normalizeRgbInputValue(...)`.
+- Phase 58 moved the complete existing Color card and exported `normalizeRgbInputValue(...)` into `src/ui/colorEditor.js`, but its shared visual refresh updated only the picker, Hex RGBA, alpha, preview, and their committed display snapshots. Each R/G/B number control retained an isolated `lastCommitted` closure, so the merged deployment could leave stale byte fields visible after a Hex or native-picker commit.
+- Post-merge browser review reproduced the defect from 128/255/255: committing `#11223344` updated the picker, preview, alpha, and sidebar accent while R/G/B remained 128/255/255; focusing stale R and then G unintentionally rewrote the result to `#80223344`.
+- Phase 58.1 gives each RGB control a private synchronization hook that rewrites its displayed byte and local committed snapshot from `category.Color`. The existing `updateColorVisuals()` calls all three hooks alongside picker, Hex RGBA, alpha, preview, and shared snapshot refreshes, so Hex, native-picker, RGB, and alpha real commits all converge on one complete linked-control update.
 - `src/ui/categoryEditor.js` imports `renderColorEditor(...)`, creates a fresh color-specific scheduled sidebar callback, and appends the returned card after Basics in the unchanged top-grid order. Its existing Range/State scheduler is a separate instance, so Color and filter events cannot share a pending flag.
 - The leaf receives only the category, dirty callbacks, and scheduled callback. It does not import category-editor, application-state, or application-orchestration modules. The scheduler implementation remains owned once by `categoryEditor.js`.
-- Blank/non-finite RGB restore, finite round/clamp, displayed no-ops, higher-precision native/alpha no-ops, invalid/equivalent/changed Hex decisions, immediate Hex rendering, scheduled RGB/native/alpha rendering, linked snapshots, and Enter/change/blur single-commit sequencing are unchanged.
-- Existing direct normalization and source guards now read the new owner. A focused application/data-flow guard proves Color delegation, absence of color-control implementation from `categoryEditor.js`, Basics-before-Color placement, the narrow leaf dependency boundary, and separate Color versus Range/State scheduler instances.
+- Blank/non-finite RGB restore, finite round/clamp, displayed no-ops, higher-precision native/alpha no-ops, invalid/equivalent/changed Hex decisions, immediate Hex rendering, scheduled RGB/native/alpha rendering, and Enter/change/blur single-commit sequencing remain unchanged. Synchronization performs no dirty call, sidebar render, scheduler call, or focus change.
+- Direct normalization and source guards read the Color owner. Focused guards prove the RGB display/baseline refresh, absence of synchronization side effects, Color delegation, absence of color-control implementation from `categoryEditor.js`, Basics-before-Color placement, the narrow leaf dependency boundary, and separate Color versus Range/State scheduler instances.
 - `src/ui/categoryEditor.js` is 469 lines after the extraction. Its remaining cohesive pressure points are Basics/generated-description composition, Range filters, State filters, selected-category Raw JSON, validation UI, and category structural actions.
 - No CSS, visual design, color quantization, data shape, reusable form control, matching-rule, Item Ordering, preset, dependency, localization, import/export, selection, focus, or non-color editor behavior changed.
 
@@ -842,5 +844,5 @@ Validation actually run:
 
 - `npm run check` passed: 71 JavaScript files syntax-checked, all static relative imports resolved, and all 32 test files / 418 tests passed;
 - `git diff --check origin/main` passed with no output;
-- final-build in-app browser QA was attempted with two fresh local tabs, but neither webview attached, so Comfortable/Compact checks at 1280px, 840px, and 390px and live synchronization/no-op checks were unavailable;
+- local browser QA was attempted with two fresh in-app tabs and later retried with two additional fresh tabs, but none of the four webviews attached, so Comfortable/Compact checks at 1280px, 840px, and 390px plus Hex-to-RGB, native-to-RGB, RGB-to-linked-controls, alpha preservation, invalid/equivalent input, stale-blur, focus, and horizontal-overflow checks were unavailable;
 - CI and GitHub Pages were not run because implementation and publication remain separate.

@@ -405,10 +405,13 @@ test('RGB blur restores committed values and only dirties actual component chang
 
   assert.match(source, /export function normalizeRgbInputValue/);
   assert.match(rgbBlock, /let lastCommitted = getValue\(\);/);
+  assert.match(rgbBlock, /function synchronizeFromColor\(\) \{[\s\S]*?input\.value = String\(displayedValue\);[\s\S]*?lastCommitted = displayedValue;[\s\S]*?\}/);
+  assert.match(rgbBlock, /rgbControls\.push\(\{ synchronizeFromColor \}\);/);
   assert.match(rgbBlock, /if \(getValue\(\) === n\) return false;/);
   assert.match(rgbBlock, /const n = normalizeRgbInputValue\(e\.target\.value, lastCommitted\);/);
   assert.match(rgbBlock, /e\.target\.value = String\(n\);/);
   assert.match(rgbBlock, /markDirty\(\);\s*scheduleRenderList\(\);/);
+  assert.match(source, /function updateColorVisuals\(\) \{[\s\S]*?for \(const control of rgbControls\) control\.synchronizeFromColor\(\);[\s\S]*?committedHex = hex;/);
 });
 
 test('preferences tabs support arrow-key navigation and roving tabindex', () => {
