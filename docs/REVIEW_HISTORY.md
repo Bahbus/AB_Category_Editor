@@ -1276,6 +1276,35 @@ Post-merge review evidence:
 - GitHub post-merge Project verification and GitHub Pages deployment both succeeded for `291ad8d`;
 - in-app browser QA was attempted in two fresh tabs, but the webview did not attach. This post-merge attempt did not produce runtime QA evidence; the successful browser matrix recorded above belongs to Phase 57 implementation time.
 
+## Phase 57.1
+
+Phase 57.1 merged through PR #98 at `d531186c6677cfbedb9310d35639eba843edc935`.
+
+- corrected durable Regex → Item IDs ownership wording so `matchingRulesEditor.js` owns converter placement while `categoryEditor.js` supplies the launcher callback;
+- refreshed all three project documents to the verified Phase 57 post-merge baseline;
+- made no runtime source, CSS, data, test, dependency, or behavior change.
+
+## Phase 58
+
+The post-Phase-57.1 review confirmed that the approximately 176-line Color card, its color-only imports, normalization helper, and source guards were the next cohesive ownership boundary in the 649-line category orchestrator.
+
+Resolution on `agent/phase-58-color-editor-extraction`:
+
+- added `src/ui/colorEditor.js` as the focused owner of the complete existing Color card, native RGB picker, Hex RGBA validity/commit behavior, R/G/B byte controls, alpha slider/output, linked-control synchronization, committed display snapshots, and exported `normalizeRgbInputValue(...)`;
+- moved color-only imports to the leaf and redirected direct normalization/source coverage to the actual owner;
+- made `categoryEditor.js` create and pass a fresh Color-specific scheduled sidebar callback while retaining its separate existing Range/State scheduler instance, preserving independent pending flags without duplicating the scheduler implementation;
+- retained the exact Basics-then-Color top-grid order, markup/classes, labels, accessible names and associations, native input types, ranges/steps, no-op precision, invalid/restore behavior, immediate Hex rendering, scheduled RGB/native/alpha rendering, and single-commit Enter/change/blur sequencing;
+- added a focused architecture/source guard proving category-level delegation, absence of color-control implementation from the orchestrator, the narrow leaf boundary, independent scheduling, and Basics-before-Color placement;
+- reduced `src/ui/categoryEditor.js` from 649 to 469 lines. Remaining pressure points are Basics/generated descriptions, Range/State filters, selected-category Raw JSON, validation UI, and category structural actions;
+- made no CSS, visual design, color quantization, data-shape, form-control, matching-rule, Item Ordering, preset, dependency, localization, import/export, selection, focus, or non-color behavior change.
+
+Validation actually run:
+
+- `npm run check` passed: 71 JavaScript files syntax-checked, all static relative imports resolved, and all 32 test files / 418 tests passed;
+- `git diff --check origin/main` passed with no output;
+- final-build in-app browser QA was attempted with two fresh local tabs, but neither webview attached. Comfortable and Compact checks at 1280px, 840px, and 390px plus live Color synchronization/no-op checks were unavailable;
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Phase 57.1 corrects the stale Regex → Item IDs ownership wording and refreshes the durable documentation to this verified post-merge baseline. Phase 55 remains on hold. Commit or publish only when separately requested.
+Phase 58 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.

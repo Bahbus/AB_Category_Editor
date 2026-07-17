@@ -166,15 +166,18 @@ test('category editor uses shared range defaults and advanced stable summary pat
 });
 
 test('color editor schedules high-frequency sidebar renders and keeps immediate hex commits', () => {
-  const source = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
-  assert.match(source, /function createScheduledRenderList\(renderList\)/);
-  assert.match(source, /const scheduleRenderList = createScheduledRenderList\(renderList\)/);
+  const source = fs.readFileSync(new URL('../src/ui/colorEditor.js', import.meta.url), 'utf8');
+  const categoryEditor = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
+  assert.match(categoryEditor, /function createScheduledRenderList\(renderList\)/);
+  assert.match(categoryEditor, /scheduleRenderList: createScheduledRenderList\(renderList\)/);
+  assert.match(source, /function commitFinite\(rawValue, options = \{\}\) \{[\s\S]*?String\(rawValue\)\.trim\(\) === ''[\s\S]*?!Number\.isFinite\(Number\(rawValue\)\)[\s\S]*?lastCommitted = n;[\s\S]*?if \(getValue\(\) === n\) return false;[\s\S]*?updateColorVisuals\(\);[\s\S]*?markDirty\(\);[\s\S]*?scheduleRenderList\(\);/);
+  assert.match(source, /input\.onblur = e => \{[\s\S]*?normalizeRgbInputValue\(e\.target\.value, lastCommitted\)[\s\S]*?e\.target\.value = String\(n\);[\s\S]*?commitFinite\(n, \{ writeBack: true \}\);/);
   assert.match(source, /picker\.oninput = e => \{[\s\S]*?markDirty\(\);[\s\S]*?scheduleRenderList\(\);[\s\S]*?\};/);
   assert.match(source, /alphaSlider\.oninput = e => \{[\s\S]*?markDirty\(\);[\s\S]*?scheduleRenderList\(\);[\s\S]*?\};/);
   assert.match(source, /function applyHexInput\(\) \{[\s\S]*?markDirtyAndRenderList\(\);[\s\S]*?return true;/);
-  assert.match(source, /let committedHex = canonicalHexRgba\(colorToHexRGBA\(cat\.Color\)\)/);
-  assert.match(source, /let committedRgb = colorToHex\(cat\.Color\)\.toUpperCase\(\)/);
-  assert.match(source, /let committedAlpha = componentTo255\(cat\.Color\.W\)/);
+  assert.match(source, /let committedHex = canonicalHexRgba\(colorToHexRGBA\(category\.Color\)\)/);
+  assert.match(source, /let committedRgb = colorToHex\(category\.Color\)\.toUpperCase\(\)/);
+  assert.match(source, /let committedAlpha = componentTo255\(category\.Color\.W\)/);
   assert.match(source, /function updateColorVisuals\(\) \{[\s\S]*?committedHex = hex;[\s\S]*?committedRgb = picker\.value\.toUpperCase\(\);[\s\S]*?committedAlpha = a255;/);
   assert.match(source, /picker\.oninput = e => \{[\s\S]*?decideRgbCommit\(e\.target\.value, committedRgb\)[\s\S]*?status !== 'valid-changed'[\s\S]*?hexToRgb01\(decision\.canonical\)/);
   assert.match(source, /function applyHexInput\(\) \{[\s\S]*?decideHexRgbaCommit\(hexInput\.value, committedHex\)[\s\S]*?status === 'invalid'[\s\S]*?status === 'valid-no-change'[\s\S]*?hexToRgba01\(decision\.canonical\)/);

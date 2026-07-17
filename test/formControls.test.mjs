@@ -297,7 +297,7 @@ test('text controls can refresh validation during input', () => {
 
 test('number controls commit finite input events without committing empty partial values', () => {
   const formControlsSource = fs.readFileSync(new URL('../src/ui/formControls.js', import.meta.url), 'utf8');
-  const categoryEditorSource = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
+  const colorEditorSource = fs.readFileSync(new URL('../src/ui/colorEditor.js', import.meta.url), 'utf8');
   assert.match(formControlsSource, /input\.oninput = e =>/);
   assert.match(formControlsSource, /const input = wrap\.querySelector\('input'\);[\s\S]*?input\.value = preserveStoredDisplay \? numberInputStoredDisplayValue\(value\) : numberInputDisplayValue\(value, input\.value\);/);
   assert.match(formControlsSource, /createNumberCommitState\(value, input\.value\)/);
@@ -306,7 +306,7 @@ test('number controls commit finite input events without committing empty partia
   assert.match(formControlsSource, /function restoreCommittedValue\(\) \{[\s\S]*?numberInputStoredDisplayValue\(committed\.jsonValue\)[\s\S]*?numberInputDisplayValue\(committed\.jsonValue, input\.value\);/);
   assert.doesNotMatch(formControlsSource, /Number\(value\) \|\| 0/);
   assert.match(formControlsSource, /minNumber\.oninput = \(\) => commitFiniteNumberInput/);
-  assert.match(categoryEditorSource, /input\.oninput = e =>/);
+  assert.match(colorEditorSource, /input\.oninput = e =>/);
 });
 
 test('hidden range validation keeps hidden display precedence', () => {
