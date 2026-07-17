@@ -228,11 +228,3 @@ export function decideOrderedMove(values, index, offset) {
   [next[index], next[target]] = [next[target], next[index]];
   return decision(next, true);
 }
-export function decideUniqueItemAdd(values, itemId) {
-  if (!Array.isArray(values) || !isUnsignedIntegerScalar(itemId) || values.includes(itemId)) return decision(values, false);
-  return decision([...values, itemId], true);
-}
-export function decideItemRemove(values, index) {
-  if (!Array.isArray(values) || index < 0 || index >= values.length) return decision(values, false);
-  return decision(values.filter((_, position) => position !== index), true);
-}

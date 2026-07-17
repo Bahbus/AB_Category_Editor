@@ -75,9 +75,12 @@ Primary layers:
 
 19. **Tests and guardrails**
    - `test/*.test.mjs`
+   - `test/applicationDataFlowSource.test.mjs`
+   - `test/uiAccessibilitySource.test.mjs`
+   - `test/lookupImportExportSource.test.mjs`
+   - `testSupport/sourceFiles.mjs`
    - `scripts/check-javascript-syntax.mjs`
    - `scripts/check-imports.mjs`
-   - source checks in `test/sourceChecks.test.mjs`
 
 ---
 
@@ -691,6 +694,8 @@ Phase 53.1 adds direct focus-plan tests and focused source guards for matched 38
 
 Phase 54 adds normal-importer regression coverage for the 55-category advanced preset's seven corrected descriptions and focused CSS/source coverage for density-aware first-row lookup centering. A decoded recursive comparison against `origin/main` is the semantic authority for the opaque advanced payload; it reports only category Description paths 0, 8, 9, 10, 17, 18, and 46, while the basic payload remains byte-for-byte identical. Its local `npm run check` run syntax-checked 66 files, resolved all static relative imports, and passed all 30 test files / 419 tests; `git diff --check origin/main` passed. In-app browser QA verified the descriptions plus unresolved-only Item and ItemUICategory actions, zero center offset, 30px/26px targets, multi-row first-row alignment, reserved space, and zero overflow in both densities at 1280px/840px/390px. CI and Pages were not run because publication remains separate.
 
+Phase 56 replaces the single 1,073-line / 79-test source-check file with three ownership-oriented suites: application/data-flow architecture, UI/accessibility/focus/responsive styling, and lookup/import/export/no-op wiring. `testSupport/sourceFiles.mjs` centralizes deterministic repository-root reads and recursive JavaScript discovery outside Node's automatic `test/` discovery. Seventy-six surviving source-guard names remain exactly once. The retired import-helper and duplicate-sort source assertions are covered by existing direct helper/validation behavior tests; the retired lookup-chunk regex is replaced by a direct multi-chunk `fetchLookupBatch(...)` test. Whitespace-sensitive adjacency checks now tolerate harmless formatting while retaining exact structural contracts. `decideUniqueItemAdd(...)` and `decideItemRemove(...)` are removed from `src/itemOrdering.js` because the reusable list editor owns runtime custom-order add/remove behavior and no caller consumes those exports. `.button-compact` remains the documented compact-text taxonomy role and retains a source guard. The local `npm run check` run syntax-checked 69 files, resolved all static relative imports, and passed all 32 test files / 416 tests; focused coverage passed 102 tests, source-name accounting passed, and `git diff --check origin/main` passed. Browser QA was not required because no runtime behavior changed; CI and Pages were not run because publication remains separate.
+
 Testing styles:
 
 - direct unit tests for pure logic,
@@ -717,7 +722,7 @@ Possible future split:
 
 ### Source-check growth
 
-As source checks accumulate, periodically review whether:
+Phase 56 established three responsibility-owned source suites plus a shared source-reading helper. As source checks accumulate, keep ownership within those suites and periodically review whether:
 
 - the behavior can now be tested directly,
 - regex checks overfit whitespace or exact implementation,

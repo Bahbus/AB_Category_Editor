@@ -238,3 +238,46 @@ test('fetchLookupBatch falls back from mixed batch sentinel failures to single-i
   assert.equal(requestedUrls.length, 2);
   assert.equal(requestedUrls.some(url => url.includes('/sheet/Item/2?')), true);
 });
+
+test('fetchLookupBatch caches only rows belonging to each current chunk', async t => {
+  const originalFetch = globalThis.fetch;
+  t.after(() => { globalThis.fetch = originalFetch; });
+  const requestedUrls = [];
+  globalThis.fetch = async url => {
+    requestedUrls.push(String(url));
+    const requestedRows = new URL(String(url)).searchParams.get('rows');
+    if (requestedRows === '1,2') {
+      return {
+        ok: true,
+        json: async () => ({ rows: [
+          { row_id: 1, fields: { Name: 'Potion' } },
+          { row_id: 2, fields: { Name: 'Ether' } },
+          { row_id: 3, fields: { Name: 'Stale injected name' } }
+        ] })
+      };
+    }
+    return {
+      ok: true,
+      json: async () => ({ rows: [
+        { row_id: 3, fields: { Name: 'Elixir' } },
+        { row_id: 4, fields: { Name: 'Hi-Elixir' } }
+      ] })
+    };
+  };
+  const lookupCache = { Item: {} };
+
+  const failures = await fetchLookupBatch('Item', [1, 2, 3, 4], {
+    lookupCache,
+    saveLookupCache() {},
+    batchSize: 2
+  });
+
+  assert.deepEqual(failures, []);
+  assert.deepEqual(lookupCache.Item, {
+    1: 'Potion',
+    2: 'Ether',
+    3: 'Elixir',
+    4: 'Hi-Elixir'
+  });
+  assert.equal(requestedUrls.length, 2);
+});

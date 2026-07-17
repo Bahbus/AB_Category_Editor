@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 53.1 is merged on `origin/main` at `0f9e33f`. Phase 54 on `agent/phase-54-preset-copy-lookup-alignment` corrects exactly seven advanced-preset Description values: five `Desciples` misspellings and the swapped Spell Speed/Skill Speed Materia descriptions. The advanced gzip+Base64 payload still imports and validates as 55 categories; decoded comparison against `origin/main` reports Description changes only at category indices 0, 8, 9, 10, 17, 18, and 46, and the basic payload is byte-for-byte unchanged. Contextual Item and ItemUICategory lookup actions now derive their top offset from the pill-list border, padding, first-row height, and the existing 30px/26px density target, centering against the first row rather than a multi-row container. Local `npm run check` passes with 66 JavaScript files, 30 test files, and 419 tests. `git diff --check origin/main` passes. In-app browser QA verified all seven descriptions, unresolved-only lookup visibility, 30px/26px targets, a zero-pixel first-row center offset, 7px right inset, reserved list space, multi-row alignment, and zero horizontal overflow in both densities at 1280px/840px/390px. CI and Pages were not run.
+> **Current state:** Phase 54 is merged on `origin/main` at `64aa84f`. Phase 56 on `agent/phase-56-source-guardrail-maintenance` replaces the 1,073-line / 79-test source-check monolith with three responsibility-owned suites and one shared test-only source-reading helper, while preserving all 76 still-valuable source-guard names exactly once. Three redundant source guards were retired only where direct behavior coverage is stronger, including a new multi-chunk lookup-cache test. The test-only production exports `decideUniqueItemAdd(...)` and `decideItemRemove(...)` and their helper-only test were removed; `.button-compact` remains an intentional compact-text taxonomy role with a formatting-tolerant guard. Local `npm run check` passes with 69 JavaScript files, 32 test files, and 416 tests. `git diff --check origin/main` passes. Browser QA was not required because the runtime diff is limited to deleting the two unconsumed helpers. CI and Pages were not run.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -786,3 +786,21 @@ Validation actually run:
 - `git diff --check origin/main`: passed with no output.
 - In-app browser QA loaded the advanced preset and verified all seven corrected descriptions. Unresolved Item and ItemUICategory actions appeared while resolved/empty states hid them. Comfortable and Compact measurements at 1280px, 840px, and 390px produced a zero-pixel center offset against the first 28px pill, retained 30px/26px square targets and a 7px right inset, and produced zero horizontal overflow. The 25-pill ItemUICategory list wrapped across multiple rows at every width while the lookup action remained aligned with its first row.
 - CI and Pages were not run; publication remains separate.
+
+## Phase 56 current implementation
+
+- The former `test/sourceChecks.test.mjs` monolith is replaced by `test/applicationDataFlowSource.test.mjs`, `test/uiAccessibilitySource.test.mjs`, and `test/lookupImportExportSource.test.mjs`. `testSupport/sourceFiles.mjs` owns deterministic repository-root reads and recursive `.js`/`.mjs` source discovery without entering Node's automatic `test/` file discovery.
+- The source-guard baseline was 1 file, 1,073 lines, and 79 tests. The new organization is 3 source-guard files and 76 tests. Every surviving original name appears exactly once with no missing or extra name.
+- Three source tests were deliberately retired: the import-summary helper test-import assertion is covered by the DOM-free helper suite itself; stable duplicate sort-position grouping is covered by direct validation behavior tests; and lookup chunk ownership is now covered by a direct multi-chunk `fetchLookupBatch(...)` test that rejects an out-of-chunk stale name.
+- `decideUniqueItemAdd(...)` and `decideItemRemove(...)` were removed from `src/itemOrdering.js` because neither runtime code nor any reusable behavior consumes them. Their imports and helper-only assertions were removed from `test/itemOrdering.test.mjs`; the remaining ordered-move assertions were already covered by the criterion-decision test.
+- Exact labels, callbacks, accessibility names, focus order, CSS dimensions, and no-op sequencing remain guarded. Newline-sensitive adjacency checks were relaxed only to structural whitespace matching. `.button-compact` remains in `styles.css` as the intentional compact-text taxonomy role and remains covered by the button-taxonomy source guard.
+- No runtime UI, validation, import/export, lookup, dirty-state, focus, responsive CSS, preset data, or dependency behavior changed.
+
+Validation actually run:
+
+- focused source-guard, item-ordering, and XIVAPI coverage passed all 102 tests;
+- source-name accounting confirmed 79 original names, 3 documented retirements, 76 surviving names, and zero duplicates, missing names, or extras;
+- `npm run check` passed: 69 JavaScript files syntax-checked, all static relative imports resolved, and all 32 test files / 416 tests passed;
+- `git diff --check origin/main` passed with no output;
+- browser QA was not required because the runtime diff is limited to removal of the two unconsumed item-ordering helpers;
+- CI and GitHub Pages were not run because implementation and publication remain separate.
