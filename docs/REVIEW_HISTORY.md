@@ -1441,6 +1441,31 @@ Validation actually run:
 - the in-app surface could not drive the native file chooser, and a 32 MiB browser payload was deliberately not created. Direct injected-limit tests are authoritative for exact file and resource boundaries. No unexpected application console errors appeared; the expected import-review warning and Electron development CSP warning were the only warnings;
 - CI and GitHub Pages were not run because implementation and publication remain separate. Phase 55 remains on hold.
 
+## Phase 64
+
+Phase 64 isolates Regex → Item IDs JavaScript evaluation from freshly fetched merged Phase 63 `origin/main` at `e087a2c0b57fe967690b5c0f3ceaa64f63605a74`.
+
+Resolution on `agent/phase-64-regex-worker-timeout`:
+
+- added dependency-free `src/tools/regexBatchWorker.js` as the dedicated module-worker owner of fixed-`i` `regex.test(name)` evaluation;
+- added `src/tools/regexBatchEvaluator.js` with repository-relative worker construction, explicit scan/batch identity, at most 50 normalized candidates per request, a deterministic 1,000 ms per-batch deadline, injected worker/timer seams, stale-reply rejection, and idempotent one-time underlying termination;
+- retained main-thread syntax-only JavaScript compilation for Phase 48 early compatibility copy but removed every main-thread evaluation path and added no fallback for worker construction, post, runtime, message, or timeout failures;
+- kept XIVAPI fetch/pagination, row extraction, strict numeric ID normalization, completed-batch progress, stable unique matches, exact configured maximum, 300-result display cap, useful-name cache writes/persistence, result addition, optional original-index pattern removal, and dirty/no-op behavior in `regexToItemIds.js`;
+- made Cancel and modal Close abort the active fetch controller and terminate the current worker immediately through the same idempotent scan-stop boundary; timeout terminates at the evaluator deadline, aborts fetch state, retains prior completed batches, and explicitly avoids calling the pattern AetherBags/.NET-invalid;
+- kept the application-owned lookup-cache producer lease, busy overlay, active-scan/button synchronization, and availability notification under outer `finally` cleanup across success, cancel, timeout, close, worker error, and network failure;
+- added deterministic direct and source coverage without executing a deliberately catastrophic regex in the Node test process;
+- made no dependency, build, schema, preset, import/export, validation, AetherBags compatibility, CSS, label, or unrelated editor change.
+
+Validation actually run:
+
+- focused worker/evaluator, pattern, action-availability, converter, lookup/cache, no-op, and source coverage passed all 65 tests;
+- `npm run check` passed: 78 JavaScript files syntax-checked, all static relative imports resolved, and all 34 test files / 460 tests passed;
+- `git diff --check origin/main` passed with no output before and after durable-document updates;
+- complete diff inspection found no unrelated change;
+- final-build in-app browser QA passed custom and saved worker scans, progress, match addition, duplicate-only disabled Add, optional saved-pattern removal, pathological cancellation before a batch completed, ordinary active cancellation with completed progress, deterministic pathological timeout with responsive controls and AetherBags-safe copy, and modal Close with focus return plus busy/background/cache-producer release;
+- Comfortable and Compact passed at 1280px, 840px, and 390px with zero body, document, or converter-modal horizontal overflow. No unexpected application console error appeared; the deliberate timeout status and Electron's development CSP warning were expected;
+- CI and GitHub Pages were not run because implementation and publication remain separate. Phase 55 remains on hold.
+
 # Current next step
 
-Phase 63 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.
+Phase 64 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.
