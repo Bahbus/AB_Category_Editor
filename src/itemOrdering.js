@@ -143,6 +143,11 @@ export function analyzeItemOrdering(category) {
   const criteriaCanonical = criteriaPresent && criteriaRepresentable && sameCriteria(storedCriteria, normalizedCriteria);
   const criteriaStructuredEditable = criteriaRepresentable && !criteriaHasAdditionalProperties;
   const customOrderingApplied = customCriterionActive && validCustomOrder && storedCustomOrder.length > 0;
+  const retainedInactiveCustomOrder = !customCriterionActive && validCustomOrder && storedCustomOrder.length > 0;
+  const customOrderRelevant = customCriterionActive
+    || retainedInactiveCustomOrder
+    || !customRepresentable
+    || (customPresent && !validCustomOrder);
   let badge = 'Use global';
   if (customOrderingApplied) badge = 'Custom order';
   else if (normalizedCriteria.length > 1 || normalizedCriteria[0]?.Field !== 0) badge = `${normalizedCriteria.length} ${normalizedCriteria.length === 1 ? 'criterion' : 'criteria'}`;
@@ -160,7 +165,8 @@ export function analyzeItemOrdering(category) {
     customPresent,
     customRepresentable,
     validCustomOrder,
-    retainedInactiveCustomOrder: !customCriterionActive && validCustomOrder && storedCustomOrder.length > 0,
+    retainedInactiveCustomOrder,
+    customOrderRelevant,
     customOrder: validCustomOrder ? storedCustomOrder.slice() : [],
     criteriaIssues,
     customIssues,

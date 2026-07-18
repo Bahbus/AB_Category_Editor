@@ -49,6 +49,24 @@ test('custom ordering reuses strict Item lookup and opt-in ordered list behavior
   assert.match(list, /Move .* from rank .* down in/);
 });
 
+test('Custom Item Order is appended only when the shared relevance decision requires it', () => {
+  const ordering = read('src/ui/itemOrderingEditor.js');
+  const styles = read('styles.css');
+  assert.match(ordering, /if \(analysis\.customOrderRelevant\) body\.appendChild\(renderCustomOrderEditor\(analysis\)\)/);
+  assert.doesNotMatch(ordering, /Add Custom Item Order as a sort criterion to create ranks/);
+  assert.doesNotMatch(styles, /custom-order-section[^\n{]*\{[^}]*display:\s*none/);
+  assert.doesNotMatch(ordering, /<details[^>]*>[^<]*Custom Item Order/i);
+});
+
+test('criterion rerenders and final retained-rank removal restore focus to surviving ordering controls', () => {
+  const ordering = read('src/ui/itemOrderingEditor.js');
+  assert.ok(ordering.includes("field.onchange = () => applyCriteriaDecision(decideCriterionChange(criteria, index, 'Field', Number(field.value)), '', `field-${index}`)"));
+  assert.ok(ordering.includes("direction.onchange = () => applyCriteriaDecision(decideCriterionChange(criteria, index, 'Direction', Number(direction.value)), '', `direction-${index}`)"));
+  assert.match(ordering, /applyCriteriaDecision[\s\S]*?renderBody\(\);\s*focusOrderingControl\(focusKey\)/);
+  assert.match(ordering, /if \(!analyzeItemOrdering\(category\)\.customOrderRelevant\)\s*{\s*renderBody\(\);\s*focusOrderingControl\(\['add-field', 'field-0'\]\)/);
+  assert.match(ordering, /target && !target\.disabled && !target\.hidden/);
+});
+
 test('ordering edits refresh local validation and sidebar without a whole-editor render', () => {
   const source = read('src/ui/itemOrderingEditor.js');
   const change = source.match(/function afterChange[\s\S]*?\n  }/)?.[0] || '';
