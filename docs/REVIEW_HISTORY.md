@@ -1416,6 +1416,31 @@ Validation actually run:
 - Comfortable and Compact passed at 1280px, the 840px stacking boundary, and 390px with zero horizontal overflow; expected validation/lookup feedback was exercised with no unexpected console errors;
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+## Phase 63
+
+Phase 63 bounds every user-controlled configuration ingestion and correction path from merged Phase 62 `origin/main` at `002555f65776e058bdac3e2e27dba76b513013d7`.
+
+Resolution on `agent/phase-63-bounded-import-processing`:
+
+- added shared production limits in `src/importExport.js`: 32 MiB selected file, 32 MiB UTF-8 JSON text, 8 MiB decoded gzip input, and 32 MiB decompressed output;
+- added allocation-free UTF-8 size decisions and a shared pre-parse JSON helper used by plain import, full Raw JSON, and selected-category Raw JSON;
+- bounded Base64 before `atob` by counting permitted whitespace separately, retained whitespace-tolerant decoding, and added a defensive post-decode byte check;
+- replaced `new Response(decompressionStream).text()` with incremental reader consumption, cumulative byte checks, immediate overflow cancellation, `finally` release, and streaming UTF-8 decoding across chunk splits;
+- checked uploaded `file.size` before `file.text()` and checked full Raw JSON before clipboard Copy;
+- kept oversized nonblank actions clickable so their existing surfaces report whether file, JSON input, compressed data, or decompressed JSON exceeded the applicable production limit;
+- kept every rejection before validation, destructive confirmation, replacement, selection, lookup, dirty/save state, compression, clipboard/download, or structural rendering;
+- preserved normal JSON/gzip imports, bundled presets, repair and compatibility summaries, semantic Raw JSON no-ops, Unicode, export round trips, lookup behavior, focus/modal contracts, responsive styles, and Phase 62 availability decisions.
+
+Validation actually run:
+
+- focused ingestion, application/source wiring, category-change, import-summary, and preset coverage passed all 121 tests;
+- `npm run check` passed: 75 JavaScript files syntax-checked, all static relative imports resolved, and all 33 test files / 444 tests passed;
+- `git diff --check origin/main` passed with no output;
+- complete diff inspection confirmed no preset payload, schema, export-size cap, dependency, CSS, button-state, lookup, dirty-state, validation/repair, or responsive change;
+- in-app browser QA passed normal plain JSON, bundled gzip+Base64, unchanged full and selected Raw JSON, Import modal focus/background ARIA/return behavior, and zero horizontal overflow in Comfortable and Compact at 1280px, 840px, and 390px;
+- the in-app surface could not drive the native file chooser, and a 32 MiB browser payload was deliberately not created. Direct injected-limit tests are authoritative for exact file and resource boundaries. No unexpected application console errors appeared; the expected import-review warning and Electron development CSP warning were the only warnings;
+- CI and GitHub Pages were not run because implementation and publication remain separate. Phase 55 remains on hold.
+
 # Current next step
 
-Phase 62 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.
+Phase 63 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.

@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 62 is implemented locally on `agent/phase-62-contextual-action-availability` from freshly fetched merged Phase 61 `origin/main` at `abdc54143b246cae66df9cc9767d73bd1842bad8`. `src/actionAvailability.js` is the DOM-free authority for trimmed text candidates, normalized lookup-result duplicates, converter Scan/Add decisions, category Sort/Renumber work, uncached referenced-ID work, and empty/busy lookup-cache clearing. Manual Search, Import, both Raw JSON editors, converter controls, Sort, Renumber, Resolve IDs, result Add actions, and cache clearing now use native `disabled` and live/post-async resynchronization while preserving malformed-nonblank feedback, defensive guards, lookup leases, dirty/no-op behavior, focus/modal behavior, and Phase 61 Custom Item Order relevance. Local `npm run check` passed with 75 JavaScript files, 33 test files, and 432 tests. Final-build in-app browser QA passed Comfortable and Compact at 1280px, 840px, and 390px with zero horizontal overflow, all required state transitions, accessible disabled names, no disabled tooltip titles, and no unexpected console errors. CI and GitHub Pages were not run because implementation and publication remain separate.
+> **Current state:** Phase 63 is implemented locally on `agent/phase-63-bounded-import-processing` from freshly fetched merged Phase 62 `origin/main` at `002555f65776e058bdac3e2e27dba76b513013d7`. `src/importExport.js` now owns explicit 32 MiB file/JSON, 8 MiB decoded-gzip-input, and 32 MiB decompressed-output limits; UTF-8-aware JSON decisions; allocation-bounded Base64 preflight plus decoded-length defense; and streaming, cancellable gzip collection with split-code-point-safe decoding. Upload, Import/Paste, full Raw JSON Apply/Copy, and selected-category Raw JSON reject oversized candidates before their downstream work while Phase 62 nonblank availability remains unchanged. Local `npm run check` passed with 75 JavaScript files, 33 test files, and 444 tests. Final-build in-app browser QA passed normal plain JSON, gzip+Base64, full and selected Raw JSON, modal focus/ARIA/return behavior, and Comfortable/Compact 1280px, 840px, and 390px zero-overflow checks. Browser file selection and a production-limit oversized payload were not exercised; direct small-limit tests are the boundary authority. CI and GitHub Pages were not run because implementation and publication remain separate.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -911,4 +911,21 @@ Validation actually run:
 - `git diff --check origin/main` passed with no output;
 - final-build in-app browser QA passed Search blank/nonblank/running/post-request and duplicate Add synchronization; Import and both Raw JSON blank/malformed behavior; converter blank/incompatible/running/new-ID/all-duplicate keep/all-duplicate saved-pattern removal behavior; exact Sort/Renumber/Resolve transitions; nonempty/empty cache clearing; modal feedback and return-focus paths; and accessible disabled names with zero disabled tooltip titles;
 - Comfortable and Compact passed at 1280px, the 840px stacking boundary, and 390px with zero document horizontal overflow. Expected validation and lookup-warning feedback was exercised and no unexpected console error was recorded;
+- CI and GitHub Pages were not run because implementation and publication remain separate. Phase 55 remains on hold.
+
+## Phase 63 current implementation
+
+- `src/importExport.js` documents shared production ceilings: 32 MiB selected files, 32 MiB UTF-8 JSON text, 8 MiB decoded compressed gzip input, and 32 MiB decompressed gzip output.
+- Plain/imported JSON and both Raw JSON paths count UTF-8 bytes before `JSON.parse`. Base64 is scanned without first constructing a whitespace-stripped copy, rejects an oversized decoded estimate before `atob`, and rechecks the returned binary length defensively.
+- Gzip decompression now reads byte chunks incrementally, rejects and cancels as soon as output crosses the ceiling, releases the reader on every exit, and uses streaming `TextDecoder` calls so Unicode split across chunks remains exact.
+- File uploads check `file.size` before `file.text()`. Full Raw JSON Copy uses the same boundary before clipboard work. Oversized candidates return through existing inline/status errors before validation, confirmation, replacement, selection, lookup, dirty/save transitions, compression, clipboard/download, or structural rendering.
+- Normal JSON, gzip+Base64, bundled presets, whitespace-tolerant Base64, Unicode, repair summaries, semantic Raw JSON no-ops, confirmation order, upload/modal focus behavior, export generation, and Phase 62 action availability remain unchanged within the limits.
+
+Validation actually run:
+
+- focused ingestion, Raw JSON/source wiring, import-summary, category-change, and preset coverage passed all 121 tests;
+- `npm run check` passed: 75 JavaScript files syntax-checked, all static relative imports resolved, and all 33 test files / 444 tests passed;
+- `git diff --check origin/main` passed with no output before the durable-document update and was rerun on the final diff;
+- in-app browser QA passed normal plain JSON and bundled gzip+Base64 import, unchanged full and selected Raw JSON with `No changes`, Import modal initial/return focus plus background `aria-hidden`, and zero body/document horizontal overflow in Comfortable and Compact at 1280px, 840px, and 390px;
+- the browser file chooser was unavailable to automation, and no 32 MiB browser payload was created. Exact/over file, JSON, Base64, and decompression boundaries remain direct small-limit test authority. No unexpected application console error was observed; only the expected import-review warning and Electron's development CSP warning appeared;
 - CI and GitHub Pages were not run because implementation and publication remain separate. Phase 55 remains on hold.

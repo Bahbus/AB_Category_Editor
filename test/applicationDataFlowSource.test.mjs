@@ -153,7 +153,7 @@ test('importText does not keep an unused importSummary binding', () => {
   assert.doesNotMatch(source, /const\s+importSummary\s*=/);
   assert.match(source, /applyValidatedConfig\(validation\);/);
   assert.match(source, /function loadPreset\(preset\)[\s\S]*?return importText\(preset\.data, preset\.sourceLabel \|\| 'Preset'\);/);
-  assert.match(source, /bindChange\('fileInput',[\s\S]*?await importText\(await file\.text\(\), file\.name\);/);
+  assert.match(source, /bindChange\('fileInput',[\s\S]*?await importText\(await readImportFileText\(file\), file\.name\);/);
   assert.match(source, /if \(!\(await importText\(text, ''\)\)\)/);
 });
 
