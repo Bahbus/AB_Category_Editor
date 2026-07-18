@@ -1348,6 +1348,28 @@ Validation actually run:
 - a fresh-tab retry for a separate live Maximum commit did not attach, so Maximum edit behavior remains focused-test/source verified rather than runtime asserted;
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+## Phase 60
+
+The post-Phase-59 maintainability plan identified the contiguous Basics card and generated-description controller as the next cohesive ownership boundary in the 404-line category orchestrator.
+
+Resolution on `agent/phase-60-basics-description-extraction`:
+
+- added `src/ui/basicEditor.js` as the focused owner of the existing Basics card, including Enabled/Pinned and the local warning area, Name/Description, Generate and the generated-description review modal, all blank/identical/copy/replace/cancel paths, Order/Priority controls, description-input synchronization, and the Basics-only debounced sidebar helper;
+- passed only the selected category, category list, dirty/list callbacks, Name/header and category-validation callbacks, lookup/preferences/clipboard services, and active-field commit into the leaf, which returns only the card, optional automatic generation, and local validation refresh;
+- kept the selected-category header and issue badge, category-wide validation, card order, structural actions, shared Range/State scheduler, separate Color scheduler, and cross-card coordination in `categoryEditor.js`;
+- preserved the exact Item Ordering, matching-rule, Range, and State sequence of validation refresh before optional description generation followed by their existing immediate or scheduled sidebar refresh;
+- preserved the public `getBasicSwitchWarnings` import contract through a `categoryEditor.js` re-export;
+- redirected focused generated-description and text-control guards to `basicEditor.js`, added one ownership/data-flow guard, and reduced `categoryEditor.js` from 404 to 285 lines; the new leaf is 163 lines;
+- made no CSS, visual design, markup/class/label, validation, generated-description decision, signed-Int32 display/commit, data-shape, import/export, lookup, focus, selection, scheduler, dependency, or unrelated editor change.
+
+Validation actually run:
+
+- focused category-change, category-editor, form-control, summary, and three source-suite coverage passed all 150 tests;
+- `npm run check` passed: 73 JavaScript files syntax-checked, all static relative imports resolved, and all 32 test files / 420 tests passed;
+- `git diff --check origin/main` passed with no output;
+- in-app browser QA passed Comfortable and Compact at 1280px, 840px, and 390px: Basics preceded Color, layouts retained zero body/document horizontal overflow, and live checks covered Name/header/debounced-sidebar synchronization; blank, identical, replacement-confirmed, copied, and cancelled description generation; Name-blur and downstream rule auto-generation; Enabled/Pinned warnings; Order/Priority unchanged, blank, invalid, valid, restoration, and focus continuity; modal initial/return focus and close state; and zero console errors;
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Phase 59 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.
+Phase 60 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.
