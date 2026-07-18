@@ -85,6 +85,22 @@ test('custom order activation, retained inactive lists, and empty fallback are e
   assert.match(mixed.customIssues[0].message, /remaining sort criteria/);
 });
 
+test('Custom Item Order relevance covers inactive, active, retained, and corrective states', () => {
+  for (const category of [{}, { CustomItemOrder: [] }]) {
+    assert.equal(analyzeItemOrdering(category).customOrderRelevant, false);
+  }
+  for (const category of [
+    { ItemSortCriteria: [{ Field: 5, Direction: 0 }] },
+    { ItemSortCriteria: [{ Field: 5, Direction: 0 }], CustomItemOrder: [] },
+    { ItemSortCriteria: [{ Field: 5, Direction: 0 }], CustomItemOrder: [7] },
+    { CustomItemOrder: [7] },
+    { CustomItemOrder: {} },
+    { CustomItemOrder: [7, '8'] }
+  ]) {
+    assert.equal(analyzeItemOrdering(category).customOrderRelevant, true);
+  }
+});
+
 test('canonical repair returns a fresh normalized list and is a strict no-op when canonical', () => {
   const normalized = [{ Field: 0, Direction: 0 }];
   assert.equal(decideCanonicalCriteriaRepair(normalized, normalized).changed, false);

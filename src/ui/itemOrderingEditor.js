@@ -58,19 +58,24 @@ export function renderItemOrderingEditor(category, deps = {}) {
     if (message) setStatus(message, 'ok');
   }
 
-  function applyCriteriaDecision(decision, message = '', focusKey = document.activeElement?.dataset?.orderingFocus || '') {
-    if (!decision.changed) return false;
-    category.ItemSortCriteria = decision.value;
-    afterChange(message);
-    renderBody();
+  function focusOrderingControl(focusKey) {
     const focusKeys = Array.isArray(focusKey) ? focusKey : [focusKey];
     for (const key of focusKeys.filter(Boolean)) {
       const target = body.querySelector(`[data-ordering-focus="${key}"]`);
       if (target && !target.disabled && !target.hidden) {
         target.focus();
-        break;
+        return true;
       }
     }
+    return false;
+  }
+
+  function applyCriteriaDecision(decision, message = '', focusKey = document.activeElement?.dataset?.orderingFocus || '') {
+    if (!decision.changed) return false;
+    category.ItemSortCriteria = decision.value;
+    afterChange(message);
+    renderBody();
+    focusOrderingControl(focusKey);
     return true;
   }
 
@@ -127,7 +132,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
       field.dataset.orderingFocus = `field-${index}`;
       if (analysis.criteriaIssues.length) field.setAttribute('aria-describedby', issueId);
       field.append(...optionNodes(UI_ITEM_SORT_FIELDS, criterion.Field, new Set([...usedFields].filter(value => value !== criterion.Field))));
-      field.onchange = () => applyCriteriaDecision(decideCriterionChange(criteria, index, 'Field', Number(field.value)));
+      field.onchange = () => applyCriteriaDecision(decideCriterionChange(criteria, index, 'Field', Number(field.value)), '', `field-${index}`);
       fieldLabel.appendChild(field);
 
       const directionLabel = document.createElement('label');
@@ -138,7 +143,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
       if (analysis.criteriaIssues.length) direction.setAttribute('aria-describedby', issueId);
       direction.disabled = criterion.Field === 0;
       direction.append(...optionNodes(ITEM_SORT_DIRECTIONS, criterion.Field === 0 ? 0 : criterion.Direction));
-      direction.onchange = () => applyCriteriaDecision(decideCriterionChange(criteria, index, 'Direction', Number(direction.value)));
+      direction.onchange = () => applyCriteriaDecision(decideCriterionChange(criteria, index, 'Direction', Number(direction.value)), '', `direction-${index}`);
       directionLabel.appendChild(direction);
 
       const actions = document.createElement('div');
@@ -246,13 +251,6 @@ export function renderItemOrderingEditor(category, deps = {}) {
       section.appendChild(rawCorrectionAction('Edit in Raw JSON', 'The stored CustomItemOrder value cannot be edited safely as a ranked list. Open Advanced to correct it without losing the raw value.'));
       return section;
     }
-    if (!analysis.customCriterionActive && !analysis.retainedInactiveCustomOrder) {
-      const text = document.createElement('p');
-      text.className = 'hint';
-      text.textContent = 'Add Custom Item Order as a sort criterion to create ranks. An omitted or empty inactive list is left unchanged.';
-      section.appendChild(text);
-      return section;
-    }
     const state = document.createElement('p');
     state.className = analysis.retainedInactiveCustomOrder ? 'field-warning' : 'hint';
     state.textContent = analysis.retainedInactiveCustomOrder
@@ -281,6 +279,11 @@ export function renderItemOrderingEditor(category, deps = {}) {
         onValidationChanged();
         onOrderingChanged();
         renderList();
+        if (!analyzeItemOrdering(category).customOrderRelevant) {
+          renderBody();
+          focusOrderingControl(['add-field', 'field-0']);
+          return;
+        }
         refreshOrderingOverview();
       },
       ...listEditorDeps,
@@ -303,7 +306,8 @@ export function renderItemOrderingEditor(category, deps = {}) {
     issues.className = 'validation-list ordering-validation';
     issues.hidden = analysis.issues.length === 0;
     issues.innerHTML = analysis.issues.map(item => `<p class="field-${escapeHtml(item.severity)}">${escapeHtml(item.message)}</p>`).join('');
-    body.append(intro, issues, renderCriteriaEditor(analysis, issueId), renderCustomOrderEditor(analysis));
+    body.append(intro, issues, renderCriteriaEditor(analysis, issueId));
+    if (analysis.customOrderRelevant) body.appendChild(renderCustomOrderEditor(analysis));
     setDetailsSummary(details, orderingSummary(analysis));
   }
 

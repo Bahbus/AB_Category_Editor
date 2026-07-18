@@ -1370,6 +1370,29 @@ Validation actually run:
 - in-app browser QA passed Comfortable and Compact at 1280px, 840px, and 390px: Basics preceded Color, layouts retained zero body/document horizontal overflow, and live checks covered Name/header/debounced-sidebar synchronization; blank, identical, replacement-confirmed, copied, and cancelled description generation; Name-blur and downstream rule auto-generation; Enabled/Pinned warnings; Order/Priority unchanged, blank, invalid, valid, restoration, and focus continuity; modal initial/return focus and close state; and zero console errors;
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+## Phase 61
+
+The post-Phase-60 task identified an item-ordering relevance issue rather than a configuration-semantics defect: inactive omitted and valid empty Custom Item Order data still rendered a full section containing only an instructional placeholder.
+
+Resolution on `agent/phase-61-contextual-custom-order-visibility` from merged Phase 60 `origin/main` at `a889aa368681c8679f723834b85e02ce2c51eb20`:
+
+- `analyzeItemOrdering(...)` now returns one DOM-free `customOrderRelevant` decision;
+- normalized active Custom Item Order criteria, valid nonempty retained inactive ranks, malformed containers, and incompatible item-ID values keep the complete existing section visible;
+- inactive omitted and valid empty values omit the section entirely, with the obsolete “Add Custom Item Order as a sort criterion…” placeholder removed;
+- no extra disclosure, CSS concealment, hidden focus target, or reserved body element was introduced;
+- criterion add/change/remove keeps the existing local rerender path and passes explicit surviving field/direction focus targets;
+- clearing the final retained rank while inactive rerenders the local Item Ordering body, removes the now-irrelevant section, and focuses the surviving Add criterion select;
+- active warnings/editors, retained-data warnings/editors, Raw JSON correction, lookup and Resolve IDs participation, descriptions, issue counts, export analysis, dirty/no-op behavior, callbacks, disclosure position/state, and stored data remain unchanged;
+- render alone never inserts or deletes `CustomItemOrder`, rewrites criteria, clears ranks, normalizes malformed data, or marks dirty.
+
+Validation actually run:
+
+- focused item-ordering, lookup, accessibility/focus, description, export-compatibility, application-data-flow, category-editor, and list-editor coverage passed all 129 tests;
+- `npm run check` passed: 73 JavaScript files syntax-checked, all static relative imports resolved, and all 32 test files / 423 tests passed;
+- `git diff --check origin/main` passed with no output;
+- final-build in-app browser QA passed Comfortable and Compact at 1280px, 840px, and 390px: inactive empty data had no Custom Item Order section or reserved body element; active selection showed the existing warning/editor immediately; ranks cleared that warning; changing away retained nonempty ranks with the existing warning; final-rank removal hid the section and focused Add criterion; malformed inactive data exposed `Edit in Raw JSON`; all six density/viewport combinations had zero body/document horizontal overflow; and the console contained no errors;
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Phase 60 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.
+Phase 61 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.
