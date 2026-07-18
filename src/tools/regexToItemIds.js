@@ -3,6 +3,7 @@ import { openModal, closeModal } from '../modals.js';
 import { fetchItemRowsPage, extractSheetRows, extractNextCursor, rowId, rowName } from '../xivapi.js';
 import { normalizeRowIdValue } from '../rowIds.js';
 import { compileBrowserPattern, removeSavedPatternAtSourceIndex, selectUsableSavedPatterns } from '../patternSemantics.js';
+import { regexAddMatchesAvailable, regexScanAvailable } from '../actionAvailability.js';
 
 function uniqueById(items) {
   const seen = new Set();
@@ -16,7 +17,7 @@ function uniqueById(items) {
 }
 
 export function openRegexToItemIdsTool(deps) {
-  const { getCategories, getSelectedIndex, ensureShape, lookupCache, saveLookupCache, acquireLookupCacheProducer, markDirty, renderAll } = deps;
+  const { getCategories, getSelectedIndex, ensureShape, lookupCache, saveLookupCache, acquireLookupCacheProducer, markDirty, renderAll, onAvailabilityChanged = null } = deps;
   const cat = getCategories()[getSelectedIndex()];
   if (!cat) return;
   ensureShape(cat);
@@ -91,8 +92,25 @@ export function openRegexToItemIdsTool(deps) {
   let matches = [];
   let activeScan = null;
 
+  const selectedPatternCanBeRemoved = () => removePatternSelect.value === 'remove'
+    && select.value !== 'custom'
+    && savedPatternOptions.some(option => option.sourceIndex === Number(select.value));
+
+  const syncAddButtonState = () => {
+    addButton.disabled = !regexAddMatchesAvailable({
+      matches,
+      existingIds: cat.Rules.AllowedItemIds || [],
+      canRemoveSelectedPattern: selectedPatternCanBeRemoved(),
+      running: Boolean(activeScan)
+    });
+  };
+
+  const syncRunButtonState = () => {
+    runButton.disabled = !regexScanAvailable(input.value, Boolean(activeScan));
+  };
+
   const setScanControls = running => {
-    runButton.disabled = running;
+    syncRunButtonState();
     cancelButton.disabled = !running;
     cancelButton.hidden = !running;
     select.disabled = running;
@@ -100,6 +118,7 @@ export function openRegexToItemIdsTool(deps) {
     maxMatchesInput.disabled = running;
     pageSizeInput.disabled = running;
     removePatternSelect.disabled = running;
+    syncAddButtonState();
   };
 
   const renderRegexMatches = () => {
@@ -121,11 +140,18 @@ export function openRegexToItemIdsTool(deps) {
   const isAbortError = err => err?.name === 'AbortError';
 
   select.onchange = () => {
-    if (select.value === 'custom') return;
-    const selected = savedPatternOptions.find(option => option.sourceIndex === Number(select.value));
-    input.value = selected?.pattern || '';
+    if (select.value !== 'custom') {
+      const selected = savedPatternOptions.find(option => option.sourceIndex === Number(select.value));
+      input.value = selected?.pattern || '';
+    }
+    syncRunButtonState();
+    syncAddButtonState();
   };
   if (firstSavedPattern) select.value = String(firstSavedPattern.sourceIndex);
+  input.addEventListener('input', syncRunButtonState);
+  removePatternSelect.addEventListener('change', syncAddButtonState);
+  syncRunButtonState();
+  syncAddButtonState();
 
   cancelButton.onclick = () => {
     if (!activeScan) return;
@@ -151,7 +177,7 @@ export function openRegexToItemIdsTool(deps) {
     const regex = compilation.regex;
 
     matches = [];
-    addButton.disabled = true;
+    syncAddButtonState();
     resultsBox.innerHTML = '';
     summary.textContent = '';
 
@@ -222,14 +248,14 @@ export function openRegexToItemIdsTool(deps) {
         setStatus('Regex scan complete', 'ok');
       }
       renderRegexMatches();
-      addButton.disabled = matches.length === 0;
+      syncAddButtonState();
     } catch (err) {
       if (scanState.canceled || isAbortError(err)) {
         scanState.canceled = true;
         matches = uniqueById(matches);
         summary.textContent = `Scan canceled after ${scanned.toLocaleString()} item row(s). ${matches.length.toLocaleString()} match(es) found.`;
         renderRegexMatches();
-        addButton.disabled = matches.length === 0;
+        syncAddButtonState();
         setStatus('Regex scan canceled', 'ok');
       } else {
         setStatus('Regex scan failed: ' + err.message, 'err');
@@ -239,12 +265,13 @@ export function openRegexToItemIdsTool(deps) {
       if (activeScan === scanState) activeScan = null;
       setScanControls(false);
       hideBusy();
+      if (typeof onAvailabilityChanged === 'function') onAvailabilityChanged();
     }
   };
 
   addButton.onclick = () => {
-    if (!matches.length) return;
     const ids = cat.Rules.AllowedItemIds || (cat.Rules.AllowedItemIds = []);
+    if (!regexAddMatchesAvailable({ matches, existingIds: ids, canRemoveSelectedPattern: selectedPatternCanBeRemoved(), running: Boolean(activeScan) })) return;
     const existing = new Set(ids.map(normalizeRowIdValue).filter(id => id !== null));
     let added = 0;
     let removedPattern = false;

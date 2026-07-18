@@ -4,8 +4,8 @@ import { read } from '../testSupport/sourceFiles.mjs';
 
 test('full Raw JSON wires its summary to the validated candidate', () => {
   const source = read('src/app.js');
-  const rawApplyStart = source.indexOf("requireScopedEl(wrap, '#applyRawFull'");
-  const rawApplyEnd = source.indexOf("requireScopedEl(wrap, '#copyRawFull'", rawApplyStart);
+  const rawApplyStart = source.indexOf("const applyRawFull = requireScopedEl(wrap, '#applyRawFull'");
+  const rawApplyEnd = source.indexOf('copyRawFull.addEventListener', rawApplyStart);
   const rawApplySource = source.slice(rawApplyStart, rawApplyEnd);
   assert.match(rawApplySource, /configValidationSummaryText\(validation\.config, rawAnalysis, validation\.repairs \|\| \[\]\)/);
   assert.doesNotMatch(rawApplySource, /validationSummaryText\(getCategories\(\)\.length/);
@@ -15,7 +15,7 @@ test('import and raw JSON paths do not auto-generate descriptions', () => {
   const config = read('src/config.js');
   const validation = read('src/validation.js');
   const importTextBody = app.match(/async function importText\([^)]*\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
-  const rawApplyBody = app.match(/requireScopedEl\(wrap, '#applyRawFull'[\s\S]*?\.onclick = async \(\) => \{(?<body>[\s\S]*?)\n    \};/)?.groups.body ?? '';
+  const rawApplyBody = app.match(/applyRawFull\.addEventListener\('click', async \(\) => \{(?<body>[\s\S]*?)\n    \}\);/)?.groups.body ?? '';
 
   assert.doesNotMatch(importTextBody, /generateCategoryDescription/);
   assert.doesNotMatch(rawApplyBody, /generateCategoryDescription/);
@@ -95,9 +95,9 @@ test('typed list add reports partial duplicate skips without changing all-duplic
 
 test('raw category JSON delegates atomic normalization and replacement to the change helper', () => {
   const source = read('src/ui/categoryEditor.js');
-  const handler = source.match(/el\('applyRawCategory'\)\.onclick = \(\) => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
+  const handler = source.match(/applyRawCategory\.onclick = \(\) => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
 
-  assert.match(handler, /const candidate = JSON\.parse\(el\('rawCategory'\)\.value\);/);
+  assert.match(handler, /const candidate = JSON\.parse\(rawCategory\.value\);/);
   assert.match(handler, /applySelectedCategoryCandidate\(\{ categories: cats, selectedIndex, candidate, normalize: ensureShape/);
   assert.match(handler, /if \(!changed\) setStatus\('There are no category changes to apply\.', 'ok'\);/);
   assert.match(handler, /setStatus\('Invalid category JSON: ' \+ err\.message, 'err'\);/);
@@ -117,7 +117,7 @@ test('manual lookup search normalizes row IDs and avoids unnamed cache placehold
   assert.match(source, /const\s+name\s*=\s*rowName\(result\)/);
   assert.match(source, /const\s+displayName\s*=\s*isUsefulLookupName\(name\) \? name : '\(name unavailable\)'/);
   assert.match(source, /if \(isUsefulLookupName\(name\)\) \{[\s\S]*cache\[String\(id\)\] = name;[\s\S]*saveLookupCache\(\);[\s\S]*\}/);
-  assert.match(source, /arr\.some\(value => normalizeRowIdValue\(value\) === id\)/);
+  assert.match(source, /lookupResultAddAvailable\(id, arr\)/);
   assert.match(source, /arr\.push\(id\)/);
   assert.doesNotMatch(source, /arr\.push\(rowId\(result\)\)/);
   assert.doesNotMatch(source, /const\s+name\s*=\s*result\.fields\?\.Name\s*\|\|\s*'\(unnamed\)'/);
@@ -237,7 +237,7 @@ test('add, duplicate, lookup Add, and regex add use safe numeric-ID and sort pol
   assert.match(app, /nextCategorySortValue\(getCategories\(\)\) - 1/);
   assert.match(editor, /const nextSortValue = nextCategorySortValue\(cats\);/);
   assert.match(editor, /copy\.Order = nextSortValue;\s*copy\.Priority = nextSortValue;/);
-  assert.match(list, /arr\.some\(value => normalizeRowIdValue\(value\) === id\)/);
+  assert.match(list, /lookupResultAddAvailable\(id, arr\)/);
   assert.match(regex, /new Set\(ids\.map\(normalizeRowIdValue\)\.filter\(id => id !== null\)\)/);
   assert.match(regex, /const id = normalizeRowIdValue\(item\.id\);/);
 });
@@ -357,13 +357,14 @@ test('all asynchronous cache producers use finally-safe coordination', () => {
   assert.match(regex, /finally \{\s*releaseLookupCacheProducer\(\);/);
 });
 
-test('lookup cache modal disables and explains clearing while producers are active', () => {
+test('lookup cache modal disables empty and busy clearing while retaining the defensive race guard', () => {
   const app = read('src/app.js');
   const modal = read('src/ui/lookupCacheModal.js');
 
   assert.match(app, /clearLookupCacheIfIdle\(\{/);
   assert.match(app, /Lookup cache cannot be cleared while a lookup or scan is running\./);
-  assert.match(modal, /clearButton\.disabled = active;/);
+  assert.match(modal, /clearButton\.disabled = !lookupCacheClearAvailable\(stats, active\);/);
+  assert.match(modal, /The lookup cache is empty\./);
   assert.match(modal, /Wait for the lookup or scan to finish before clearing the cache\./);
   assert.match(modal, /if \(!clearLookupCache\(\)\)/);
   assert.match(modal, /The cache was not cleared because a lookup or scan is still running\./);
@@ -445,7 +446,7 @@ test('list lookup only hides busy overlay after showing it', () => {
 test('manual lookup search holds a cache-producer lease across every async exit path', () => {
   const source = read('src/ui/listEditor.js');
   const handler = source.match(/searchButton\.onclick = async \(\) => \{(?<body>[\s\S]*?)\n    \};/)?.groups.body ?? '';
-  const blankIndex = handler.indexOf('if (!query) return');
+  const blankIndex = handler.indexOf('if (!textActionAvailable(query, searchRunning)) return');
   const acquireIndex = handler.indexOf('const releaseLookupCacheProducer = acquireLookupCacheProducer()');
   const awaitIndex = handler.indexOf('await searchXivapi(lookupSheet, query)');
   const finallyIndex = handler.indexOf('} finally {');
@@ -453,10 +454,40 @@ test('manual lookup search holds a cache-producer lease across every async exit 
   assert.ok(blankIndex !== -1 && acquireIndex !== -1 && awaitIndex !== -1 && finallyIndex !== -1);
   assert.ok(blankIndex < acquireIndex && acquireIndex < awaitIndex && awaitIndex < finallyIndex);
   assert.equal((handler.match(/releaseLookupCacheProducer\(\)/g) || []).length, 1);
-  assert.match(handler, /finally \{\s*releaseLookupCacheProducer\(\);\s*searchButton\.disabled = false;/);
+  assert.match(handler, /finally \{\s*releaseLookupCacheProducer\(\);\s*searchRunning = false;\s*syncSearchButtonState\(\);/);
   assert.match(handler, /if \(!results\.length\) \{[\s\S]*?return;/);
   assert.match(handler, /if \(!rendered\) \{[\s\S]*?return;/);
   assert.match(handler, /catch \(err\) \{[\s\S]*?setStatus\(err\.message, 'err'\);/);
+});
+
+test('contextual action availability is live-wired without removing defensive guards', () => {
+  const app = read('src/app.js');
+  const category = read('src/ui/categoryEditor.js');
+  const list = read('src/ui/listEditor.js');
+  const regex = read('src/tools/regexToItemIds.js');
+  const cache = read('src/ui/lookupCacheModal.js');
+
+  assert.match(list, /syncSearchButtonState\(\);\s*searchInput\.addEventListener\('input', syncSearchButtonState\)/);
+  assert.match(list, /let searchRunning = false;/);
+  assert.match(list, /searchRunning = true;\s*syncSearchButtonState\(\);\s*const releaseLookupCacheProducer/);
+  assert.match(list, /searchRunning = false;\s*syncSearchButtonState\(\);/);
+  assert.match(list, /syncRenderedResultActions\(\);\s*notifyItemsChanged\(\);/);
+
+  assert.match(app, /syncImportAvailability\(\);\s*importTextNode\.addEventListener\('input', syncImportAvailability\)/);
+  assert.match(app, /applyRawFull\.disabled = !available;\s*copyRawFull\.disabled = !available;/);
+  assert.match(app, /rawFull\.addEventListener\('input', syncRawAvailability\)/);
+  assert.match(category, /rawCategory\.addEventListener\('input', syncRawCategoryAvailability\)/);
+
+  assert.match(regex, /runButton\.disabled = !regexScanAvailable\(input\.value, Boolean\(activeScan\)\)/);
+  assert.match(regex, /input\.addEventListener\('input', syncRunButtonState\)/);
+  assert.match(regex, /removePatternSelect\.addEventListener\('change', syncAddButtonState\)/);
+  assert.match(regex, /running: Boolean\(activeScan\)/);
+
+  assert.match(app, /sortButton\.disabled = !categorySortAvailable\(categories, compareCategoriesForImport\)/);
+  assert.match(app, /renumberButton\.disabled = !categoryRenumberAvailable\(categories\)/);
+  assert.match(app, /lookupButton\.disabled = !referencedIdLookupAvailable\(uncached, resolvingReferencedIds\)/);
+  assert.match(app, /finally \{ releaseLookupCacheProducer\(\); hideBusy\(\); resolvingReferencedIds = false; updateGlobalActionAvailability\(\); \}/);
+  assert.match(cache, /lookupCacheClearAvailable\(stats, active\)/);
 });
 
 test('number blur handlers avoid unchanged dirty commits', () => {

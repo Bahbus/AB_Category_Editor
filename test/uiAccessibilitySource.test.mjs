@@ -405,7 +405,8 @@ test('manual lookup search result Add buttons have contextual accessible labels'
   assert.match(lookupRowBody, /<button class="icon-button add-icon-button">\+<\/button>/);
   assert.match(lookupRowBody, /const\s+addButton\s*=\s*r\.querySelector\('button'\)/);
   assert.match(lookupRowBody, /addButton\.setAttribute\('aria-label'/);
-  assert.match(lookupRowBody, /addButton\.title\s*=/);
+  assert.match(lookupRowBody, /syncButtonTooltip\(addButton, addLabel\)/);
+  assert.match(lookupRowBody, /addButton\.disabled = !lookupResultAddAvailable\(id, arr\)/);
   for (const token of ['displayName', 'id', 'title']) {
     assert.match(lookupRowBody, new RegExp(String.raw`\b${token}\b`));
   }
