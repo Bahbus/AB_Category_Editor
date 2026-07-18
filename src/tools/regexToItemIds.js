@@ -2,22 +2,29 @@ import { escapeHtml, requireScopedEl, setStatus, showBusy, updateBusy, hideBusy 
 import { openModal, closeModal } from '../modals.js';
 import { fetchItemRowsPage, extractSheetRows, extractNextCursor, rowId, rowName } from '../xivapi.js';
 import { normalizeRowIdValue } from '../rowIds.js';
+import { isUsefulLookupName } from '../lookupNames.js';
 import { compileBrowserPattern, removeSavedPatternAtSourceIndex, selectUsableSavedPatterns } from '../patternSemantics.js';
 import { regexAddMatchesAvailable, regexScanAvailable } from '../actionAvailability.js';
-
-function uniqueById(items) {
-  const seen = new Set();
-  const out = [];
-  for (const item of items) {
-    if (seen.has(item.id)) continue;
-    seen.add(item.id);
-    out.push(item);
-  }
-  return out;
-}
+import {
+  createRegexBatchEvaluator,
+  evaluateCandidateBatches,
+  RegexBatchTimeoutError,
+  RegexWorkerCanceledError
+} from './regexBatchEvaluator.js';
 
 export function openRegexToItemIdsTool(deps) {
-  const { getCategories, getSelectedIndex, ensureShape, lookupCache, saveLookupCache, acquireLookupCacheProducer, markDirty, renderAll, onAvailabilityChanged = null } = deps;
+  const {
+    getCategories,
+    getSelectedIndex,
+    ensureShape,
+    lookupCache,
+    saveLookupCache,
+    acquireLookupCacheProducer,
+    markDirty,
+    renderAll,
+    onAvailabilityChanged = null,
+    createRegexEvaluator = createRegexBatchEvaluator
+  } = deps;
   const cat = getCategories()[getSelectedIndex()];
   if (!cat) return;
   ensureShape(cat);
@@ -30,6 +37,17 @@ export function openRegexToItemIdsTool(deps) {
   const omittedPatternCopy = savedPatternSelection.omittedCount
     ? `<p class="field-warning">${savedPatternSelection.omittedCount.toLocaleString()} saved pattern(s) were omitted because they are non-string, empty, or whitespace-only. Correct them in Allowed Item Name Patterns or Raw JSON.</p>`
     : '';
+  let matches = [];
+  let activeScan = null;
+
+  const stopActiveScan = () => {
+    if (!activeScan || activeScan.canceled) return false;
+    activeScan.canceled = true;
+    activeScan.controller.abort();
+    activeScan.evaluator.cancel();
+    return true;
+  };
+
   wrap.innerHTML = `
     <p class="hint">AetherBags matches patterns with case-insensitive, culture-invariant .NET regex. This browser converter approximates that behavior with fixed case-insensitive JavaScript regex against English Item names from XIVAPI; some valid AetherBags patterns cannot be scanned here.</p>
     ${omittedPatternCopy}
@@ -72,10 +90,7 @@ export function openRegexToItemIdsTool(deps) {
 
   openModal('Regex → Item IDs', wrap, {
     onClose: () => {
-      if (!activeScan) return;
-      activeScan.canceled = true;
-      activeScan.controller.abort();
-      updateBusy('Canceling Item sheet scan...', null);
+      if (stopActiveScan()) updateBusy('Canceling Item sheet scan...', null);
     }
   });
 
@@ -89,8 +104,6 @@ export function openRegexToItemIdsTool(deps) {
   const addButton = requireScopedEl(wrap, '#addRegexMatches', 'regex scan');
   const resultsBox = requireScopedEl(wrap, '#regexResults', 'regex scan');
   const summary = requireScopedEl(wrap, '#regexScanSummary', 'regex scan');
-  let matches = [];
-  let activeScan = null;
 
   const selectedPatternCanBeRemoved = () => removePatternSelect.value === 'remove'
     && select.value !== 'custom'
@@ -154,9 +167,7 @@ export function openRegexToItemIdsTool(deps) {
   syncAddButtonState();
 
   cancelButton.onclick = () => {
-    if (!activeScan) return;
-    activeScan.canceled = true;
-    activeScan.controller.abort();
+    if (!stopActiveScan()) return;
     cancelButton.disabled = true;
     summary.textContent = 'Canceling scan... keeping matches found so far.';
     updateBusy('Canceling Item sheet scan...', null);
@@ -174,60 +185,73 @@ export function openRegexToItemIdsTool(deps) {
       setStatus(`This AetherBags/.NET pattern cannot be scanned by the browser converter because JavaScript regex syntax is incompatible: ${compilation.error.message}`, 'err');
       return;
     }
-    const regex = compilation.regex;
+    let evaluator;
+    try {
+      evaluator = createRegexEvaluator({ pattern: input.value });
+    } catch (err) {
+      setStatus(`Regex scan could not start because the isolated browser worker was unavailable: ${err.message}`, 'err');
+      return;
+    }
 
     matches = [];
     syncAddButtonState();
     resultsBox.innerHTML = '';
     summary.textContent = '';
 
-    const maxMatches = Math.max(1, Number(maxMatchesInput.value) || 5000);
+    const maxMatches = Math.max(1, Math.floor(Number(maxMatchesInput.value) || 5000));
     const pageSize = Math.max(100, Math.min(5000, Number(pageSizeInput.value) || 3000));
     let after = null;
     let scanned = 0;
     let pages = 0;
     let keepGoing = true;
-    const scanState = { controller: new AbortController(), canceled: false };
+    let cacheChanged = false;
+    const matchedIds = new Set();
+    const scanState = { controller: new AbortController(), canceled: false, evaluator };
     activeScan = scanState;
     setScanControls(true);
-    const releaseLookupCacheProducer = acquireLookupCacheProducer();
+    let releaseLookupCacheProducer = null;
+    let busyShown = false;
 
-    showBusy('Scanning items', 'Starting Item sheet scan...', 0);
     try {
+      releaseLookupCacheProducer = acquireLookupCacheProducer();
+      showBusy('Scanning items', 'Starting Item sheet scan...', 0);
+      busyShown = true;
       while (keepGoing) {
         const payload = await fetchItemRowsPage(after, pageSize, scanState.controller.signal);
         const rows = extractSheetRows(payload);
         pages++;
         if (!rows.length) break;
 
-        for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-          if (scanState.canceled) {
-            keepGoing = false;
-            break;
-          }
-          const row = rows[rowIndex];
+        const candidates = [];
+        for (const row of rows) {
           const id = normalizeRowIdValue(rowId(row));
           const name = rowName(row);
-          if (id === null || !name) continue;
-          scanned++;
-          regex.lastIndex = 0;
-          if (regex.test(name)) {
-            matches.push({ id, name });
-            const cache = lookupCache.Item || (lookupCache.Item = {});
-            cache[String(id)] = name;
-            if (matches.length >= maxMatches) {
-              keepGoing = false;
-              break;
-            }
-          }
-          if ((rowIndex + 1) % 250 === 0) {
-            summary.textContent = `${scanned.toLocaleString()} item rows scanned · ${matches.length.toLocaleString()} matches found · ${pages.toLocaleString()} page(s) fetched`;
-            updateBusy(`${scanned.toLocaleString()} items scanned · ${matches.length.toLocaleString()} matches · ${pages.toLocaleString()} page(s)`, null);
-            await new Promise(resolve => setTimeout(resolve, 0));
-          }
+          if (id === null || typeof name !== 'string' || !name) continue;
+          candidates.push({ id, name });
         }
 
+        const pageResult = await evaluateCandidateBatches({
+          evaluator,
+          candidates,
+          matches,
+          matchedIds,
+          maxMatches,
+          onBatch: ({ evaluatedCount, addedMatches }) => {
+            scanned += evaluatedCount;
+            for (const { id, name } of addedMatches) {
+              if (!isUsefulLookupName(name)) continue;
+              const cache = lookupCache.Item || (lookupCache.Item = {});
+              cache[String(id)] = name;
+              cacheChanged = true;
+            }
+            summary.textContent = `${scanned.toLocaleString()} item rows scanned · ${matches.length.toLocaleString()} matches found · ${pages.toLocaleString()} page(s) fetched`;
+            updateBusy(`${scanned.toLocaleString()} items scanned · ${matches.length.toLocaleString()} matches · ${pages.toLocaleString()} page(s)`, null);
+          }
+        });
+        if (pageResult.limitReached) keepGoing = false;
+
         saveLookupCache();
+        cacheChanged = false;
         summary.textContent = `${scanned.toLocaleString()} item rows scanned · ${matches.length.toLocaleString()} matches found · ${pages.toLocaleString()} page(s) fetched`;
         updateBusy(`${scanned.toLocaleString()} items scanned · ${matches.length.toLocaleString()} matches · ${pages.toLocaleString()} page(s)`, null);
 
@@ -239,7 +263,6 @@ export function openRegexToItemIdsTool(deps) {
         after = next;
       }
 
-      matches = uniqueById(matches);
       if (scanState.canceled) {
         summary.textContent = `Scan canceled after ${scanned.toLocaleString()} item row(s). ${matches.length.toLocaleString()} match(es) found.`;
         setStatus('Regex scan canceled', 'ok');
@@ -250,21 +273,36 @@ export function openRegexToItemIdsTool(deps) {
       renderRegexMatches();
       syncAddButtonState();
     } catch (err) {
-      if (scanState.canceled || isAbortError(err)) {
+      if (cacheChanged) {
+        saveLookupCache();
+        cacheChanged = false;
+      }
+      if (err instanceof RegexBatchTimeoutError) {
+        scanState.controller.abort();
+        summary.textContent = `Browser conversion stopped after ${scanned.toLocaleString()} completed item row(s). ${matches.length.toLocaleString()} match(es) from completed batches were kept.`;
+        renderRegexMatches();
+        syncAddButtonState();
+        setStatus(`Browser conversion stopped because this JavaScript regex took longer than ${err.deadlineMs / 1000} second for one evaluation batch. This does not mean the pattern is invalid for AetherBags/.NET.`, 'err');
+      } else if (scanState.canceled || err instanceof RegexWorkerCanceledError || isAbortError(err)) {
         scanState.canceled = true;
-        matches = uniqueById(matches);
         summary.textContent = `Scan canceled after ${scanned.toLocaleString()} item row(s). ${matches.length.toLocaleString()} match(es) found.`;
         renderRegexMatches();
         syncAddButtonState();
         setStatus('Regex scan canceled', 'ok');
       } else {
+        if (matches.length) {
+          summary.textContent = `Regex scan stopped after ${scanned.toLocaleString()} completed item row(s). ${matches.length.toLocaleString()} match(es) from completed batches were kept.`;
+          renderRegexMatches();
+          syncAddButtonState();
+        }
         setStatus('Regex scan failed: ' + err.message, 'err');
       }
     } finally {
-      releaseLookupCacheProducer();
+      evaluator.dispose();
+      releaseLookupCacheProducer?.();
       if (activeScan === scanState) activeScan = null;
       setScanControls(false);
-      hideBusy();
+      if (busyShown) hideBusy();
       if (typeof onAvailabilityChanged === 'function') onAvailabilityChanged();
     }
   };

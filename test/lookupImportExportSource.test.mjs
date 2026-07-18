@@ -369,8 +369,8 @@ test('all asynchronous cache producers use finally-safe coordination', () => {
   assert.match(referenced, /finally \{ releaseLookupCacheProducer\(\);/);
   assert.match(list, /releaseLookupCacheProducer = acquireLookupCacheProducer\(\);/);
   assert.match(list, /finally \{\s*releaseLookupCacheProducer\?\.\(\);/);
-  assert.match(regex, /const releaseLookupCacheProducer = acquireLookupCacheProducer\(\);/);
-  assert.match(regex, /finally \{\s*releaseLookupCacheProducer\(\);/);
+  assert.match(regex, /releaseLookupCacheProducer = acquireLookupCacheProducer\(\);/);
+  assert.match(regex, /finally \{\s*evaluator\.dispose\(\);\s*releaseLookupCacheProducer\?\.\(\);/);
 });
 
 test('lookup cache modal disables empty and busy clearing while retaining the defensive race guard', () => {
@@ -443,8 +443,42 @@ test('regex scanner uses shared strict row ID normalization', () => {
 
   assert.match(source, /import \{ normalizeRowIdValue \} from '\.\.\/rowIds\.js';/);
   assert.match(source, /const id = normalizeRowIdValue\(rowId\(row\)\);/);
-  assert.match(source, /if \(id === null \|\| !name\) continue;/);
+  assert.match(source, /if \(id === null \|\| typeof name !== 'string' \|\| !name\) continue;/);
   assert.doesNotMatch(source, /matches\.push\(\{ id: Number\(id\), name \}\)/);
+});
+
+test('regex evaluation is isolated in a bounded repository-relative module worker', () => {
+  const converter = read('src/tools/regexToItemIds.js');
+  const evaluator = read('src/tools/regexBatchEvaluator.js');
+  const worker = read('src/tools/regexBatchWorker.js');
+
+  assert.match(evaluator, /REGEX_BATCH_SIZE = 50/);
+  assert.match(evaluator, /REGEX_BATCH_DEADLINE_MS = 1000/);
+  assert.match(evaluator, /new Worker\(new URL\('\.\/regexBatchWorker\.js', import\.meta\.url\), \{ type: 'module' \}\)/);
+  assert.match(converter, /evaluateCandidateBatches\(\{/);
+  assert.match(converter, /candidates\.push\(\{ id, name \}\)/);
+  assert.match(converter, /if \(!isUsefulLookupName\(name\)\) continue;[\s\S]*?cache\[String\(id\)\] = name;/);
+  assert.doesNotMatch(converter, /\.test\(/);
+  assert.doesNotMatch(converter, /regexBatchWorker/);
+  assert.match(worker, /new RegExp\(pattern, 'i'\)/);
+  assert.match(worker, /regex\.test\(candidate\.name\)/);
+});
+
+test('regex timeout, Cancel, and modal Close share immediate idempotent cleanup without invalidating AetherBags syntax', () => {
+  const converter = read('src/tools/regexToItemIds.js');
+  const stopBody = converter.match(/const stopActiveScan = \(\) => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
+  const finallyBody = converter.match(/\} finally \{(?<body>[\s\S]*?)\n    \}/)?.groups.body ?? '';
+
+  assert.match(stopBody, /activeScan\.canceled = true/);
+  assert.match(stopBody, /activeScan\.controller\.abort\(\)/);
+  assert.match(stopBody, /activeScan\.evaluator\.cancel\(\)/);
+  assert.match(converter, /onClose: \(\) => \{\s*if \(stopActiveScan\(\)\)/);
+  assert.match(converter, /cancelButton\.onclick = \(\) => \{\s*if \(!stopActiveScan\(\)\) return;/);
+  assert.match(finallyBody, /evaluator\.dispose\(\)/);
+  assert.match(finallyBody, /releaseLookupCacheProducer\?\.\(\)/);
+  assert.match(finallyBody, /if \(busyShown\) hideBusy\(\)/);
+  assert.match(converter, /This does not mean the pattern is invalid for AetherBags\/\.NET\./);
+  assert.doesNotMatch(converter, /timeout[^\n]*AetherBags[^\n]*invalid/i);
 });
 
 test('list lookup only hides busy overlay after showing it', () => {

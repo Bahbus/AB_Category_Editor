@@ -530,6 +530,12 @@ Further splits should remain behavior-preserving ownership extractions driven by
 - adds matched IDs,
 - optionally removes the selected regex.
 
+Phase 64 isolates evaluation behind two focused modules:
+
+- `src/tools/regexBatchWorker.js` is a dedicated module-worker entrypoint and the only runtime module that calls `regex.test(name)`. It compiles with fixed `i`, evaluates candidates in stable order, stops at the supplied remaining-match limit, and returns an explicit serializable result or error message.
+- `src/tools/regexBatchEvaluator.js` owns worker construction through `new URL('./regexBatchWorker.js', import.meta.url)`, scan/batch identity, one pending request, injected timer/worker seams, stale-reply rejection, and idempotent termination. Production requests contain at most 50 candidates and expire after 1,000 ms. The batch size bounds cloning/evaluation work; the deadline is conservative for slower phones while still stopping pathological JavaScript promptly without blocking the UI thread.
+- `evaluateCandidateBatches(...)` merges completed replies into stable unique numeric matches and handles duplicate matches without exceeding or stopping short of the configured unique maximum. A timed-out or canceled in-flight batch contributes no partial result; earlier completed batches remain intact.
+
 Important behavior:
 
 - the launch action is composed by `src/ui/matchingRulesEditor.js` into the existing Allowed Item Name Patterns list input/Add row after `categoryEditor.js` supplies the launcher callback; `listEditor(...)` has no converter-specific API,
@@ -546,6 +552,10 @@ Important behavior:
   - both,
   - no changes.
 - matched IDs are numeric.
+- worker construction, post, runtime, message, timeout, and cancellation failures never fall back to main-thread matching,
+- Cancel and modal Close abort fetch work and terminate the worker immediately; timeout does the same and reports that slow JavaScript evaluation is not an AetherBags/.NET validity decision,
+- the converter commits useful matched names only after a complete batch reply and flushes completed cache changes at page or terminal boundaries,
+- the existing lookup-cache producer lease, busy overlay, action-state synchronization, result rendering, Add/removal/no-op behavior, and focus return still release through the converter's outer `finally`.
 
 ---
 
@@ -733,6 +743,8 @@ Phase 61 adds `customOrderRelevant` to the shared item-ordering analysis and con
 Phase 62 adds `src/actionAvailability.js` as the DOM-free authority for text-backed candidates, normalized result duplication, converter work, global category actions, referenced-ID work, and cache-entry/busy state. UI owners keep local synchronizers: reusable Search and result actions stay inside `listEditor.js`; Import/full Raw JSON and global actions stay in `app.js`; selected Raw JSON stays in `categoryEditor.js`; converter state stays in `regexToItemIds.js`; and cache subscription state stays in `lookupCacheModal.js`. Existing render/list callbacks notify global availability without adding structural rerenders or dirty changes. Producer completion uses current input/cache/config state rather than blind enabling, while defensive no-op/race guards remain. The local `npm run check` run syntax-checked 75 files, resolved all static relative imports, and passed all 33 test files / 432 tests; focused coverage passed 117 tests and `git diff --check origin/main` passed with no output. Final-build browser QA passed the required action transitions plus accessible-name/tooltip checks and zero overflow in both densities at 1280px/840px/390px. CI and Pages were not run because publication remains separate.
 
 Phase 63 adds direct small-limit tests for exact/over UTF-8 JSON boundaries, multibyte accounting, whitespace-tolerant Base64, pre-`atob` rejection, post-decode defense, exact/overflow streaming output, cancellation/release, compression-bomb expansion, split UTF-8 chunks, malformed Base64/gzip/JSON, missing stream support, file-size-before-read, and downstream callback suppression. Focused coverage passed 121 tests. The local `npm run check` run syntax-checked 75 files, resolved all static relative imports, and passed all 33 test files / 444 tests; final `git diff --check origin/main` passed with no output. Browser QA passed normal plain and gzip+Base64 imports, both Raw JSON no-ops, modal focus/ARIA restoration, and zero overflow in both densities at 1280px/840px/390px. The browser file chooser and a production-size oversized payload were not exercised; the injected-limit tests are authoritative for those boundaries. CI and Pages were not run because publication remains separate.
+
+Phase 64 adds direct fixed-`i`, stable-order, bounded-batch, duplicate/exact-limit, success, timeout, pending-cancel, construction/post/runtime/message error, one-termination, timer/listener cleanup, stale-reply, completed-batch partial-result, and production-policy tests through injected fake workers and timers; no catastrophic regex runs inside Node tests. Focused coverage passed 65 tests. The local `npm run check` run syntax-checked 78 files, resolved all static relative imports, and passed all 34 test files / 460 tests; final `git diff --check origin/main` passed with no output. Final-build browser QA passed normal custom/saved worker scans, progress and Add, duplicate-only no-op availability, optional pattern removal, active pathological and ordinary cancellation, deterministic timeout with responsive UI and AetherBags-safe copy, modal-close focus/busy/cache cleanup, and zero body/document/modal overflow in both densities at 1280px/840px/390px. No unexpected application console error appeared; the deliberate timeout status and Electron development CSP warning were expected. CI and Pages were not run because publication remains separate.
 
 Testing styles:
 
