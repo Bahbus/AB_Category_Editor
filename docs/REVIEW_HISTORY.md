@@ -1393,6 +1393,29 @@ Validation actually run:
 - final-build in-app browser QA passed Comfortable and Compact at 1280px, 840px, and 390px: inactive empty data had no Custom Item Order section or reserved body element; active selection showed the existing warning/editor immediately; ranks cleared that warning; changing away retained nonempty ranks with the existing warning; final-rank removal hid the section and focused Add criterion; malformed inactive data exposed `Edit in Raw JSON`; all six density/viewport combinations had zero body/document horizontal overflow; and the console contained no errors;
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+## Phase 62
+
+The post-Phase-61 action inventory confirmed that several controls still relied on click-handler no-ops or blind post-async enabling even when native UI state could prove that no work was available.
+
+Resolution on `agent/phase-62-contextual-action-availability` from merged Phase 61 `origin/main` at `abdc54143b246cae66df9cc9767d73bd1842bad8`:
+
+- added `src/actionAvailability.js` for trimmed text, normalized lookup-result duplication, converter Scan/Add, exact Sort/Renumber, uncached referenced-ID, and empty/busy cache decisions;
+- made reusable manual Search buttons live, running-safe, Enter-safe, and post-request current-input-aware; duplicate result Add actions now disable together by normalized ID while retaining race/no-op guards and accessible names without disabled titles;
+- made Import, full Raw JSON Apply/Copy, and selected Raw JSON Apply disabled only for trimmed-empty candidates, preserving malformed-nonblank validation and every existing confirmation/no-op/repair/clipboard/replacement path;
+- made converter Scan pattern/running-aware and Add matched IDs dependent on a new normalized ID or removable selected saved pattern, including all-duplicate keep/removal and cancel/finish resynchronization;
+- made Sort identity-order-aware, Renumber exact one-based-number-aware, Resolve IDs uncached-reference/own-running-aware, and cache clearing entry-count/producer-aware through existing render and subscription boundaries;
+- audited all remaining buttons. Mutation actions are contextual when a boundary or missing candidate removes their work; correction, validation, modal, navigation, close/cancel, confirmation, clipboard retry, file-selection, preset, and generated-description feedback actions remain enabled when rendered for their established useful work;
+- preserved configuration/import/export semantics, validation rules, lookup/cache leases, dirty/no-op contracts, focus/modal behavior, responsive layout, button labels/sizes, dependencies, and Phase 61 Custom Item Order relevance.
+
+Validation actually run:
+
+- focused availability, category-change, pattern, DOM/tooltip, cache-operation, lookup/import/export/no-op, and accessibility/source coverage passed all 117 tests;
+- `npm run check` passed: 75 JavaScript files syntax-checked, all static relative imports resolved, and all 33 test files / 432 tests passed;
+- `git diff --check origin/main` passed with no output;
+- final-build in-app browser QA passed all required blank/nonblank/running/post-request, duplicate, validation, converter, Sort/Renumber/Resolve, and cache transitions. Disabled controls retained accessible names and zero disabled controls retained tooltip titles;
+- Comfortable and Compact passed at 1280px, the 840px stacking boundary, and 390px with zero horizontal overflow; expected validation/lookup feedback was exercised with no unexpected console errors;
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Phase 61 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.
+Phase 62 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.

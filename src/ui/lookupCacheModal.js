@@ -1,5 +1,6 @@
 import { requireScopedEl } from '../dom.js';
 import { openModal, closeModal } from '../modals.js';
+import { lookupCacheClearAvailable } from '../actionAvailability.js';
 
 function formatLookupCacheStats(stats) {
   return `${stats.useful.toLocaleString()} useful, ${stats.unresolved.toLocaleString()} unresolved`;
@@ -22,12 +23,16 @@ export function showLookupCacheModal({ lookupCacheStats, clearLookupCache, isLoo
   const clearButton = requireScopedEl(wrap, '#clearLookupCache', 'lookup cache');
   const unavailable = requireScopedEl(wrap, '#lookupCacheClearUnavailable', 'lookup cache');
   const updateClearState = active => {
-    clearButton.disabled = active;
-    unavailable.textContent = active ? 'Lookup names are currently being cached. Wait for the lookup or scan to finish before clearing the cache.' : '';
+    const stats = [lookupCacheStats('Item'), lookupCacheStats('ItemUICategory')];
+    clearButton.disabled = !lookupCacheClearAvailable(stats, active);
+    unavailable.textContent = active
+      ? 'Lookup names are currently being cached. Wait for the lookup or scan to finish before clearing the cache.'
+      : clearButton.disabled ? 'The lookup cache is empty.' : '';
   };
   updateClearState(isLookupCacheProducerActive());
   const unsubscribe = onLookupCacheProducerChange(updateClearState);
   clearButton.onclick = () => {
+    if (clearButton.disabled) { updateClearState(isLookupCacheProducerActive()); return; }
     if (!clearLookupCache()) {
       updateClearState(true);
       unavailable.textContent = 'The cache was not cleared because a lookup or scan is still running.';

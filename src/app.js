@@ -19,6 +19,7 @@ import { createLookupCacheOperationCoordinator, clearLookupCacheIfIdle } from '.
 import { applyConfigReplacement, applyFullConfigCandidate, renumberCategories as applyCategoryRenumber, sortCategoriesPreservingSelection } from './categoryChanges.js';
 import { isSnapshotCurrent, makeRevisionedExportSnapshot, saveSnapshotIfCurrent } from './exportSnapshots.js';
 import { runAetherBagsExportPreflight } from './exportCompatibility.js';
+import { categoryRenumberAvailable, categorySortAvailable, referencedIdLookupAvailable, textActionAvailable } from './actionAvailability.js';
 import {
   reviewableImportRepairs,
   reviewableImportFindings,
@@ -37,6 +38,7 @@ let draggedIndex = null;
 let lookupCache = loadLookupCache();
 let editorPreferences = loadEditorPreferences();
 const lookupCacheOperations = createLookupCacheOperationCoordinator();
+let resolvingReferencedIds = false;
 
 function applyEditorPreferences(preferences = editorPreferences) {
   editorPreferences = persistEditorPreferences(preferences);
@@ -161,7 +163,7 @@ async function makeCompatibleRevisionedExportSnapshot(busyTitle, busyMessage, on
   }
   return result.value;
 }
-function openRegexToItemIdsTool() { commitActiveField(); openRegexTool({ getCategories, getSelectedIndex: () => selectedIndex, ensureShape, lookupCache, saveLookupCache, acquireLookupCacheProducer: lookupCacheOperations.acquire, markDirty, renderAll }); }
+function openRegexToItemIdsTool() { commitActiveField(); openRegexTool({ getCategories, getSelectedIndex: () => selectedIndex, ensureShape, lookupCache, saveLookupCache, acquireLookupCacheProducer: lookupCacheOperations.acquire, markDirty, renderAll, onAvailabilityChanged: updateGlobalActionAvailability }); }
 
 function commitActiveField() {
   const active = document.activeElement;
@@ -214,6 +216,20 @@ function updateExportControls() {
   }
 }
 
+function updateGlobalActionAvailability() {
+  const categories = getCategories();
+  const sortButton = el('sortByOrder');
+  const renumberButton = el('renumber');
+  const lookupButton = el('lookupReferencedIds');
+  if (sortButton) sortButton.disabled = !categorySortAvailable(categories, compareCategoriesForImport);
+  if (renumberButton) renumberButton.disabled = !categoryRenumberAvailable(categories);
+  if (lookupButton) {
+    const ids = collectReferencedIds(categories, ensureShape);
+    const uncached = countUncachedReferencedIds(ids, lookupName);
+    lookupButton.disabled = !referencedIdLookupAvailable(uncached, resolvingReferencedIds);
+  }
+}
+
 function renderList() {
   renderCategoryList({
     data, getCategories, ensureShape,
@@ -223,6 +239,7 @@ function renderList() {
     setDraggedIndex: value => { draggedIndex = value; },
     renumberCategories, markDirty: markDirtyAndRenderList, renderAll, commitActiveField
   });
+  updateGlobalActionAvailability();
 }
 
 function loadPreset(preset) {
@@ -247,12 +264,12 @@ function renderEditor() {
     getSelectedIndex: () => selectedIndex,
     setSelectedIndex: value => { selectedIndex = value; },
     ensureShape, markDirty, markDirtyAndRenderList, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, lookupName, commitActiveField, getEditorPreferences: () => editorPreferences, copyTextToClipboard, loadBasicPresets, loadAdvancedPresets,
-    listEditorDeps: { lookupName, fetchLookupBatch, searchXivapi, lookupCache, saveLookupCache, acquireLookupCacheProducer: lookupCacheOperations.acquire, markDirty }
+    listEditorDeps: { lookupName, fetchLookupBatch, searchXivapi, lookupCache, saveLookupCache, acquireLookupCacheProducer: lookupCacheOperations.acquire, markDirty, onAvailabilityChanged: updateGlobalActionAvailability }
   });
 }
 
 // Use renderAll only for structural changes; local field edits should update local UI/list instead.
-function renderAll() { renderList(); renderEditor(); updateExportControls(); }
+function renderAll() { renderList(); renderEditor(); updateExportControls(); updateGlobalActionAvailability(); }
 
 async function lookupReferencedIds(options = {}) {
   const { quiet = false } = options;
@@ -261,8 +278,8 @@ async function lookupReferencedIds(options = {}) {
   const uncached = countUncachedReferencedIds(ids, lookupName);
   if (!total) { if (!quiet) setStatus('No referenced Item/UI Category IDs to look up.', 'warn'); return; }
   if (!uncached) { if (!quiet) setStatus(`All ${total} referenced ID name(s) already cached.`, 'ok'); commitActiveField(); renderAll(); return; }
-  const lookupButton = el('lookupReferencedIds');
-  if (lookupButton) lookupButton.disabled = true;
+  resolvingReferencedIds = true;
+  updateGlobalActionAvailability();
   const failures = [];
   const releaseLookupCacheProducer = lookupCacheOperations.acquire();
   try {
@@ -284,7 +301,7 @@ async function lookupReferencedIds(options = {}) {
     }
     else if (quiet) setStatus(`Automatic lookup cached ${uncached} new name(s).`);
     else setStatus(`Lookup complete: ${uncached} new name(s) cached.`, 'ok');
-  } finally { releaseLookupCacheProducer(); hideBusy(); if (lookupButton) lookupButton.disabled = false; }
+  } finally { releaseLookupCacheProducer(); hideBusy(); resolvingReferencedIds = false; updateGlobalActionAvailability(); }
 }
 
 function maybeAutoLookupImportedIds() {
@@ -318,7 +335,11 @@ function showImportModal(initialText = '') {
   openModal('Import / Paste', wrap);
   try {
     const importTextNode = requireScopedEl(wrap, '#importText', 'import');
-    requireScopedEl(wrap, '#importNow', 'import').addEventListener('click', async () => {
+    const importButton = requireScopedEl(wrap, '#importNow', 'import');
+    const syncImportAvailability = () => { importButton.disabled = !textActionAvailable(importTextNode.value); };
+    syncImportAvailability();
+    importTextNode.addEventListener('input', syncImportAvailability);
+    importButton.addEventListener('click', async () => {
       commitActiveField();
       const text = importTextNode.value.trim();
       try {
@@ -341,7 +362,16 @@ function showRawModal(initialText = JSON.stringify(data, null, 2), initialError 
   try {
     const rawFull = requireScopedEl(wrap, '#rawFull', 'raw JSON');
     const rawCopyStatus = requireScopedEl(wrap, '#rawCopyStatus', 'raw JSON');
-    requireScopedEl(wrap, '#applyRawFull', 'raw JSON').addEventListener('click', async () => {
+    const applyRawFull = requireScopedEl(wrap, '#applyRawFull', 'raw JSON');
+    const copyRawFull = requireScopedEl(wrap, '#copyRawFull', 'raw JSON');
+    const syncRawAvailability = () => {
+      const available = textActionAvailable(rawFull.value);
+      applyRawFull.disabled = !available;
+      copyRawFull.disabled = !available;
+    };
+    syncRawAvailability();
+    rawFull.addEventListener('input', syncRawAvailability);
+    applyRawFull.addEventListener('click', async () => {
       commitActiveField();
       const text = rawFull.value;
       let validation;
@@ -377,7 +407,7 @@ function showRawModal(initialText = JSON.stringify(data, null, 2), initialError 
       });
       if (result === null) showRawModal(text);
     });
-    requireScopedEl(wrap, '#copyRawFull', 'raw JSON').addEventListener('click', async () => {
+    copyRawFull.addEventListener('click', async () => {
       commitActiveField();
       const ok = await copyTextToClipboard(rawFull.value);
       rawCopyStatus.textContent = ok ? 'Copied to clipboard.' : 'Copy failed. Select the text manually.';

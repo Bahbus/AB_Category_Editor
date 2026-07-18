@@ -3,6 +3,7 @@ import { sheetLabel, normalizeLookupIds, rowId, rowName } from '../xivapi.js';
 import { normalizeRowIdValue } from '../rowIds.js';
 import { isUsefulLookupName } from '../lookupNames.js';
 import { listMutationFocusPlan } from '../itemOrdering.js';
+import { lookupResultAddAvailable, textActionAvailable } from '../actionAvailability.js';
 
 export function tokenizeListInput(rawInput, splitOnCommas = true) {
   const trimmedInput = rawInput.trim();
@@ -30,7 +31,8 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     splitInputOnCommas = true,
     inputPlaceholder = 'Add one value, or comma-separated values',
     ordered = false,
-    preserveInputOnNoop = false
+    preserveInputOnNoop = false,
+    onAvailabilityChanged = null
   } = options;
 
   const card = document.createElement('div');
@@ -85,6 +87,10 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
 
   function notifyItemsChanged() {
     if (typeof onItemsChanged === 'function') onItemsChanged(arr);
+  }
+
+  function notifyAvailabilityChanged() {
+    if (typeof onAvailabilityChanged === 'function') onAvailabilityChanged();
   }
 
   function renderPills() {
@@ -307,6 +313,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         }
 
         renderPills();
+        notifyAvailabilityChanged();
       } catch (err) {
         setStatus(err.message, 'err');
       } finally {
@@ -327,14 +334,36 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     const searchInput = searchWrap.querySelector('.lookupSearchInput');
     const searchButton = searchWrap.querySelector('.lookupSearchButton');
     const resultsBox = searchWrap.querySelector('.lookup-results');
+    let searchRunning = false;
+
+    function syncSearchButtonState() {
+      searchButton.disabled = !textActionAvailable(searchInput.value, searchRunning);
+    }
+
+    function syncRenderedResultActions() {
+      for (const button of resultsBox.querySelectorAll('button[data-lookup-row-id]')) {
+        const id = normalizeRowIdValue(button.dataset.lookupRowId);
+        button.disabled = !lookupResultAddAvailable(id, arr);
+        syncButtonTooltip(button, button.dataset.enabledTitle || 'Add lookup result');
+      }
+    }
+
+    syncSearchButtonState();
+    searchInput.addEventListener('input', syncSearchButtonState);
+    searchInput.addEventListener('keydown', event => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      if (!searchButton.disabled) searchButton.click();
+    });
 
     searchButton.onclick = async () => {
       const query = searchInput.value.trim();
-      if (!query) return;
+      if (!textActionAvailable(query, searchRunning)) return;
+      searchRunning = true;
+      syncSearchButtonState();
       const releaseLookupCacheProducer = acquireLookupCacheProducer();
 
       try {
-        searchButton.disabled = true;
         resultsBox.innerHTML = '<span class="hint">Searching...</span>';
 
         const results = await searchXivapi(lookupSheet, query);
@@ -356,21 +385,26 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
             const cache = lookupCache[lookupSheet] || (lookupCache[lookupSheet] = {});
             cache[String(id)] = name;
             saveLookupCache();
+            notifyAvailabilityChanged();
           }
 
           const r = document.createElement('div');
           r.className = 'lookup-row';
           r.innerHTML = `<span>#${escapeHtml(id)}</span><span>${escapeHtml(displayName)}</span><button class="icon-button add-icon-button">+</button>`;
           const addButton = r.querySelector('button');
-          addButton.setAttribute('aria-label', `Add ${displayName} #${id} to ${title}`);
-          addButton.title = `Add ${displayName} #${id} to ${title}`;
+          const addLabel = `Add ${displayName} #${id} to ${title}`;
+          addButton.setAttribute('aria-label', addLabel);
+          addButton.dataset.lookupRowId = String(id);
+          addButton.dataset.enabledTitle = addLabel;
+          addButton.disabled = !lookupResultAddAvailable(id, arr);
+          syncButtonTooltip(addButton, addLabel);
           addButton.onclick = () => {
-            if (!arr.some(value => normalizeRowIdValue(value) === id)) {
-              arr.push(id);
-              markDirty();
-              renderPills();
-              notifyItemsChanged();
-            }
+            if (!lookupResultAddAvailable(id, arr)) { syncRenderedResultActions(); return; }
+            arr.push(id);
+            markDirty();
+            renderPills();
+            syncRenderedResultActions();
+            notifyItemsChanged();
           };
           resultsBox.appendChild(r);
           rendered++;
@@ -388,7 +422,9 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         setStatus(err.message, 'err');
       } finally {
         releaseLookupCacheProducer();
-        searchButton.disabled = false;
+        searchRunning = false;
+        syncSearchButtonState();
+        notifyAvailabilityChanged();
       }
     };
 

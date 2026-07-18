@@ -42,15 +42,18 @@ Primary layers:
 10. **Shared item-ordering semantics**
    - `src/itemOrdering.js`
 
-11. **Import/export and clipboard/download**
+11. **Shared action-availability decisions**
+   - `src/actionAvailability.js`
+
+12. **Import/export and clipboard/download**
    - `src/importExport.js`
    - `src/exportSnapshots.js`
 
-12. **XIVAPI and lookup**
+13. **XIVAPI and lookup**
    - `src/xivapi.js`
    - `src/lookupNames.js`
 
-13. **UI rendering**
+14. **UI rendering**
    - `src/ui/categoryList.js`
    - `src/ui/categoryEditor.js`
    - `src/ui/colorEditor.js`
@@ -60,23 +63,23 @@ Primary layers:
    - `src/ui/formControls.js`
    - modal-specific UI modules
 
-14. **Modal infrastructure**
+15. **Modal infrastructure**
    - `src/modals.js`
 
-15. **Persistent state**
+16. **Persistent state**
    - `src/state.js`
 
-16. **Tools**
+17. **Tools**
    - `src/tools/regexToItemIds.js`
 
-17. **Description generation**
+18. **Description generation**
    - `src/descriptionGenerator.js`
 
-18. **Static assets and layout**
+19. **Static assets and layout**
    - `index.html`
    - `styles.css`
 
-19. **Tests and guardrails**
+20. **Tests and guardrails**
    - `test/*.test.mjs`
    - `test/applicationDataFlowSource.test.mjs`
    - `test/uiAccessibilitySource.test.mjs`
@@ -722,6 +725,8 @@ Phase 59 moves the complete existing Range Filters and State Filters disclosure 
 Phase 60 moves the complete existing Basics card and generated-description controller into `src/ui/basicEditor.js`. The leaf owns its controls, local warnings, modal/controller, description synchronization, and debounced sidebar helper; `categoryEditor.js` retains the selected header/badge, category-wide validation, overall order, structural actions, scheduler ownership, and cross-card orchestration through the narrow controller. The shell fell from 404 to 285 lines and the new leaf is 163 lines. Focused coverage passed 150 tests. The local `npm run check` run syntax-checked 73 files, resolved all static relative imports, and passed all 32 test files / 420 tests; `git diff --check origin/main` passed with no output. In-app browser QA passed both densities at 1280px, 840px, and 390px with exact Basics/Color order, zero overflow, live Name/header/sidebar synchronization, every generated-description decision path, auto-generation, switch warnings, signed-Int32 numeric restore/commit behavior, modal focus restoration, and no console errors. CI and Pages were not run because implementation and publication remain separate.
 
 Phase 61 adds `customOrderRelevant` to the shared item-ordering analysis and conditionally appends the complete Custom Item Order section only for active, retained nonempty, or corrective malformed/incompatible states. Inactive omitted and valid empty states render no section or placeholder. Criterion rerenders keep explicit surviving focus, and clearing the final retained inactive rank rerenders locally and focuses Add criterion. Focused coverage passed 129 tests. The local `npm run check` run syntax-checked 73 files, resolved all static relative imports, and passed all 32 test files / 423 tests; `git diff --check origin/main` passed with no output. Final-build browser QA passed Comfortable and Compact at 1280px, 840px, and 390px with zero inactive Custom Item Order body elements, zero horizontal overflow, immediate active appearance, warning clearing after rank addition, retained-inactive visibility, final-rank disappearance with connected focus, malformed Raw JSON routing, and no console errors. CI and Pages were not run because implementation and publication remain separate.
+
+Phase 62 adds `src/actionAvailability.js` as the DOM-free authority for text-backed candidates, normalized result duplication, converter work, global category actions, referenced-ID work, and cache-entry/busy state. UI owners keep local synchronizers: reusable Search and result actions stay inside `listEditor.js`; Import/full Raw JSON and global actions stay in `app.js`; selected Raw JSON stays in `categoryEditor.js`; converter state stays in `regexToItemIds.js`; and cache subscription state stays in `lookupCacheModal.js`. Existing render/list callbacks notify global availability without adding structural rerenders or dirty changes. Producer completion uses current input/cache/config state rather than blind enabling, while defensive no-op/race guards remain. The local `npm run check` run syntax-checked 75 files, resolved all static relative imports, and passed all 33 test files / 432 tests; focused coverage passed 117 tests and `git diff --check origin/main` passed with no output. Final-build browser QA passed the required action transitions plus accessible-name/tooltip checks and zero overflow in both densities at 1280px/840px/390px. CI and Pages were not run because publication remains separate.
 
 Testing styles:
 
