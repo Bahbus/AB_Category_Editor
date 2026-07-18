@@ -55,6 +55,7 @@ Primary layers:
    - `src/ui/categoryEditor.js`
    - `src/ui/colorEditor.js`
    - `src/ui/matchingRulesEditor.js`
+   - `src/ui/rangeStateFiltersEditor.js`
    - `src/ui/listEditor.js`
    - `src/ui/formControls.js`
    - modal-specific UI modules
@@ -479,8 +480,6 @@ It currently owns:
 
 - basic fields,
 - generated-description UI,
-- range filters,
-- state filters,
 - raw category JSON,
 - validation UI,
 - actions such as duplicate/delete/move.
@@ -492,6 +491,10 @@ It currently owns:
 `src/ui/matchingRulesEditor.js` is the focused leaf owner for the matching-rule grid. It returns the existing two-column grid containing, in order, Allowed UI Category IDs, Allowed Item IDs, Allowed Item Name Patterns with its converter action, and Allowed Rarities. It owns the strict typed row-ID parsers and normalized dedupe wiring, Item and ItemUICategory list lookup composition, structural pattern validation and comma-preserving input configuration, converter placement, and the private rarity checkbox renderer.
 
 `categoryEditor.js` passes the category list, dirty callback, converter launcher, existing list-editor lookup dependencies, and one rule-change callback. That callback retains category-level validation refresh, optional generated-description updates, and sidebar rendering in the established order. The matching-rules module does not depend on `categoryEditor.js`, so the ownership boundary introduces no circular dependency.
+
+`src/ui/rangeStateFiltersEditor.js` is the focused leaf owner for the Range Filters and State Filters disclosure cards. It owns the private range/state display-name maps and fallback formatting, Range defaults and signed-Int32/uint bounds, Range Enabled switches and number/slider composition, State segmented controls, three-column grid markup, and local summary refreshes. It returns the two existing cards to `categoryEditor.js` without changing their disclosure state or markup/classes.
+
+`categoryEditor.js` passes only the selected rules plus dirty, narrow filter-change, and scheduled-render callbacks. The filter-change callback retains category-level validation and optional generated-description orchestration; the existing Range/State scheduler instance is shared by both cards, while Color receives its own separately created instance. The leaf does not import application state, `categoryEditor.js`, or application orchestration.
 
 Selected-category Raw JSON is parsed and shape-normalized as a local candidate before it replaces the live selected category. JSON-semantically identical candidates retain the existing object identity, selection, and dirty state. Parse or shape failures leave the current category and dirty state unchanged.
 
@@ -708,6 +711,8 @@ Phase 58 moves the complete Color card and `normalizeRgbInputValue(...)` into `s
 
 Post-merge browser review then confirmed that Phase 58 had not actually synchronized the visible R/G/B controls or their private committed snapshots after Hex/native changes. Phase 58.1 adds per-control refresh hooks to the existing shared visual update without changing ownership, dependencies, scheduling, dirty/render counts, or focus. Its local `npm run check` run syntax-checked 71 files, resolved all static relative imports, and passed all 32 test files / 418 tests; `git diff --check origin/main` passed with no output. Local browser QA was attempted with two fresh in-app tabs and later retried with two additional fresh tabs, but none of the four webviews attached, so the requested interactive and responsive matrix was unavailable. CI and Pages were not run because implementation and publication remain separate.
 
+Phase 59 moves the complete existing Range Filters and State Filters disclosure cards into `src/ui/rangeStateFiltersEditor.js`. The leaf owns control composition, private labels/bounds, and local summaries; `categoryEditor.js` retains validation, optional description generation, the shared Range/State scheduler, separate Color scheduling, and overall order. Focused coverage passed 197 tests. The local `npm run check` run syntax-checked 72 files, resolved all static relative imports, and passed all 32 test files / 419 tests; `git diff --check origin/main` passed with no output. In-app browser QA passed both densities at 1280px, 840px, and 390px with desktop three-column and narrower stacked grids, live Range/State summary and control behavior, accessible roles/labels, focus continuity, and zero horizontal overflow. A fresh-tab retry for a separate live Maximum commit did not attach, so that edit remains focused-test/source verified. CI and Pages were not run because implementation and publication remain separate.
+
 Testing styles:
 
 - direct unit tests for pure logic,
@@ -721,16 +726,14 @@ Use source checks carefully; avoid brittle exact-format matching when a behavior
 
 ### Large category editor
 
-`src/ui/categoryEditor.js` remains the biggest maintainability hotspot, reduced to 469 lines by the Phase 57 matching-rule and Phase 58 Color extractions.
+`src/ui/categoryEditor.js` remains the biggest maintainability hotspot, reduced to 404 lines by the Phase 57 matching-rule, Phase 58 Color, and Phase 59 Range/State extractions.
 
 Possible future split:
 
 - `basicEditor.js`
-- `rangeFiltersEditor.js`
-- `stateFiltersEditor.js`
 - `rawCategoryEditor.js`
 
-Phase 57 completed the matching-rule split through `src/ui/matchingRulesEditor.js`, and Phase 58 completed the Color split through `src/ui/colorEditor.js`. Future work should preserve both narrow dependency/callback boundaries rather than moving application orchestration into either leaf. Remaining pressure is concentrated in Basics/generated descriptions, Range/State filters, Raw JSON, validation UI, and category structural actions.
+Phase 57 completed the matching-rule split through `src/ui/matchingRulesEditor.js`, Phase 58 completed the Color split through `src/ui/colorEditor.js`, and Phase 59 completed the combined Range/State split through `src/ui/rangeStateFiltersEditor.js`. Future work should preserve all three narrow dependency/callback boundaries rather than moving application orchestration into a leaf. Remaining pressure is concentrated in Basics/generated descriptions, Raw JSON, validation UI, and category structural actions.
 
 ### Source-check growth
 

@@ -156,13 +156,14 @@ test('setDetailsSummary updates stable summary parts without replacing summary h
 
 
 test('category editor uses shared range defaults and advanced stable summary path', () => {
-  const source = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
+  const source = fs.readFileSync(new URL('../src/ui/rangeStateFiltersEditor.js', import.meta.url), 'utf8');
+  const categoryEditor = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
 
   assert.match(source, /for \(const filter of RANGE_FILTERS\)/);
   assert.match(source, /const defaults = \{[\s\S]*?min: filter\.defaults\.Min,[\s\S]*?max: filter\.defaults\.Max,[\s\S]*?minimum: key === 'VendorPrice' \? 0 : INT32_MIN,[\s\S]*?maximum: key === 'VendorPrice' \? UINT32_MAX : INT32_MAX[\s\S]*?\};/);
   assert.doesNotMatch(source, /max:\s*100000/);
   assert.doesNotMatch(source, /max:\s*key === 'Level' \? 100 : 800/);
-  assert.match(source, /setDetailsSummary\(advanced, \{ title: 'Advanced', badges: \[\], issueCount: 0 \}\)/);
+  assert.match(categoryEditor, /setDetailsSummary\(advanced, \{ title: 'Advanced', badges: \[\], issueCount: 0 \}\)/);
 });
 
 test('color commits synchronize every linked display and keep established render scheduling', () => {
@@ -212,7 +213,7 @@ test('regex tool and help modal source text stay current', () => {
 test('shared state filters are imported by validation and editor', () => {
   const validationSource = fs.readFileSync(new URL('../src/validation.js', import.meta.url), 'utf8');
   const compatibilitySource = fs.readFileSync(new URL('../src/exportCompatibility.js', import.meta.url), 'utf8');
-  const editorSource = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
+  const editorSource = fs.readFileSync(new URL('../src/ui/rangeStateFiltersEditor.js', import.meta.url), 'utf8');
 
   assert.match(validationSource, /import \{ RANGE_FILTERS, STATE_FILTERS \}/);
   assert.match(compatibilitySource, /import \{ ALLOWED_RARITY_IDS, RANGE_FILTERS, STATE_FILTERS \}/);

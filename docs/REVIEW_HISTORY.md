@@ -1325,6 +1325,29 @@ Validation actually run:
 - local browser QA was attempted with two fresh in-app tabs and later retried with two additional fresh tabs, but none of the four webviews attached. Comfortable and Compact checks at 1280px, 840px, and 390px plus Hex-to-RGB, native-to-RGB, RGB-to-linked-controls, alpha preservation, invalid/equivalent input, stale-blur, focus, and horizontal-overflow checks were unavailable;
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+## Phase 59
+
+The post-Phase-58.1 maintainability plan identified the contiguous Range/State block as the next cohesive ownership boundary in the 469-line category orchestrator.
+
+Resolution on `agent/phase-59-range-state-filter-extraction`:
+
+- added `src/ui/rangeStateFiltersEditor.js` as the focused owner of the existing Range Filters and State Filters disclosure cards;
+- moved private range/state display-name maps and fallback formatting, Range defaults and signed-Int32/uint bounds, Range Enabled switches and number/slider composition, State segmented controls, and local disclosure-summary refreshes without changing markup, classes, labels, values, or responsive grids;
+- kept category validation and optional generated-description work in `categoryEditor.js` behind one narrow callback, and kept the existing shared Range/State scheduled sidebar callback in the orchestrator;
+- preserved the distinct Color scheduler instance and independent pending flag introduced in Phase 58;
+- preserved the exact Item Ordering, matching rules, Range Filters, State Filters, Advanced order and the established public filter-summary re-exports from `categoryEditor.js`;
+- redirected focused source guards to the new owner without renaming them, added one ownership/data-flow guard, and reduced `categoryEditor.js` from 469 to 404 lines;
+- made no CSS, visual design, data-shape, validation, generated-description, import/export, focus, preset, lookup, dependency, or unrelated editor change.
+
+Validation actually run:
+
+- focused filter-scalar, form-control, description, validation, category-editor, summary, and source coverage passed all 197 tests;
+- `npm run check` passed: 72 JavaScript files syntax-checked, all static relative imports resolved, and all 32 test files / 419 tests passed;
+- `git diff --check origin/main` passed with no output;
+- in-app browser QA passed Comfortable and Compact at 1280px, 840px, and 390px: Range/State order and disclosure summaries, three-column desktop and single-column narrower grids, Enabled/Min/slider edits, blank and invalid-value restoration, State segmented changes, accessible labels/radiogroups, focus continuity, and zero body/document horizontal overflow;
+- a fresh-tab retry for a separate live Maximum commit did not attach, so Maximum edit behavior remains focused-test/source verified rather than runtime asserted;
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Phase 58.1 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.
+Phase 59 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.
