@@ -1466,6 +1466,30 @@ Validation actually run:
 - Comfortable and Compact passed at 1280px, 840px, and 390px with zero body, document, or converter-modal horizontal overflow. No unexpected application console error appeared; the deliberate timeout status and Electron's development CSP warning were expected;
 - CI and GitHub Pages were not run because implementation and publication remain separate. Phase 55 remains on hold.
 
+## Phase 65
+
+Phase 65 bounds every XIVAPI request lifetime from freshly fetched merged Phase 64 `origin/main` at `f37a37b2dc118902844afc23f255ecc84f6a193f`.
+
+Resolution on `agent/phase-65-xivapi-request-deadlines`:
+
+- added dependency-free, DOM-free `src/xivapiRequest.js` with a documented 15,000 ms production deadline, optional caller signal, injected fetch/timer seams, and an optional deterministic test override;
+- combined caller and deadline cancellation through one internal abort controller without polling, preserved caller reasons, introduced distinct `XivapiRequestTimeoutError`, ignored late settlement, and cleared every timer/listener across success, HTTP/JSON failure, timeout, and cancellation;
+- routed multi-row lookup, single-row fallback, manual search, and paginated Item-sheet fetches through the boundary while retaining URLs, English selection, HTTP messages, JSON behavior, strict row normalization, and scan cancellation;
+- stopped timeout retry explosions by reporting every ID in a timed-out chunk once through the existing failure boundary without bisection, individual retries, sentinel cache writes, or useful-name replacement; ordinary failures retain recursive fallback and earlier completed chunks remain cached;
+- kept manual/quiet status policy, producer-lease ownership, nested busy ownership, action recomputation, cache-clearing coordination, partial lookup/scan progress, Phase 62 native disabled state, Phase 64 worker lifecycle, and no-op dirty/save behavior;
+- made regex XIVAPI timeout status distinct from user cancellation and JavaScript-worker evaluation timeout, while retaining completed matches/cache writes and enabling Add only when completed work remains;
+- added focused deterministic request, fallback, partial-progress, cancellation, and source coverage without dependencies or real 15-second test waits;
+- made no UI redesign, retry/Cancel control, cache schema, worker policy, import/export, preset, CSS, dependency, build, CSP, Actions, localization, pill-list, or Phase 55 change.
+
+Validation actually run:
+
+- focused request/XIVAPI coverage passed all 32 tests; related worker/evaluator, converter, lookup/cache, action-availability, and source coverage passed all 111 tests;
+- `npm run check` passed: 80 JavaScript files syntax-checked, all static relative imports resolved, and all 35 test files / 478 tests passed;
+- `git diff --check origin/main` passed with no output, and complete diff inspection found no unrelated change;
+- ordinary in-app browser QA passed manual Item Search, per-list lookup, global Resolve IDs, and regex scanning. A temporary same-origin nonanswering endpoint and one-second deadline exercised timeout recovery for Search, both Resolve paths, and regex; a five-second deadline exercised user Cancel distinctly. Busy overlays cleared, producer-owned controls recovered, and regex Add remained unavailable with no completed matches;
+- modal close restored launcher focus and removed background `aria-hidden`; Comfortable and Compact had no body/document horizontal overflow at 1280px, 840px, or 390px;
+- the real XIVAPI endpoint and 15,000 ms production deadline were restored before final validation. A real 15-second stalled request, CI, and GitHub Pages were not run because deterministic seams cover the policy and implementation/publication remain separate. Phase 55 remains on hold.
+
 # Current next step
 
-Phase 64 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.
+Phase 65 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.

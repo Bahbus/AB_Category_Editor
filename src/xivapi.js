@@ -2,6 +2,7 @@ import { XIVAPI_BASE, LOOKUP_BATCH_SIZE } from './constants.js';
 import { isUsefulLookupName } from './lookupNames.js';
 import { normalizeRowIdValue } from './rowIds.js';
 import { analyzeItemOrdering } from './itemOrdering.js';
+import { fetchXivapiJson, XivapiRequestTimeoutError } from './xivapiRequest.js';
 
 export function sheetLabel(sheet) {
   if (sheet === 'Item') return 'Item';
@@ -43,18 +44,20 @@ export function extractSheetRowsById(payload) {
   return map;
 }
 
-export async function fetchLookupRows(sheet, ids) {
+export async function fetchLookupRows(sheet, ids, options = {}) {
   const params = new URLSearchParams({ rows: ids.join(','), fields: 'Name', language: 'en' });
-  const res = await fetch(`${XIVAPI_BASE}/sheet/${encodeURIComponent(sheet)}?${params.toString()}`);
-  if (!res.ok) throw new Error(`${sheet} batch lookup failed: HTTP ${res.status}`);
-  return await res.json();
+  return await fetchXivapiJson(`${XIVAPI_BASE}/sheet/${encodeURIComponent(sheet)}?${params.toString()}`, {
+    ...options,
+    httpErrorMessage: status => `${sheet} batch lookup failed: HTTP ${status}`
+  });
 }
 
-export async function fetchLookupRow(sheet, id) {
+export async function fetchLookupRow(sheet, id, options = {}) {
   const url = `${XIVAPI_BASE}/sheet/${encodeURIComponent(sheet)}/${encodeURIComponent(id)}?fields=Name&language=en`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`${sheet} ${id} lookup failed: HTTP ${res.status}`);
-  return await res.json();
+  return await fetchXivapiJson(url, {
+    ...options,
+    httpErrorMessage: status => `${sheet} ${id} lookup failed: HTTP ${status}`
+  });
 }
 
 export async function fetchLookupBatch(sheet, ids, options = {}) {
@@ -74,9 +77,14 @@ export async function fetchLookupBatch(sheet, ids, options = {}) {
   };
   const fetchChunk = async chunk => {
     try {
-      if (chunk.length === 1) cache[String(chunk[0])] = rowName(await fetchLookupRow(sheet, chunk[0])) || '(name unavailable)';
-      else cachePayloadRows(chunk, extractSheetRowsById(await fetchLookupRows(sheet, chunk)));
+      if (chunk.length === 1) cache[String(chunk[0])] = rowName(await fetchLookupRow(sheet, chunk[0], options)) || '(name unavailable)';
+      else cachePayloadRows(chunk, extractSheetRowsById(await fetchLookupRows(sheet, chunk, options)));
     } catch (err) {
+      if (err instanceof XivapiRequestTimeoutError) {
+        for (const id of chunk) failures.push({ sheet, id, error: err });
+        return;
+      }
+      if (options.signal?.aborted || err?.name === 'AbortError') throw err;
       if (chunk.length === 1) { failures.push({ sheet, id: chunk[0], error: err }); return; }
       const midpoint = Math.ceil(chunk.length / 2);
       await fetchChunk(chunk.slice(0, midpoint));
@@ -127,20 +135,22 @@ export function countUncachedReferencedIds(ids, lookupName) {
   return count;
 }
 function quoteQueryValue(value) { return String(value).replaceAll('\\', '\\\\').replaceAll('"', '\\"'); }
-export async function searchXivapi(sheet, text) {
+export async function searchXivapi(sheet, text, options = {}) {
   const q = `Name~"${quoteQueryValue(text)}"`;
   const params = new URLSearchParams({ sheets: sheet, fields: 'Name', query: q, limit: '10', language: 'en' });
-  const res = await fetch(`${XIVAPI_BASE}/search?${params.toString()}`);
-  if (!res.ok) throw new Error(`Search failed: HTTP ${res.status}`);
-  const json = await res.json();
+  const json = await fetchXivapiJson(`${XIVAPI_BASE}/search?${params.toString()}`, {
+    ...options,
+    httpErrorMessage: status => `Search failed: HTTP ${status}`
+  });
   return json.results || [];
 }
-export async function fetchItemRowsPage(after=null, limit=3000, signal=null) {
+export async function fetchItemRowsPage(after=null, limit=3000, options = {}) {
   const params = new URLSearchParams({ fields: 'Name', limit: String(limit), language: 'en' });
   if (after !== null && after !== undefined) params.set('after', String(after));
-  const res = await fetch(`${XIVAPI_BASE}/sheet/Item?${params.toString()}`, signal ? { signal } : undefined);
-  if (!res.ok) throw new Error(`Item sheet scan failed: HTTP ${res.status}`);
-  return await res.json();
+  return await fetchXivapiJson(`${XIVAPI_BASE}/sheet/Item?${params.toString()}`, {
+    ...options,
+    httpErrorMessage: status => `Item sheet scan failed: HTTP ${status}`
+  });
 }
 export function extractSheetRows(payload) {
   if (Array.isArray(payload?.rows)) return payload.rows;

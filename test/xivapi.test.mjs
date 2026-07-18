@@ -9,11 +9,31 @@ import {
   extractSheetRows,
   extractSheetRowsById,
   fetchLookupBatch,
+  fetchLookupRow,
+  fetchLookupRows,
+  fetchItemRowsPage,
   normalizeLookupIds,
   rowId,
-  rowName
+  rowName,
+  searchXivapi
 } from '../src/xivapi.js';
 import { isUsefulLookupName } from '../src/lookupNames.js';
+import { XivapiRequestTimeoutError } from '../src/xivapiRequest.js';
+
+function fakeTimers() {
+  let nextId = 0;
+  const timers = new Map();
+  return {
+    setTimer(callback, delay) {
+      const id = nextId++;
+      timers.set(id, { callback, delay });
+      return id;
+    },
+    clearTimer(id) { timers.delete(id); },
+    fire(id) { timers.get(id)?.callback(); },
+    timers
+  };
+}
 
 test('normalizeLookupIds removes invalid, negative, fractional, and duplicate values', () => {
   assert.deepEqual(normalizeLookupIds([3, '3', 0, -1, 2.5, 'abc', 4]), [3, 0, 4]);
@@ -157,6 +177,37 @@ test('countUncachedReferencedIds counts missing and unusable cached lookup names
   assert.equal(countUncachedReferencedIds(ids, lookupName), 5);
 });
 
+test('all four XIVAPI network functions use the shared injected request boundary', async () => {
+  const urls = [];
+  const signals = [];
+  const fetchImpl = async (url, init) => {
+    urls.push(String(url));
+    signals.push(init.signal);
+    if (String(url).includes('/search?')) return { ok: true, json: async () => ({ results: [{ row_id: 3 }] }) };
+    return { ok: true, json: async () => ({ rows: [{ row_id: 1 }] }) };
+  };
+
+  await fetchLookupRows('Item', [1, 2], { fetchImpl });
+  await fetchLookupRow('ItemUICategory', 7, { fetchImpl });
+  assert.deepEqual(await searchXivapi('Item', 'grade IX', { fetchImpl }), [{ row_id: 3 }]);
+  await fetchItemRowsPage('cursor', 250, { fetchImpl });
+
+  assert.equal(urls.length, 4);
+  assert.match(urls[0], /\/sheet\/Item\?rows=1%2C2&fields=Name&language=en$/);
+  assert.match(urls[1], /\/sheet\/ItemUICategory\/7\?fields=Name&language=en$/);
+  assert.match(urls[2], /\/search\?.*sheets=Item.*fields=Name.*limit=10.*language=en/);
+  assert.match(urls[3], /\/sheet\/Item\?fields=Name&limit=250&language=en&after=cursor$/);
+  assert.equal(signals.every(signal => signal instanceof AbortSignal), true);
+});
+
+test('XIVAPI network functions retain established HTTP error messages', async t => {
+  const fetchImpl = async () => ({ ok: false, status: 429, json: async () => ({}) });
+  await t.test('batch', () => assert.rejects(fetchLookupRows('Item', [1], { fetchImpl }), /Item batch lookup failed: HTTP 429/));
+  await t.test('row', () => assert.rejects(fetchLookupRow('Item', 1, { fetchImpl }), /Item 1 lookup failed: HTTP 429/));
+  await t.test('search', () => assert.rejects(searchXivapi('Item', 'potion', { fetchImpl }), /Search failed: HTTP 429/));
+  await t.test('scan', () => assert.rejects(fetchItemRowsPage(null, 100, { fetchImpl }), /Item sheet scan failed: HTTP 429/));
+});
+
 test('fetchLookupBatch retries cached sentinel names and replaces them with useful names', async t => {
   const originalFetch = globalThis.fetch;
   t.after(() => { globalThis.fetch = originalFetch; });
@@ -280,4 +331,114 @@ test('fetchLookupBatch caches only rows belonging to each current chunk', async 
     4: 'Hi-Elixir'
   });
   assert.equal(requestedUrls.length, 2);
+});
+
+test('fetchLookupBatch classifies a timed-out multi-ID chunk without retry bisection', async () => {
+  const timers = fakeTimers();
+  const lookupCache = { Item: { 9: 'Useful existing name', 2: '(name unavailable)' } };
+  let fetchCalls = 0;
+  let internalAbortCount = 0;
+  const pending = fetchLookupBatch('Item', [1, 2, 3, 9], {
+    lookupCache,
+    saveLookupCache() {},
+    batchSize: 50,
+    deadlineMs: 10,
+    setTimer: timers.setTimer,
+    clearTimer: timers.clearTimer,
+    fetchImpl: (url, init) => {
+      fetchCalls++;
+      init.signal.addEventListener('abort', () => { internalAbortCount++; });
+      return new Promise(() => {});
+    }
+  });
+  const timerId = [...timers.timers.keys()][0];
+
+  timers.fire(timerId);
+  const failures = await pending;
+
+  assert.equal(fetchCalls, 1);
+  assert.equal(internalAbortCount, 1);
+  assert.deepEqual(failures.map(failure => failure.id), [1, 2, 3]);
+  assert.equal(failures.every(failure => failure.error instanceof XivapiRequestTimeoutError), true);
+  assert.deepEqual(lookupCache.Item, { 9: 'Useful existing name', 2: '(name unavailable)' });
+});
+
+test('fetchLookupBatch preserves earlier completed chunks when a later chunk times out', async () => {
+  const timers = fakeTimers();
+  const lookupCache = { Item: {} };
+  let fetchCalls = 0;
+  let notifySecondStarted;
+  const secondStarted = new Promise(resolve => { notifySecondStarted = resolve; });
+  const pending = fetchLookupBatch('Item', [1, 2, 3, 4], {
+    lookupCache,
+    saveLookupCache() {},
+    batchSize: 2,
+    deadlineMs: 10,
+    setTimer: timers.setTimer,
+    clearTimer: timers.clearTimer,
+    fetchImpl: async (url, init) => {
+      fetchCalls++;
+      if (fetchCalls === 1) {
+        return { ok: true, json: async () => ({ rows: [
+          { row_id: 1, fields: { Name: 'Potion' } },
+          { row_id: 2, fields: { Name: 'Ether' } }
+        ] }) };
+      }
+      notifySecondStarted();
+      return new Promise(() => {});
+    }
+  });
+
+  await secondStarted;
+  const timerId = [...timers.timers.keys()][0];
+  timers.fire(timerId);
+  const failures = await pending;
+
+  assert.equal(fetchCalls, 2);
+  assert.deepEqual(lookupCache.Item, { 1: 'Potion', 2: 'Ether' });
+  assert.deepEqual(failures.map(failure => failure.id), [3, 4]);
+  assert.equal(failures.every(failure => failure.error instanceof XivapiRequestTimeoutError), true);
+});
+
+test('fetchLookupBatch retains recursive bisection for ordinary batch failures', async () => {
+  const requestedRows = [];
+  const lookupCache = { Item: {} };
+  const failures = await fetchLookupBatch('Item', [1, 2, 3, 4], {
+    lookupCache,
+    saveLookupCache() {},
+    batchSize: 4,
+    fetchImpl: async url => {
+      const rows = new URL(String(url)).searchParams.get('rows');
+      requestedRows.push(rows);
+      if (rows === '1,2,3,4') return { ok: false, status: 503, json: async () => ({}) };
+      const ids = rows.split(',').map(Number);
+      return { ok: true, json: async () => ({ rows: ids.map(id => ({ row_id: id, fields: { Name: `Item ${id}` } })) }) };
+    }
+  });
+
+  assert.deepEqual(failures, []);
+  assert.deepEqual(requestedRows, ['1,2,3,4', '1,2', '3,4']);
+  assert.deepEqual(lookupCache.Item, { 1: 'Item 1', 2: 'Item 2', 3: 'Item 3', 4: 'Item 4' });
+});
+
+test('fetchLookupBatch propagates caller cancellation without retrying', async () => {
+  const timers = fakeTimers();
+  const controller = new AbortController();
+  let fetchCalls = 0;
+  const pending = fetchLookupBatch('Item', [1, 2, 3], {
+    lookupCache: { Item: {} },
+    saveLookupCache() {},
+    signal: controller.signal,
+    setTimer: timers.setTimer,
+    clearTimer: timers.clearTimer,
+    fetchImpl: () => {
+      fetchCalls++;
+      return new Promise(() => {});
+    }
+  });
+  const reason = new DOMException('user canceled', 'AbortError');
+
+  controller.abort(reason);
+  await assert.rejects(pending, error => error === reason);
+  assert.equal(fetchCalls, 1);
 });

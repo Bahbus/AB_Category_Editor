@@ -1,6 +1,7 @@
 import { escapeHtml, requireScopedEl, setStatus, showBusy, updateBusy, hideBusy } from '../dom.js';
 import { openModal, closeModal } from '../modals.js';
 import { fetchItemRowsPage, extractSheetRows, extractNextCursor, rowId, rowName } from '../xivapi.js';
+import { XivapiRequestTimeoutError } from '../xivapiRequest.js';
 import { normalizeRowIdValue } from '../rowIds.js';
 import { isUsefulLookupName } from '../lookupNames.js';
 import { compileBrowserPattern, removeSavedPatternAtSourceIndex, selectUsableSavedPatterns } from '../patternSemantics.js';
@@ -217,7 +218,7 @@ export function openRegexToItemIdsTool(deps) {
       showBusy('Scanning items', 'Starting Item sheet scan...', 0);
       busyShown = true;
       while (keepGoing) {
-        const payload = await fetchItemRowsPage(after, pageSize, scanState.controller.signal);
+        const payload = await fetchItemRowsPage(after, pageSize, { signal: scanState.controller.signal });
         const rows = extractSheetRows(payload);
         pages++;
         if (!rows.length) break;
@@ -283,6 +284,11 @@ export function openRegexToItemIdsTool(deps) {
         renderRegexMatches();
         syncAddButtonState();
         setStatus(`Browser conversion stopped because this JavaScript regex took longer than ${err.deadlineMs / 1000} second for one evaluation batch. This does not mean the pattern is invalid for AetherBags/.NET.`, 'err');
+      } else if (err instanceof XivapiRequestTimeoutError) {
+        summary.textContent = `XIVAPI request timed out after ${scanned.toLocaleString()} completed item row(s). ${matches.length.toLocaleString()} match(es) from completed batches were kept.`;
+        renderRegexMatches();
+        syncAddButtonState();
+        setStatus(`Regex scan stopped because XIVAPI did not respond within ${err.deadlineMs / 1000} seconds.`, 'err');
       } else if (scanState.canceled || err instanceof RegexWorkerCanceledError || isAbortError(err)) {
         scanState.canceled = true;
         summary.textContent = `Scan canceled after ${scanned.toLocaleString()} item row(s). ${matches.length.toLocaleString()} match(es) found.`;
