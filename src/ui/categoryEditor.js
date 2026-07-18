@@ -12,6 +12,7 @@ import { renderRangeStateFiltersEditor } from './rangeStateFiltersEditor.js';
 import { applySelectedCategoryCandidate, selectedCategoryStructuralFocusPlan } from '../categoryChanges.js';
 import { textActionAvailable } from '../actionAvailability.js';
 import { INT32_MAX, isSignedInt32Scalar } from '../filterScalars.js';
+import { parseJsonText } from '../importExport.js';
 
 export { countRangeFilterIssues, countStateFilterIssues, rangeFiltersSummary, rangeFiltersSummaryParts, stateFiltersSummary, stateFiltersSummaryParts } from './filterSummary.js';
 export { getBasicSwitchWarnings } from './basicEditor.js';
@@ -281,7 +282,7 @@ export function renderEditor(deps) {
   rawCategory.addEventListener('input', syncRawCategoryAvailability);
   applyRawCategory.onclick = () => {
     try {
-      const candidate = JSON.parse(rawCategory.value);
+      const candidate = parseJsonText(rawCategory.value, { label: 'Selected-category Raw JSON input' });
       const changed = applySelectedCategoryCandidate({ categories: cats, selectedIndex, candidate, normalize: ensureShape, onChanged: () => { markDirty(); renderAll(); } });
       if (!changed) setStatus('There are no category changes to apply.', 'ok');
     } catch (err) {

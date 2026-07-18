@@ -97,7 +97,7 @@ test('raw category JSON delegates atomic normalization and replacement to the ch
   const source = read('src/ui/categoryEditor.js');
   const handler = source.match(/applyRawCategory\.onclick = \(\) => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
 
-  assert.match(handler, /const candidate = JSON\.parse\(rawCategory\.value\);/);
+  assert.match(handler, /const candidate = parseJsonText\(rawCategory\.value, \{ label: 'Selected-category Raw JSON input' \}\);/);
   assert.match(handler, /applySelectedCategoryCandidate\(\{ categories: cats, selectedIndex, candidate, normalize: ensureShape/);
   assert.match(handler, /if \(!changed\) setStatus\('There are no category changes to apply\.', 'ok'\);/);
   assert.match(handler, /setStatus\('Invalid category JSON: ' \+ err\.message, 'err'\);/);
@@ -105,6 +105,22 @@ test('raw category JSON delegates atomic normalization and replacement to the ch
   assert.doesNotMatch(handler, /commitActiveField\(\)/);
 
   assert.doesNotMatch(handler, /cats\[selectedIndex\] = candidate/);
+});
+
+test('browser-only ingestion wiring uses shared limits before parsing, reading, or copying', () => {
+  const app = read('src/app.js');
+  const category = read('src/ui/categoryEditor.js');
+  const fileHandler = app.match(/bindChange\('fileInput', async e => \{(?<body>[\s\S]*?)\n  \}\);/)?.groups.body ?? '';
+  const rawApply = app.match(/applyRawFull\.addEventListener\('click', async \(\) => \{(?<body>[\s\S]*?)\n    \}\);/)?.groups.body ?? '';
+  const rawCopy = app.match(/copyRawFull\.addEventListener\('click', async \(\) => \{(?<body>[\s\S]*?)\n    \}\);/)?.groups.body ?? '';
+
+  assert.match(fileHandler, /await readImportFileText\(file\)/);
+  assert.doesNotMatch(fileHandler, /file\.text\(\)/);
+  assert.match(rawApply, /parseJsonText\(text, \{ label: 'Full Raw JSON input' \}\)/);
+  assert.doesNotMatch(rawApply, /JSON\.parse\(text\)/);
+  assert.match(rawCopy, /assertJsonTextWithinLimit\(rawFull\.value, \{ label: 'Full Raw JSON input' \}\)/);
+  assert.ok(rawCopy.indexOf('assertJsonTextWithinLimit') < rawCopy.indexOf('copyTextToClipboard'));
+  assert.match(category, /parseJsonText\(rawCategory\.value, \{ label: 'Selected-category Raw JSON input' \}\)/);
 });
 
 test('manual lookup search normalizes row IDs and avoids unnamed cache placeholders', () => {

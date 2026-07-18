@@ -9,7 +9,7 @@ import { showHelpModal } from './ui/helpModal.js';
 import { showLookupCacheModal } from './ui/lookupCacheModal.js';
 import { showPreferencesModal } from './ui/preferencesModal.js';
 import { openRegexToItemIdsTool as openRegexTool } from './tools/regexToItemIds.js';
-import { EXPORT_FILENAME, copyTextToClipboard, downloadText, makeBase64Export, parseImportedText } from './importExport.js';
+import { EXPORT_FILENAME, assertJsonTextWithinLimit, copyTextToClipboard, downloadText, makeBase64Export, parseImportedText, parseJsonText, readImportFileText } from './importExport.js';
 import { sheetLabel, collectReferencedIds, countReferencedIds, countUncachedReferencedIds, fetchLookupBatch as xivapiFetchLookupBatch, searchXivapi } from './xivapi.js';
 import { generateCategoryDescription, isUsefulGeneratedDescription } from './descriptionGenerator.js';
 import { isUsefulLookupName } from './lookupNames.js';
@@ -341,7 +341,7 @@ function showImportModal(initialText = '') {
     importTextNode.addEventListener('input', syncImportAvailability);
     importButton.addEventListener('click', async () => {
       commitActiveField();
-      const text = importTextNode.value.trim();
+      const text = importTextNode.value;
       try {
         setInlineError('importError', '');
         if (!(await importText(text, ''))) { showImportModal(text); return; }
@@ -376,7 +376,7 @@ function showRawModal(initialText = JSON.stringify(data, null, 2), initialError 
       const text = rawFull.value;
       let validation;
       let preAnalysis;
-      try { const parsed = JSON.parse(text); preAnalysis = analyzeImportedConfig(parsed); validation = validateConfig(parsed); }
+      try { const parsed = parseJsonText(text, { label: 'Full Raw JSON input' }); preAnalysis = analyzeImportedConfig(parsed); validation = validateConfig(parsed); }
       catch (err) { const message = errorMessage('Invalid full JSON', err); setInlineError('rawError', message); setStatus(message, 'err'); return; }
       setInlineError('rawError', '');
       const rawAnalysis = mergeValidationFindings(preAnalysis, analyzeImportedConfig(validation.config));
@@ -409,6 +409,14 @@ function showRawModal(initialText = JSON.stringify(data, null, 2), initialError 
     });
     copyRawFull.addEventListener('click', async () => {
       commitActiveField();
+      try {
+        assertJsonTextWithinLimit(rawFull.value, { label: 'Full Raw JSON input' });
+      } catch (err) {
+        const message = errorMessage('Could not copy full JSON', err);
+        setInlineError('rawError', message);
+        setStatus(message, 'err');
+        return;
+      }
       const ok = await copyTextToClipboard(rawFull.value);
       rawCopyStatus.textContent = ok ? 'Copied to clipboard.' : 'Copy failed. Select the text manually.';
       setStatus(ok ? 'Copied full JSON' : 'Copy failed. Select the text manually.', ok ? 'ok' : 'warn');
@@ -546,7 +554,7 @@ function bindAppEvents() {
     const file = e.target.files[0];
     if (!file) return;
     try {
-      await importText(await file.text(), file.name);
+      await importText(await readImportFileText(file), file.name);
     } catch (err) { setStatus(errorMessage('Could not load file', err), 'err'); }
   });
 
