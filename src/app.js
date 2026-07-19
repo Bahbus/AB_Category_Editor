@@ -8,6 +8,7 @@ import { renderEditor as renderCategoryEditor } from './ui/categoryEditor.js';
 import { showHelpModal } from './ui/helpModal.js';
 import { showLookupCacheModal } from './ui/lookupCacheModal.js';
 import { showPreferencesModal } from './ui/preferencesModal.js';
+import { createTranslator } from './localization.js';
 import { openRegexToItemIdsTool as openRegexTool } from './tools/regexToItemIds.js';
 import { EXPORT_FILENAME, assertJsonTextWithinLimit, copyTextToClipboard, downloadText, makeBase64Export, parseImportedText, parseJsonText, readImportFileText } from './importExport.js';
 import { sheetLabel, collectReferencedIds, countReferencedIds, countUncachedReferencedIds, fetchLookupBatch as xivapiFetchLookupBatch, searchXivapi } from './xivapi.js';
@@ -37,6 +38,7 @@ let dataRevision = 0;
 let draggedIndex = null;
 let lookupCache = loadLookupCache();
 let editorPreferences = loadEditorPreferences();
+const translate = createTranslator('en');
 const lookupCacheOperations = createLookupCacheOperationCoordinator();
 let resolvingReferencedIds = false;
 
@@ -468,7 +470,8 @@ function bindAppEvents() {
     applyEditorPreferences,
     setStatus,
     openModal,
-    commitActiveField
+    commitActiveField,
+    translate
   }));
   bindClick('uploadFile', () => {
     commitActiveField();

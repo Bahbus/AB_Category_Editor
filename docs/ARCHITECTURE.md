@@ -620,6 +620,14 @@ Preferences include appearance/behavior settings such as theme and density, plus
 
 Future localization preferences should integrate here rather than inventing separate persistence.
 
+### Localization boundary
+
+`src/locales/en.js` is the explicit frozen English catalog. Catalog entries are plain strings, never HTML fragments. Phase 67 intentionally limits the catalog to the complete Preferences modal proof slice while leaving static chrome, Help, validation/status families outside Preferences, lookup/search text, category editing, and generated descriptions untouched.
+
+`src/localization.js` is DOM-free and keeps mechanics separate from locale data. `createTranslator(locale)` resolves the requested locale once, deterministically falls back to English for unsupported locales, and returns a stable keyed lookup function. `formatMessage(...)` replaces simple named parameters and throws when a required parameter is absent; lookup throws for unknown keys. Callers therefore cannot silently render `undefined` or an unresolved named placeholder.
+
+Application orchestration creates the fixed-English translator explicitly and injects it into `showPreferencesModal(...)`. No mutable global locale or implicit locale state exists. A later persisted locale preference can replace the translator at the existing state/orchestration boundary without rewriting Preferences key usage. Translation values entering the modal's HTML templates and accessibility attributes pass through `escapeHtml(...)`; modal titles and statuses use existing plain-text sinks.
+
 ### Startup appearance and browser trust boundary
 
 `src/startupPreferences.js` is a deliberately small classic script loaded synchronously before `styles.css`. It reads only the established appearance preference key and applies only the six Theme and two Density values accepted by `src/state.js`. Keeping it outside the module graph preserves pre-styled-render appearance; focused tests execute the classic script against `EDITOR_PREFERENCES_KEY` and `EDITOR_PREFERENCE_OPTIONS` so its unavoidable startup literals remain parity-checked. Missing, malformed, blocked, or throwing storage leaves the HTML defaults intact.
@@ -769,6 +777,8 @@ Phase 65 adds deterministic fake-fetch/timer/signal coverage for the 15,000 ms p
 
 Phase 66 adds direct classic-script execution coverage for every established Theme/Density option and storage failure class; static policy tests for CSP/resource ordering, exact directives, absent inline script, same-origin/XIVAPI/worker/image/style boundaries, and excluded header-only claims; direct clipboard-fallback behavior; and immutable workflow SHA/contract guards. The local `npm run check` run syntax-checked 83 files, resolved all static relative imports, and passed all 37 test files / 491 tests; final `git diff --check origin/main` passed with no output. Browser QA passed stored appearance reload, preferences, real XIVAPI Search, module-worker scan/cancel, normal and bundled import, Export/Copy, Blob Download completion, modal focus/background restoration, live dynamic style attributes, and both densities at 1280px/840px/390px without overflow or CSP violations. CI and Pages were not run because implementation and publication remain separate.
 
+Phase 67 adds direct English lookup, named interpolation, unsupported-locale fallback, unknown-key, missing-parameter, plain-text catalog, and DOM-free coverage. Focused source coverage proves the complete Preferences surface uses translated keys through escaped template sinks while retaining exact tab semantics, keyboard behavior, callbacks, and state persistence; the Phase 66 bootstrap guard now explicitly rejects module/localization coupling. Focused coverage passed 81 tests. The local `npm run check` run syntax-checked 86 files, resolved all static relative imports, and passed all 38 test files / 499 tests; final `git diff --check origin/main` passed with no output. Browser QA passed exact English copy, ArrowRight/ArrowLeft and End/Home tab navigation, Theme/Density/behavior application and reload persistence, launcher focus restoration, both densities at 1280px/840px/390px without body/document/modal overflow, and no CSP violations. Electron's generic development CSP warning was the only warning; original local preferences and viewport were restored. CI and Pages were not run because implementation and publication remain separate.
+
 Testing styles:
 
 - direct unit tests for pure logic,
@@ -798,12 +808,11 @@ Phase 56 established three responsibility-owned source suites plus a shared sour
 
 ### Localization
 
-Feasible but deferred.
+Phase 67 completed the English-only foundation and Preferences proof slice.
 
-Recommended sequence:
+Remaining sequence:
 
-1. English-only i18n foundation.
-2. Extract UI chrome and validation/status messages.
-3. Add locale preference and English fallback.
-4. Add locale key-parity tests.
-5. Localize generated descriptions separately.
+1. Extract broader UI chrome and validation/status messages.
+2. Add a persisted locale preference and fallback UI through application state/orchestration.
+3. Add locale key-parity tests when another catalog exists.
+4. Localize generated descriptions separately.

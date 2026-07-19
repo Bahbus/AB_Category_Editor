@@ -83,4 +83,5 @@ test('startup bootstrap leaves HTML defaults intact for absent, malformed, null,
 test('startup bootstrap is isolated and does not publish a preference authority', () => {
   const { context } = runBootstrap({ storedValue: JSON.stringify({ theme: 'aetherial', density: 'compact' }) });
   assert.deepEqual(Object.keys(context).sort(), ['document', 'localStorage']);
+  assert.doesNotMatch(source, /\b(?:import|export)\b|localization|app\.js/);
 });

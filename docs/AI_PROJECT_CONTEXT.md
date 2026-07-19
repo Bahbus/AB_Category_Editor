@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 66 is implemented locally on `agent/phase-66-static-trust-boundaries` from freshly fetched merged Phase 65 `origin/main` at `43fab8d3bd6fbc09216ed2e3ecb84c53393d302b`. The pre-stylesheet Theme/Density bootstrap is a synchronous same-origin classic script with direct parity tests against the established preference key/options, and `index.html` has no inline executable JavaScript. An early meta-delivered CSP allows same-origin resources, the exact XIVAPI HTTPS origin plus same-origin controlled requests, the same-origin module worker, same-origin images, and only the inline style-attribute boundary required by deliberate dynamic CSS; it blocks inline/evaluated scripts, objects, base rewriting, frames, and form submission without claiming header-only `frame-ancestors` protection. The verification workflow pins official checkout v4.3.1 and setup-node v4.4.0 commits while retaining Node 22, read-only contents, both triggers, and one `npm run check`. Local `npm run check` passed with 83 JavaScript files, 37 test files, and 491 tests. In-app browser QA covered stored appearance startup/reload, preferences, real XIVAPI Search, module-worker construction/cancellation, normal import, Export/Copy, Blob Download completion, clipboard copy, modal focus/background ARIA, deliberate dynamic styles, and Comfortable/Compact layouts at 1280px, 840px, and 390px without horizontal overflow or CSP violations. CI and GitHub Pages were not run because implementation and publication remain separate.
+> **Current state:** Phase 67 is implemented locally on `agent/phase-67-english-localization-foundation` from freshly fetched merged Phase 66 `origin/main` at `2d4d4a64f42aeedd6d5e941e420c769d9ef2f838`. A dependency-free, DOM-free localization boundary now separates the explicit English catalog from locale resolution and named interpolation. Application orchestration creates an explicit fixed-English translator and injects it into the Preferences modal; the modal's complete title, introduction, tabs, sections, fields, options, checkboxes, hints, status, and owned accessibility label retain their exact English wording through keyed lookup and escaped template sinks. Unsupported locales fall back to English; unknown keys and missing parameters fail explicitly. Phase 66's synchronous pre-stylesheet appearance bootstrap, exact preference allowlist, and CSP/resource ordering remain independent of the module graph. Local `npm run check` passed with 86 JavaScript files, 38 test files, and 499 tests. In-app browser QA covered exact modal copy, keyboard tabs, preference application/reload persistence, focus restoration, Comfortable/Compact layouts at 1280px, 840px, and 390px without body/document/modal overflow, and no CSP violations. CI and GitHub Pages were not run because implementation and publication remain separate.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -615,16 +615,21 @@ Source checks are useful for DOM-heavy static code, but regex-based checks can b
 
 ### Localization
 
-Localization is feasible but deferred.
+Phase 67 establishes the English-only foundation:
 
-Recommended eventual approach:
+- `src/locales/en.js` is the explicit plain-text English catalog.
+- `src/localization.js` owns DOM-free locale resolution, stable keyed lookup, and named interpolation.
+- Unsupported locales deterministically use English; unknown keys and missing named parameters throw rather than rendering missing data or unresolved placeholders.
+- `src/app.js` owns an explicit fixed-English translator and injects it into the Preferences modal. There is no mutable global locale or user-visible language control.
+- The complete Preferences modal is the only migrated proof slice. Translation results entering its existing HTML-template sinks remain escaped; modal-title and status APIs continue to receive plain text.
 
-- English-only i18n foundation first.
-- Central translation function and locale modules.
-- Localize UI text, validation/status messages, help, and modal chrome.
+Deferred sequence:
+
+- Extract broader UI chrome, validation/status messages, help, and other modal text.
+- Add a persisted locale preference and user-visible fallback behavior through the established state/orchestration boundary.
+- Add locale key-parity checks once a second locale exists.
 - Keep JSON schema keys untouched.
 - Treat generated descriptions separately because they need language-aware templates.
-- Add key-parity and English-fallback tests.
 
 ---
 
@@ -981,3 +986,21 @@ Validation actually run:
 - in-app browser QA loaded the local CSP build in Aetherial Theme with both Comfortable and Compact stored Density values, verified preference changes and synchronous reload persistence, and found equal body/document client and scroll widths at 1280px, 840px, and 390px in both densities;
 - browser QA also passed a real XIVAPI Item Search, same-origin module-worker scan construction/progress/cancellation with a retained completed match, bundled-preset and normal JSON import, Export/Copy with successful clipboard copy, Blob Download completion status, modal initial/return focus plus background inert/ARIA restoration, and live category/color/range/progress inline styles. No CSP violation was recorded. Electron's generic development CSP warning and the deliberately triggered import-review warning were the only console warnings;
 - CI and GitHub Pages were not run because implementation and publication remain separate. Phase 55 remains on hold. Localization remains deferred with the existing English-foundation, message extraction, locale preference/fallback, key-parity, and separate generated-description stages.
+
+## Phase 67 current implementation
+
+- `src/locales/en.js` owns a frozen, flat, plain-text English catalog. It currently contains only the complete Preferences modal surface: title, introduction, tablist accessibility label, tab/section text, Theme/Density labels and every option/hint, both behavior checkbox labels/hints, and the saved-status message.
+- `src/localization.js` owns the DOM-free catalog registry, default English locale, unsupported-locale resolution, stable keyed lookup, and named-parameter interpolation. Unknown keys and missing named parameters throw explicit errors; catalogs never supply HTML fragments.
+- `src/app.js` constructs one fixed-English translator and injects it into `showPreferencesModal(...)`. No mutable global locale, locale storage, language preference, selector, or startup-bootstrap dependency was added.
+- `src/ui/preferencesModal.js` retains every ID, option value, control order, tab/panel relationship, keyboard handler, callback, and status severity. Every translation used inside `innerHTML` or an attribute passes through `escapeHtml(...)`; modal title and status remain plain-text sinks.
+- Static `index.html` chrome, empty-state Preferences guidance, Help, validation/export messages, lookup/search text, category-editor strings, generated descriptions, schema/presets, import/export, service worker, analytics, dependencies, and unrelated modules remain unchanged.
+
+Validation actually run:
+
+- focused localization, Preferences, state/persistence, accessibility/data-flow, startup, and CSP coverage passed all 81 tests;
+- `npm run check` passed: 86 JavaScript files syntax-checked, all static relative imports resolved, and all 38 test files / 499 tests passed;
+- `git diff --check origin/main` passed with no output before durable-document updates and was rerun on the final diff;
+- in-app browser QA verified the exact English title, introduction, tablist label, tabs/sections, field/option labels, option hints, behavior labels/hints, and saved-status copy; ArrowRight/ArrowLeft and End/Home tab navigation retained selected-panel, focus, `aria-selected`, and roving-`tabindex` behavior;
+- Theme, Density, and behavior changes applied immediately and survived reload; modal Close restored focus to Preferences. Comfortable and Compact each retained equal body/document client and scroll widths, and equal modal client/scroll widths, at 1280px, 840px, and 390px;
+- no CSP violation or unexpected application warning/error appeared. Electron's generic development CSP warning was the only warning. Original local preference values and the browser viewport were restored after QA;
+- CI and GitHub Pages were not run because implementation and publication remain separate. Phase 55 remains on hold. Broader extraction, locale preference/fallback UI, locale parity, and localized generated descriptions remain deferred.
