@@ -1,17 +1,17 @@
 import { escapeHtml, requireScopedEl } from '../dom.js';
 
 const THEME_OPTIONS = [
-  { value: 'system', label: 'System', hint: 'Follow your OS/browser color preference.' },
-  { value: 'dark', label: 'Dark', hint: 'Neutral dark panels with a calm blue accent.' },
-  { value: 'light', label: 'Light', hint: 'Simple light panels with readable dark text.' },
-  { value: 'high-contrast', label: 'High Contrast', hint: 'Stronger contrast for improved readability.' },
-  { value: 'aetherial', label: 'Aetherial', hint: 'Cool luminous blues, cyan, and violet.' },
-  { value: 'dalamud', label: 'Dalamud', hint: 'Restrained plugin-panel charcoal, purple, and warm red tones.' }
+  { value: 'system', key: 'system' },
+  { value: 'dark', key: 'dark' },
+  { value: 'light', key: 'light' },
+  { value: 'high-contrast', key: 'highContrast' },
+  { value: 'aetherial', key: 'aetherial' },
+  { value: 'dalamud', key: 'dalamud' }
 ];
 
 const DENSITY_OPTIONS = [
-  { value: 'comfortable', label: 'Comfortable', hint: 'Current spacing and relaxed layout.' },
-  { value: 'compact', label: 'Compact', hint: 'Tighter cards, groups, and controls while keeping hit targets usable.' }
+  { value: 'comfortable', key: 'comfortable' },
+  { value: 'compact', key: 'compact' }
 ];
 
 function preferenceCheckbox(id, label, checked, hint) {
@@ -24,14 +24,14 @@ function preferenceCheckbox(id, label, checked, hint) {
   return wrap;
 }
 
-function preferenceSelect(id, label, value, options) {
+function preferenceSelect(id, label, value, options, translate, keyPrefix) {
   const wrap = document.createElement('div');
   wrap.innerHTML = `
     <label for="${escapeHtml(id)}">${escapeHtml(label)}</label>
     <select id="${escapeHtml(id)}">
-      ${options.map(option => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join('')}
+      ${options.map(option => `<option value="${escapeHtml(option.value)}">${escapeHtml(translate(`${keyPrefix}.${option.key}.label`))}</option>`).join('')}
     </select>
-    <p class="hint">${escapeHtml(options.find(option => option.value === value)?.hint || '')}</p>
+    <p class="hint">${escapeHtml(translate(`${keyPrefix}.${options.find(option => option.value === value)?.key}.hint`))}</p>
   `;
   requireScopedEl(wrap, 'select', 'appearance preference select').value = value;
   return wrap;
@@ -49,38 +49,38 @@ function setActiveTab(wrap, tabName) {
   }
 }
 
-export function showPreferencesModal({ getEditorPreferences, applyEditorPreferences, setStatus, openModal, commitActiveField }) {
+export function showPreferencesModal({ getEditorPreferences, applyEditorPreferences, setStatus, openModal, commitActiveField, translate }) {
   commitActiveField();
   let preferences = getEditorPreferences();
   const wrap = document.createElement('div');
   wrap.className = 'preferences-modal';
   wrap.innerHTML = `
-    <p class="hint">These editor preferences are stored locally in this browser only. They affect the editor UI and are never included in exported AetherBags category data.</p>
-    <div class="preferences-tabs" role="tablist" aria-label="Preference sections">
-      <button id="appearancePreferencesTab" class="small active" type="button" role="tab" aria-selected="true" tabindex="0" aria-controls="appearancePreferencesPanel" data-tab="appearance">Appearance</button>
-      <button id="behaviorPreferencesTab" class="small" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="behaviorPreferencesPanel" data-tab="behavior">Behavior</button>
+    <p class="hint">${escapeHtml(translate('preferences.introduction'))}</p>
+    <div class="preferences-tabs" role="tablist" aria-label="${escapeHtml(translate('preferences.sections.label'))}">
+      <button id="appearancePreferencesTab" class="small active" type="button" role="tab" aria-selected="true" tabindex="0" aria-controls="appearancePreferencesPanel" data-tab="appearance">${escapeHtml(translate('preferences.appearance.title'))}</button>
+      <button id="behaviorPreferencesTab" class="small" type="button" role="tab" aria-selected="false" tabindex="-1" aria-controls="behaviorPreferencesPanel" data-tab="behavior">${escapeHtml(translate('preferences.behavior.title'))}</button>
     </div>
     <section id="appearancePreferencesPanel" role="tabpanel" aria-labelledby="appearancePreferencesTab" data-panel="appearance">
-      <h3>Appearance</h3>
+      <h3>${escapeHtml(translate('preferences.appearance.title'))}</h3>
       <div class="grid cols-2" id="appearancePreferenceGrid"></div>
     </section>
     <section id="behaviorPreferencesPanel" role="tabpanel" aria-labelledby="behaviorPreferencesTab" data-panel="behavior" hidden>
-      <h3>Behavior</h3>
+      <h3>${escapeHtml(translate('preferences.behavior.title'))}</h3>
       <div id="behaviorPreferenceGrid" class="grid"></div>
     </section>
   `;
   const grid = requireScopedEl(wrap, '#appearancePreferenceGrid', 'Appearance preferences');
   grid.append(
-    preferenceSelect('themePreference', 'Theme', preferences.theme, THEME_OPTIONS),
-    preferenceSelect('densityPreference', 'Density', preferences.density, DENSITY_OPTIONS)
+    preferenceSelect('themePreference', translate('preferences.theme.label'), preferences.theme, THEME_OPTIONS, translate, 'preferences.theme'),
+    preferenceSelect('densityPreference', translate('preferences.density.label'), preferences.density, DENSITY_OPTIONS, translate, 'preferences.density')
   );
   const behaviorGrid = requireScopedEl(wrap, '#behaviorPreferenceGrid', 'Behavior preferences');
   behaviorGrid.append(
-    preferenceCheckbox('autoLookupImportedIdsPreference', 'Auto-lookup imported IDs', preferences.autoLookupImportedIds, 'After import, automatically resolve uncached referenced item and UI category names.'),
-    preferenceCheckbox('autoGenerateDescriptionsPreference', 'Auto-generate descriptions', preferences.autoGenerateDescriptions, 'When enabled, new or edited blank descriptions may be filled from the category name and selected rules. Existing descriptions are never overwritten.')
+    preferenceCheckbox('autoLookupImportedIdsPreference', translate('preferences.autoLookupImportedIds.label'), preferences.autoLookupImportedIds, translate('preferences.autoLookupImportedIds.hint')),
+    preferenceCheckbox('autoGenerateDescriptionsPreference', translate('preferences.autoGenerateDescriptions.label'), preferences.autoGenerateDescriptions, translate('preferences.autoGenerateDescriptions.hint'))
   );
 
-  openModal('Editor Preferences', wrap);
+  openModal(translate('preferences.title'), wrap);
 
   const tabs = [...wrap.querySelectorAll('[role="tab"]')];
   function moveTabFocus(index) {
@@ -112,14 +112,14 @@ export function showPreferencesModal({ getEditorPreferences, applyEditorPreferen
     const select = requireScopedEl(wrap, `#${id}`, 'Appearance preferences');
     select.addEventListener('change', e => {
       preferences = applyEditorPreferences({ ...getEditorPreferences(), [key]: e.target.value });
-      setStatus('Editor preferences saved locally.', 'ok');
+      setStatus(translate('preferences.saved'), 'ok');
     });
   };
 
   const bindCheckbox = (id, key) => {
     requireScopedEl(wrap, `#${id}`, 'Behavior preferences').addEventListener('change', e => {
       preferences = applyEditorPreferences({ ...getEditorPreferences(), [key]: e.target.checked });
-      setStatus('Editor preferences saved locally.', 'ok');
+      setStatus(translate('preferences.saved'), 'ok');
     });
   };
 

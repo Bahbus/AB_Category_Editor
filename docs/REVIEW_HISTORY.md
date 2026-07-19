@@ -1514,6 +1514,29 @@ Validation actually run:
 - Comfortable and Compact each retained equal body/document client and scroll widths at 1280px, 840px, and 390px. No CSP violation was recorded; Electron's generic development CSP warning and the deliberately triggered import-review warning were the only warnings;
 - CI and GitHub Pages were not run because implementation and publication remain separate.
 
+## Phase 67
+
+Phase 67 establishes the English localization foundation from freshly fetched merged Phase 66 `origin/main` at `2d4d4a64f42aeedd6d5e941e420c769d9ef2f838`.
+
+Resolution on `agent/phase-67-english-localization-foundation`:
+
+- added frozen plain-text `src/locales/en.js` as the explicit English catalog and dependency-free, DOM-free `src/localization.js` for locale resolution, stable keyed lookup, and named interpolation;
+- made unsupported locales deterministically fall back to English and made unknown keys or missing named parameters throw instead of silently rendering `undefined` or unresolved placeholders;
+- created an explicit fixed-English translator in application orchestration and injected it into the Preferences modal without adding mutable global locale state, persistence, a language preference, or a selector;
+- migrated the complete Preferences modal title, introduction, tablist accessibility label, tabs/sections, Theme/Density fields and all option labels/hints, behavior checkbox labels/hints, and saved status while preserving exact English wording;
+- escaped every translation entering existing HTML-template or attribute sinks and kept modal title/status translation values in existing plain-text sinks; catalogs contain no HTML fragments;
+- preserved IDs, control and option order/values, tab/panel semantics, keyboard navigation, focus restoration, preference callbacks/persistence, Theme/Density startup behavior, dirty state, and Phase 66 CSP/bootstrap behavior;
+- left static `index.html` chrome, empty-state and Help references, validation/export messages, lookup/search text, category-editor strings, generated descriptions, schema, presets, import/export, service workers, analytics, dependencies, and unrelated UI unchanged. Phase 55 remains on hold.
+
+Validation actually run:
+
+- focused localization, Preferences, state/persistence, accessibility/data-flow, startup, and CSP coverage passed all 81 tests;
+- `npm run check` passed: 86 JavaScript files syntax-checked, all static relative imports resolved, and all 38 test files / 499 tests passed;
+- `git diff --check origin/main` passed with no output before and after durable-document updates, and complete diff inspection found no unrelated change;
+- in-app browser QA verified exact English copy, ArrowRight/ArrowLeft and End/Home tab selection/focus and roving `tabindex`, Theme/Density/behavior application, reload persistence, and launcher focus restoration;
+- Comfortable and Compact passed at 1280px, 840px, and 390px with equal body/document/modal client and scroll widths. No CSP violation or unexpected application warning/error appeared; Electron's generic development CSP warning was the only warning. Original local preferences and viewport were restored;
+- CI and GitHub Pages were not run because implementation and publication remain separate. Broader string extraction, locale preference/fallback UI, locale key parity, and localized generated descriptions remain later phases.
+
 # Current next step
 
-Phase 66 is implemented and locally verified. Phase 55 remains on hold. Localization remains deferred. Commit or publish only when separately requested.
+Phase 67 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.
