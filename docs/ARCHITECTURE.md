@@ -51,6 +51,7 @@ Primary layers:
 
 13. **XIVAPI and lookup**
    - `src/xivapi.js`
+   - `src/xivapiRequest.js`
    - `src/lookupNames.js`
 
 14. **UI rendering**
@@ -314,6 +315,8 @@ for row-ID validity decisions.
 - manual XIVAPI search,
 - Item sheet pagination for regex scans.
 
+`src/xivapiRequest.js` owns the one dependency-free, DOM-free HTTP lifetime boundary used by all four XIVAPI network paths: multi-row lookup, single-row fallback, manual search, and paginated Item-sheet scanning. Production requests expire after 15,000 ms. The helper accepts an optional caller `AbortSignal`, injected fetch/timer seams, and a test deadline override; an internal `AbortController` combines the caller and deadline without polling. First settlement wins, late fetch settlement is ignored, and the deadline plus caller listener are removed on success, HTTP failure, JSON failure, timeout, or cancellation. Caller cancellation retains its original reason, while `XivapiRequestTimeoutError` identifies the automatic deadline.
+
 ### Lookup sentinels
 
 A cached string may exist but still be unresolved or unusable.
@@ -339,6 +342,8 @@ Use `isUsefulLookupName(...)` rather than simple truthiness.
 6. retry unresolved IDs individually,
 7. record unresolved failures,
 8. persist progress/cache.
+
+Ordinary batch and row failures retain recursive bisection and individual fallback. A request timeout is chunk-wide: every ID in that timed-out chunk crosses the existing failure-reporting boundary once, and the chunk is not bisected or retried into additional deadline waits. Earlier completed chunks remain cached and useful cached names are never replaced with timeout sentinels.
 
 ### Referenced-ID lookup
 
@@ -554,6 +559,7 @@ Important behavior:
 - matched IDs are numeric.
 - worker construction, post, runtime, message, timeout, and cancellation failures never fall back to main-thread matching,
 - Cancel and modal Close abort fetch work and terminate the worker immediately; timeout does the same and reports that slow JavaScript evaluation is not an AetherBags/.NET validity decision,
+- XIVAPI request timeout is reported separately from both caller cancellation and Phase 64 worker evaluation timeout; completed worker batches, matches, and useful cache writes remain intact,
 - the converter commits useful matched names only after a complete batch reply and flushes completed cache changes at page or terminal boundaries,
 - the existing lookup-cache producer lease, busy overlay, action-state synchronization, result rendering, Add/removal/no-op behavior, and focus return still release through the converter's outer `finally`.
 
@@ -745,6 +751,8 @@ Phase 62 adds `src/actionAvailability.js` as the DOM-free authority for text-bac
 Phase 63 adds direct small-limit tests for exact/over UTF-8 JSON boundaries, multibyte accounting, whitespace-tolerant Base64, pre-`atob` rejection, post-decode defense, exact/overflow streaming output, cancellation/release, compression-bomb expansion, split UTF-8 chunks, malformed Base64/gzip/JSON, missing stream support, file-size-before-read, and downstream callback suppression. Focused coverage passed 121 tests. The local `npm run check` run syntax-checked 75 files, resolved all static relative imports, and passed all 33 test files / 444 tests; final `git diff --check origin/main` passed with no output. Browser QA passed normal plain and gzip+Base64 imports, both Raw JSON no-ops, modal focus/ARIA restoration, and zero overflow in both densities at 1280px/840px/390px. The browser file chooser and a production-size oversized payload were not exercised; the injected-limit tests are authoritative for those boundaries. CI and Pages were not run because publication remains separate.
 
 Phase 64 adds direct fixed-`i`, stable-order, bounded-batch, duplicate/exact-limit, success, timeout, pending-cancel, construction/post/runtime/message error, one-termination, timer/listener cleanup, stale-reply, completed-batch partial-result, and production-policy tests through injected fake workers and timers; no catastrophic regex runs inside Node tests. Focused coverage passed 65 tests. The local `npm run check` run syntax-checked 78 files, resolved all static relative imports, and passed all 34 test files / 460 tests; final `git diff --check origin/main` passed with no output. Final-build browser QA passed normal custom/saved worker scans, progress and Add, duplicate-only no-op availability, optional pattern removal, active pathological and ordinary cancellation, deterministic timeout with responsive UI and AetherBags-safe copy, modal-close focus/busy/cache cleanup, and zero body/document/modal overflow in both densities at 1280px/840px/390px. No unexpected application console error appeared; the deliberate timeout status and Electron development CSP warning were expected. CI and Pages were not run because publication remains separate.
+
+Phase 65 adds deterministic fake-fetch/timer/signal coverage for the 15,000 ms production policy, early and in-flight caller cancellation, HTTP/JSON classification, one abort, every-exit cleanup, and ignored late settlement. All four XIVAPI functions are proven to use the boundary; batch tests prove no timeout bisection/retry, preserved ordinary fallback, retained earlier chunks, and no useful-cache overwrite. Focused request/XIVAPI coverage passed 32 tests and related converter/cache/action/source coverage passed 111 tests. The local `npm run check` run syntax-checked 80 files, resolved all static relative imports, and passed all 35 test files / 478 tests; final `git diff --check origin/main` passed with no output. Browser QA passed ordinary Search/per-list/global/regex success, controlled nonanswering-request timeouts for each surface, distinct regex user cancellation, busy/action recovery, modal focus/background ARIA, and zero document/body overflow in both densities at 1280px/840px/390px. The controlled timeout used a temporary same-origin endpoint and shortened deadline; production was restored to XIVAPI and 15,000 ms before final validation. CI and Pages were not run because publication remains separate.
 
 Testing styles:
 

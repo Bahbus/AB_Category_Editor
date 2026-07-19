@@ -447,6 +447,23 @@ test('regex scanner uses shared strict row ID normalization', () => {
   assert.doesNotMatch(source, /matches\.push\(\{ id: Number\(id\), name \}\)/);
 });
 
+test('all XIVAPI fetches use one bounded DOM-free request boundary', () => {
+  const xivapi = read('src/xivapi.js');
+  const request = read('src/xivapiRequest.js');
+
+  assert.match(request, /XIVAPI_REQUEST_DEADLINE_MS = 15_000/);
+  assert.match(request, /class XivapiRequestTimeoutError extends Error/);
+  assert.match(request, /signal\.addEventListener\('abort', onCallerAbort, \{ once: true \}\)/);
+  assert.match(request, /signal\?\.removeEventListener\('abort', onCallerAbort\)/);
+  assert.match(request, /controller\.abort\(error\)/);
+  assert.equal((xivapi.match(/fetchXivapiJson\(/g) || []).length, 4);
+  assert.doesNotMatch(xivapi, /\bfetch\(/);
+  assert.match(xivapi, /err instanceof XivapiRequestTimeoutError[\s\S]*?for \(const id of chunk\) failures\.push\(\{ sheet, id, error: err \}\);[\s\S]*?return;/);
+  const timeoutIndex = xivapi.indexOf('err instanceof XivapiRequestTimeoutError');
+  const bisectionIndex = xivapi.indexOf('const midpoint = Math.ceil(chunk.length / 2)');
+  assert.ok(timeoutIndex >= 0 && timeoutIndex < bisectionIndex);
+});
+
 test('regex evaluation is isolated in a bounded repository-relative module worker', () => {
   const converter = read('src/tools/regexToItemIds.js');
   const evaluator = read('src/tools/regexBatchEvaluator.js');
@@ -478,6 +495,11 @@ test('regex timeout, Cancel, and modal Close share immediate idempotent cleanup 
   assert.match(finallyBody, /releaseLookupCacheProducer\?\.\(\)/);
   assert.match(finallyBody, /if \(busyShown\) hideBusy\(\)/);
   assert.match(converter, /This does not mean the pattern is invalid for AetherBags\/\.NET\./);
+  assert.match(converter, /err instanceof RegexBatchTimeoutError/);
+  assert.match(converter, /err instanceof XivapiRequestTimeoutError/);
+  assert.match(converter, /scanState\.canceled \|\| err instanceof RegexWorkerCanceledError \|\| isAbortError\(err\)/);
+  assert.match(converter, /XIVAPI request timed out after/);
+  assert.match(converter, /match\(es\) from completed batches were kept/);
   assert.doesNotMatch(converter, /timeout[^\n]*AetherBags[^\n]*invalid/i);
 });
 
