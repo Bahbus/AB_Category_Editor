@@ -2,23 +2,11 @@
 <html lang="en" data-theme="system" data-density="comfortable">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self'; connect-src 'self' https://v2.xivapi.com; worker-src 'self'; frame-src 'none'; form-action 'none'">
 <title>AetherBags Category Editor</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
-<script>
-(() => {
-  try {
-    const raw = localStorage.getItem('aetherbagsEditorPreferences');
-    if (!raw) return;
-    const prefs = JSON.parse(raw);
-    const themes = new Set(['system', 'dark', 'light', 'high-contrast', 'aetherial', 'dalamud']);
-    const densities = new Set(['comfortable', 'compact']);
-    const root = document.documentElement;
-    if (themes.has(prefs.theme)) root.dataset.theme = prefs.theme;
-    if (densities.has(prefs.density)) root.dataset.density = prefs.density;
-  } catch {}
-})();
-</script>
+<script src="src/startupPreferences.js"></script>
 <link id="appStylesheet" rel="stylesheet" href="styles.css">
 </head>
 <body>

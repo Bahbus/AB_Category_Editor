@@ -1490,6 +1490,30 @@ Validation actually run:
 - modal close restored launcher focus and removed background `aria-hidden`; Comfortable and Compact had no body/document horizontal overflow at 1280px, 840px, or 390px;
 - the real XIVAPI endpoint and 15,000 ms production deadline were restored before final validation. A real 15-second stalled request, CI, and GitHub Pages were not run because deterministic seams cover the policy and implementation/publication remain separate. Phase 55 remains on hold.
 
+## Phase 66
+
+Phase 66 establishes explicit browser and CI trust boundaries from freshly fetched merged Phase 65 `origin/main` at `43fab8d3bd6fbc09216ed2e3ecb84c53393d302b`.
+
+Resolution on `agent/phase-66-static-trust-boundaries`:
+
+- moved the inline Theme/Density bootstrap into synchronous same-origin `src/startupPreferences.js`, before `styles.css` and independent of the application module graph;
+- preserved the exact preference key, six Theme values, two Density values, HTML defaults, malformed/absent/unavailable-storage tolerance, and nonfatal startup behavior, with direct parity tests against `src/state.js`;
+- added the early meta policy `default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self'; connect-src 'self' https://v2.xivapi.com; worker-src 'self'; frame-src 'none'; form-action 'none'`;
+- kept inline/evaluated JavaScript blocked while limiting inline CSS permission to style attributes required by category colors, Color preview, range fill, progress geometry, toast transitions, and clipboard fallback;
+- retained same-origin local/controlled requests, the exact XIVAPI origin, the same-origin module worker, same-origin favicon, file import, clipboard fallback, Blob download, modal behavior, and application navigation without adding `data:`/`blob:` resource allowances or an experimental navigation restriction;
+- documented that meta delivery is not a response-header substitute and intentionally omitted ineffective `frame-ancestors`, reporting, or other header-only claims;
+- pinned official checkout v4.3.1 to `34e114876b0b11c390a56381ad16ebd13914f8d5` and setup-node v4.4.0 to `49933ea5288caeca8642d1e84afbd3f7d6820020`, retaining readable comments, Node 22, `contents: read`, push/pull-request triggers, and one `npm run check`;
+- made no dependency, build, service-worker, server, analytics, remote-asset, schema, preset, localization, or unrelated UI change. Phase 55 remains on hold and localization remains deferred under the existing staged roadmap.
+
+Validation actually run:
+
+- focused startup/CSP/workflow/clipboard coverage passed all 13 tests;
+- `npm run check` passed: 83 JavaScript files syntax-checked, all static relative imports resolved, and all 37 test files / 491 tests passed;
+- `git diff --check origin/main` passed with no output, and complete diff inspection found no unrelated change;
+- final local in-app browser QA passed stored Theme/Density startup and reload, Preferences updates, real XIVAPI Item Search, module-worker construction/progress/cancellation, bundled and normal JSON import, Export/Copy with clipboard success, Blob Download completion status, modal initial/return focus and background inert/ARIA restoration, and deliberate runtime category/color/range/progress inline styles;
+- Comfortable and Compact each retained equal body/document client and scroll widths at 1280px, 840px, and 390px. No CSP violation was recorded; Electron's generic development CSP warning and the deliberately triggered import-review warning were the only warnings;
+- CI and GitHub Pages were not run because implementation and publication remain separate.
+
 # Current next step
 
-Phase 65 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.
+Phase 66 is implemented and locally verified. Phase 55 remains on hold. Localization remains deferred. Commit or publish only when separately requested.
