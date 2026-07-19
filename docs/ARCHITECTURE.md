@@ -78,6 +78,7 @@ Primary layers:
 
 19. **Static assets and layout**
    - `index.html`
+   - `src/startupPreferences.js`
    - `styles.css`
 
 20. **Tests and guardrails**
@@ -619,6 +620,18 @@ Preferences include appearance/behavior settings such as theme and density, plus
 
 Future localization preferences should integrate here rather than inventing separate persistence.
 
+### Startup appearance and browser trust boundary
+
+`src/startupPreferences.js` is a deliberately small classic script loaded synchronously before `styles.css`. It reads only the established appearance preference key and applies only the six Theme and two Density values accepted by `src/state.js`. Keeping it outside the module graph preserves pre-styled-render appearance; focused tests execute the classic script against `EDITOR_PREFERENCES_KEY` and `EDITOR_PREFERENCE_OPTIONS` so its unavoidable startup literals remain parity-checked. Missing, malformed, blocked, or throwing storage leaves the HTML defaults intact.
+
+`index.html` delivers this exact CSP before every governed resource:
+
+```text
+default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self'; connect-src 'self' https://v2.xivapi.com; worker-src 'self'; frame-src 'none'; form-action 'none'
+```
+
+The only inline allowance is `style-src-attr 'unsafe-inline'`, required by the established dynamic category colors/tints, Color preview, range geometry, busy progress, toast transitions, and clipboard fallback. Inline/evaluated scripts remain blocked; the favicon needs only same-origin image access; local/controlled QA remains available through same-origin `connect-src`; and `worker-src 'self'` covers the module worker. Blob export downloads do not require a fetched-resource `blob:` allowance. This meta policy is a static-app compatibility boundary, not a response-header substitute: it cannot provide `frame-ancestors`, Report-Only delivery, or protection for resources parsed before the meta element.
+
 ---
 
 ## 15. Import/export
@@ -696,7 +709,7 @@ node --test
 
 `scripts/check-javascript-syntax.mjs` resolves the repository root from the script location rather than the caller's working directory. It recursively discovers regular `.js` and `.mjs` files in deterministic relative-path order, including untracked files, while skipping `.git`, `node_modules`, non-JavaScript files, and symlink traversal. Each discovered file is passed to the current Node executable with `--check`; the script reports the checked count only on success and exits nonzero after any failure.
 
-The single GitHub Actions workflow is `.github/workflows/project-verification.yml`. Pushes and pull requests run the same `npm run check` contract once with read-only repository contents, checkout v4, setup-node v4, and Node 22. The workflow does not duplicate the syntax, import, or test commands.
+The single GitHub Actions workflow is `.github/workflows/project-verification.yml`. Pushes and pull requests run the same `npm run check` contract once with read-only repository contents and Node 22. Official checkout v4.3.1 is pinned at `34e114876b0b11c390a56381ad16ebd13914f8d5`; official setup-node v4.4.0 is pinned at `49933ea5288caeca8642d1e84afbd3f7d6820020`. Readable version comments remain beside both immutable SHAs. The workflow does not duplicate the syntax, import, or test commands.
 
 Phase 45 adds temporary-fixture behavior tests for nested discovery, ordering, exclusions, directory symlinks, valid files, and an invalid-file failure. Its local `npm run check` run syntax-checked 56 files, resolved all static relative imports, and passed all 25 test files / 319 tests. `git diff --check` also passed. CI and browser QA were not run.
 
@@ -753,6 +766,8 @@ Phase 63 adds direct small-limit tests for exact/over UTF-8 JSON boundaries, mul
 Phase 64 adds direct fixed-`i`, stable-order, bounded-batch, duplicate/exact-limit, success, timeout, pending-cancel, construction/post/runtime/message error, one-termination, timer/listener cleanup, stale-reply, completed-batch partial-result, and production-policy tests through injected fake workers and timers; no catastrophic regex runs inside Node tests. Focused coverage passed 65 tests. The local `npm run check` run syntax-checked 78 files, resolved all static relative imports, and passed all 34 test files / 460 tests; final `git diff --check origin/main` passed with no output. Final-build browser QA passed normal custom/saved worker scans, progress and Add, duplicate-only no-op availability, optional pattern removal, active pathological and ordinary cancellation, deterministic timeout with responsive UI and AetherBags-safe copy, modal-close focus/busy/cache cleanup, and zero body/document/modal overflow in both densities at 1280px/840px/390px. No unexpected application console error appeared; the deliberate timeout status and Electron development CSP warning were expected. CI and Pages were not run because publication remains separate.
 
 Phase 65 adds deterministic fake-fetch/timer/signal coverage for the 15,000 ms production policy, early and in-flight caller cancellation, HTTP/JSON classification, one abort, every-exit cleanup, and ignored late settlement. All four XIVAPI functions are proven to use the boundary; batch tests prove no timeout bisection/retry, preserved ordinary fallback, retained earlier chunks, and no useful-cache overwrite. Focused request/XIVAPI coverage passed 32 tests and related converter/cache/action/source coverage passed 111 tests. The local `npm run check` run syntax-checked 80 files, resolved all static relative imports, and passed all 35 test files / 478 tests; final `git diff --check origin/main` passed with no output. Browser QA passed ordinary Search/per-list/global/regex success, controlled nonanswering-request timeouts for each surface, distinct regex user cancellation, busy/action recovery, modal focus/background ARIA, and zero document/body overflow in both densities at 1280px/840px/390px. The controlled timeout used a temporary same-origin endpoint and shortened deadline; production was restored to XIVAPI and 15,000 ms before final validation. CI and Pages were not run because publication remains separate.
+
+Phase 66 adds direct classic-script execution coverage for every established Theme/Density option and storage failure class; static policy tests for CSP/resource ordering, exact directives, absent inline script, same-origin/XIVAPI/worker/image/style boundaries, and excluded header-only claims; direct clipboard-fallback behavior; and immutable workflow SHA/contract guards. The local `npm run check` run syntax-checked 83 files, resolved all static relative imports, and passed all 37 test files / 491 tests; final `git diff --check origin/main` passed with no output. Browser QA passed stored appearance reload, preferences, real XIVAPI Search, module-worker scan/cancel, normal and bundled import, Export/Copy, Blob Download completion, modal focus/background restoration, live dynamic style attributes, and both densities at 1280px/840px/390px without overflow or CSP violations. CI and Pages were not run because implementation and publication remain separate.
 
 Testing styles:
 
