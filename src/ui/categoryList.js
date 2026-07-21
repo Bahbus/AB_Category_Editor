@@ -113,6 +113,8 @@ export function renderCategoryList({
       commitActiveField();
       setSelectedIndex(idx);
       renderAll();
+      const selectedItem = document.querySelector('.cat-item[aria-current="true"]');
+      if (selectedItem && document.contains(selectedItem)) selectedItem.focus();
     }
 
     item.onclick = selectCategory;
