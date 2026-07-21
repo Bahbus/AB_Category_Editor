@@ -463,8 +463,8 @@ function bindAppEvents() {
     renderAll();
   });
   bindClick('lookupReferencedIds', () => { commitActiveField(); lookupReferencedIds().catch(err => setStatus(errorMessage('ID lookup failed', err), 'err')); });
-  bindClick('showLookupCache', () => { commitActiveField(); showLookupCacheModal({ lookupCacheStats, clearLookupCache, isLookupCacheProducerActive: lookupCacheOperations.isActive, onLookupCacheProducerChange: lookupCacheOperations.subscribe }); });
-  bindClick('showHelp', () => { commitActiveField(); showHelpModal(); });
+  bindClick('showLookupCache', () => { commitActiveField(); showLookupCacheModal({ lookupCacheStats, clearLookupCache, isLookupCacheProducerActive: lookupCacheOperations.isActive, onLookupCacheProducerChange: lookupCacheOperations.subscribe, translate }); });
+  bindClick('showHelp', () => { commitActiveField(); showHelpModal({ translate }); });
   bindClick('showPreferences', () => showPreferencesModal({
     getEditorPreferences: () => editorPreferences,
     applyEditorPreferences,

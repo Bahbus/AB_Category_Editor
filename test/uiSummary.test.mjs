@@ -203,11 +203,13 @@ test('icon and action controls have accessible labels', () => {
 test('regex tool and help modal source text stay current', () => {
   const regexSource = fs.readFileSync(new URL('../src/tools/regexToItemIds.js', import.meta.url), 'utf8');
   const helpSource = fs.readFileSync(new URL('../src/ui/helpModal.js', import.meta.url), 'utf8');
+  const englishSource = fs.readFileSync(new URL('../src/locales/en.js', import.meta.url), 'utf8');
 
   assert.doesNotMatch(regexSource, /class="[^"]*"\s+class=/);
   assert.match(regexSource, /class="grid cols-3 modal-action-row"/);
   assert.doesNotMatch(helpSource, /checkbox style/i);
-  assert.match(helpSource, /comfortable\/compact density/);
+  assert.match(helpSource, /translate\('help\.preferences\.preferences\.description'\)/);
+  assert.match(englishSource, /'help\.preferences\.preferences\.description': 'lets you choose editor-only themes and comfortable\/compact density, plus behavior settings like auto-lookup and description generation\.'/);
 });
 
 test('shared state filters are imported by validation and editor', () => {

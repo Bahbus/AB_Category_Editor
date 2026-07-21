@@ -1537,6 +1537,29 @@ Validation actually run:
 - Comfortable and Compact passed at 1280px, 840px, and 390px with equal body/document/modal client and scroll widths. No CSP violation or unexpected application warning/error appeared; Electron's generic development CSP warning was the only warning. Original local preferences and viewport were restored;
 - CI and GitHub Pages were not run because implementation and publication remain separate. Broader string extraction, locale preference/fallback UI, locale key parity, and localized generated descriptions remain later phases.
 
+## Phase 68
+
+Phase 68 extends the English localization proof boundary from freshly fetched merged Phase 67 `origin/main` at `d66e7c66ce189726ce3ee0c7c03e4697634dcdeb`.
+
+Resolution on `agent/phase-68-secondary-modal-localization`:
+
+- extended frozen plain-text `src/locales/en.js` with the complete About / Help and Lookup Cache modal surfaces, splitting Help text at UI-owned `strong` and `code` boundaries and using one named cache-stat template without HTML or pluralization;
+- injected the existing single fixed-English translator from `src/app.js` into both modal entrypoints without a second translator, global locale state, persistence, selector, second catalog, or application-orchestration imports in the UI modules;
+- migrated every Help-owned title, introduction, heading, workflow/tool/preference/privacy explanation, emphasized label, and code token while preserving exact English wording, content order, four headings/lists, sixteen items, eleven emphasized runs, three code runs, accessibility, focus, responsive layout, and CSP behavior;
+- migrated Lookup Cache privacy copy, labels, `toLocaleString()` useful/unresolved statistics, clear action, and active/empty/late-race refusal messages while retaining escaped HTML sinks and plain-text runtime status sinks;
+- preserved producer subscriptions, shared availability, defensive clear re-checks, clear/close behavior, unsubscribe-on-close, application-owned success/refusal toasts, lookup cache shape/data, category data, dirty state, and modal focus return;
+- left static `index.html` chrome, broader lookup/search, validation/export, category editor, generated descriptions, schema, presets, import/export, startup, CSP, Actions, dependencies, and unrelated UI unchanged. Phase 55 remains on hold.
+
+Validation actually run:
+
+- focused localization, application/data-flow, Help/accessibility, Lookup Cache/import/export, availability, cache-operation, and UI-summary coverage passed all 127 tests;
+- `npm run check` passed: 86 JavaScript files syntax-checked, all static relative imports resolved, and all 38 test files / 501 tests passed;
+- `git diff --check origin/main` passed with no output before and after durable-document updates, and complete diff inspection found no unrelated change;
+- in-app browser QA verified exact Help and Lookup Cache copy; Help headings, lists, emphasis, and code semantics; locale-formatted counts; enabled nonempty clearing; focus containment/return; and background ARIA restoration;
+- Comfortable and Compact passed at 1280px, 840px, and 390px with equal body/document/modal client and scroll widths. No CSP violation or unexpected application warning/error appeared; Electron's generic development CSP warning was the only warning. The original Compact preference and viewport were restored;
+- the existing browser profile contained 381 useful cached names, so destructive clearing and manufactured empty/active producer states were not exercised. Direct availability, race-refusal, successful-clear, producer, cleanup, and source tests remain authoritative;
+- CI and GitHub Pages were not run because implementation and publication remain separate. Static chrome and broader validation/status extraction, locale preference/fallback UI, locale key parity, and localized generated descriptions remain later phases.
+
 # Current next step
 
-Phase 67 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.
+Phase 68 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.

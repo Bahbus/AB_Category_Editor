@@ -5,11 +5,24 @@ import { ENGLISH_MESSAGES } from '../src/locales/en.js';
 import { createTranslator, DEFAULT_LOCALE, formatMessage, resolveLocale } from '../src/localization.js';
 import { read } from '../testSupport/sourceFiles.mjs';
 
-test('English lookup returns established Preferences copy', () => {
+test('English lookup returns established localized modal copy', () => {
   const translate = createTranslator('en');
   assert.equal(translate('preferences.title'), 'Editor Preferences');
   assert.equal(translate('preferences.theme.highContrast.label'), 'High Contrast');
   assert.equal(translate('preferences.saved'), 'Editor preferences saved locally.');
+  assert.equal(translate('help.title'), 'About / Help');
+  assert.equal(translate('help.workflow.download.extension'), '.txt');
+  assert.equal(translate('help.privacy.repository'), 'The app does not upload the full category config to this repository.');
+  assert.equal(translate('lookupCache.title'), 'Lookup Cache');
+  assert.equal(translate('lookupCache.unavailable.race'), 'The cache was not cleared because a lookup or scan is still running.');
+});
+
+test('Lookup Cache statistics interpolate established formatted counts', () => {
+  const translate = createTranslator('en');
+  assert.equal(
+    translate('lookupCache.stats', { useful: '1,234', unresolved: '56' }),
+    '1,234 useful, 56 unresolved'
+  );
 });
 
 test('named interpolation replaces supplied parameters', () => {

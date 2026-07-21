@@ -1,38 +1,39 @@
+import { escapeHtml } from '../dom.js';
 import { openModal } from '../modals.js';
 
-export function showHelpModal() {
+export function showHelpModal({ translate }) {
   const wrap = document.createElement('div');
   wrap.className = 'help-modal';
   wrap.innerHTML = `
-    <p>This editor helps you inspect and edit AetherBags category exports in your browser, then create updated text to import back into AetherBags.</p>
-    <h3>Basic workflow</h3>
+    <p>${escapeHtml(translate('help.introduction'))}</p>
+    <h3>${escapeHtml(translate('help.workflow.title'))}</h3>
     <ul>
-      <li><strong>Import/Paste</strong> accepts formatted JSON or the gzip+Base64 category text exported/copied from AetherBags.</li>
-      <li><strong>Upload</strong> accepts a text, Base64, or JSON file containing that same AetherBags category data.</li>
-      <li><strong>Export/Copy</strong> creates updated gzip+Base64 text and tries to copy it to your clipboard.</li>
-      <li><strong>Download</strong> saves the updated gzip+Base64 text as a local <code>.txt</code> file.</li>
-      <li>Paste or import the exported Base64 text back into AetherBags using the plugin's category import workflow.</li>
+      <li><strong>${escapeHtml(translate('help.workflow.import.label'))}</strong> ${escapeHtml(translate('help.workflow.import.description'))}</li>
+      <li><strong>${escapeHtml(translate('help.workflow.upload.label'))}</strong> ${escapeHtml(translate('help.workflow.upload.description'))}</li>
+      <li><strong>${escapeHtml(translate('help.workflow.export.label'))}</strong> ${escapeHtml(translate('help.workflow.export.description'))}</li>
+      <li><strong>${escapeHtml(translate('help.workflow.download.label'))}</strong> ${escapeHtml(translate('help.workflow.download.beforeExtension'))} <code>${escapeHtml(translate('help.workflow.download.extension'))}</code> ${escapeHtml(translate('help.workflow.download.afterExtension'))}</li>
+      <li>${escapeHtml(translate('help.workflow.reimport'))}</li>
     </ul>
-    <h3>Lookup tools</h3>
+    <h3>${escapeHtml(translate('help.lookup.title'))}</h3>
     <ul>
-      <li><strong>Resolve IDs</strong> resolves referenced item IDs and UI category IDs to English names through XIVAPI.</li>
-      <li><strong>Lookup Cache</strong> shows and clears locally cached lookup names stored in this browser.</li>
-      <li><strong>Regex → Item IDs</strong> scans XIVAPI item names for a selected name pattern and can be canceled while it runs.</li>
+      <li><strong>${escapeHtml(translate('help.lookup.resolveIds.label'))}</strong> ${escapeHtml(translate('help.lookup.resolveIds.description'))}</li>
+      <li><strong>${escapeHtml(translate('help.lookup.cache.label'))}</strong> ${escapeHtml(translate('help.lookup.cache.description'))}</li>
+      <li><strong>${escapeHtml(translate('help.lookup.regex.label'))}</strong> ${escapeHtml(translate('help.lookup.regex.description'))}</li>
     </ul>
-    <h3>Editor preferences and descriptions</h3>
+    <h3>${escapeHtml(translate('help.preferences.title'))}</h3>
     <ul>
-      <li><strong>Preferences</strong> lets you choose editor-only themes and comfortable/compact density, plus behavior settings like auto-lookup and description generation.</li>
-      <li><strong>Generate</strong> beside Description suggests concise text from the category name and selected rules/filters.</li>
-      <li><strong>Auto-lookup imported IDs</strong> and <strong>Auto-generate descriptions</strong> live on the Behavior tab; generated descriptions only fill blanks and never overwrite existing text.</li>
-      <li>Preferences are stored locally in this browser with <code>localStorage</code> and are not included in exported AetherBags config data.</li>
+      <li><strong>${escapeHtml(translate('help.preferences.preferences.label'))}</strong> ${escapeHtml(translate('help.preferences.preferences.description'))}</li>
+      <li><strong>${escapeHtml(translate('help.preferences.generate.label'))}</strong> ${escapeHtml(translate('help.preferences.generate.description'))}</li>
+      <li><strong>${escapeHtml(translate('help.preferences.autoLookup.label'))}</strong> ${escapeHtml(translate('help.preferences.behavior.joiner'))} <strong>${escapeHtml(translate('help.preferences.autoGenerate.label'))}</strong> ${escapeHtml(translate('help.preferences.behavior.description'))}</li>
+      <li>${escapeHtml(translate('help.preferences.storage.beforeName'))} <code>${escapeHtml(translate('help.preferences.storage.name'))}</code> ${escapeHtml(translate('help.preferences.storage.afterName'))}</li>
     </ul>
-    <h3>Privacy</h3>
+    <h3>${escapeHtml(translate('help.privacy.title'))}</h3>
     <ul>
-      <li>The full imported config is processed locally in your browser.</li>
-      <li>The app stores lookup names in <code>localStorage</code> so repeated ID lookups are faster.</li>
-      <li>XIVAPI is contacted only for item/category name lookups, search queries, and item sheet scans used by Regex → Item IDs.</li>
-      <li>The app does not upload the full category config to this repository.</li>
+      <li>${escapeHtml(translate('help.privacy.localProcessing'))}</li>
+      <li>${escapeHtml(translate('help.privacy.storage.beforeName'))} <code>${escapeHtml(translate('help.privacy.storage.name'))}</code> ${escapeHtml(translate('help.privacy.storage.afterName'))}</li>
+      <li>${escapeHtml(translate('help.privacy.xivapi'))}</li>
+      <li>${escapeHtml(translate('help.privacy.repository'))}</li>
     </ul>
   `;
-  openModal('About / Help', wrap);
+  openModal(translate('help.title'), wrap);
 }

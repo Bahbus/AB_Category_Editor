@@ -103,17 +103,67 @@ test('ordering rerenders use deterministic enabled focus fallbacks', () => {
   assert.match(list, /target && !target\.disabled && !target\.hidden/);
 });
 
-test('help and appearance preferences stay source-consistent', () => {
+test('Help routes its complete English surface through escaped localization keys while retaining semantic markup', () => {
   const help = read('src/ui/helpModal.js');
-  const preferences = read('src/ui/preferencesModal.js');
   const english = read('src/locales/en.js');
+  const keys = [
+    'help.title',
+    'help.introduction',
+    'help.workflow.title',
+    'help.workflow.import.label',
+    'help.workflow.import.description',
+    'help.workflow.upload.label',
+    'help.workflow.upload.description',
+    'help.workflow.export.label',
+    'help.workflow.export.description',
+    'help.workflow.download.label',
+    'help.workflow.download.beforeExtension',
+    'help.workflow.download.extension',
+    'help.workflow.download.afterExtension',
+    'help.workflow.reimport',
+    'help.lookup.title',
+    'help.lookup.resolveIds.label',
+    'help.lookup.resolveIds.description',
+    'help.lookup.cache.label',
+    'help.lookup.cache.description',
+    'help.lookup.regex.label',
+    'help.lookup.regex.description',
+    'help.preferences.title',
+    'help.preferences.preferences.label',
+    'help.preferences.preferences.description',
+    'help.preferences.generate.label',
+    'help.preferences.generate.description',
+    'help.preferences.autoLookup.label',
+    'help.preferences.autoGenerate.label',
+    'help.preferences.behavior.joiner',
+    'help.preferences.behavior.description',
+    'help.preferences.storage.beforeName',
+    'help.preferences.storage.name',
+    'help.preferences.storage.afterName',
+    'help.privacy.title',
+    'help.privacy.localProcessing',
+    'help.privacy.storage.beforeName',
+    'help.privacy.storage.name',
+    'help.privacy.storage.afterName',
+    'help.privacy.xivapi',
+    'help.privacy.repository'
+  ];
 
-  assert.doesNotMatch(help, /checkbox style/i);
-  assert.match(help, /themes? and (?:comfortable\/compact )?density/i);
-  assert.match(preferences, /preferenceSelect\('themePreference', translate\('preferences\.theme\.label'\)/);
-  assert.match(preferences, /preferenceSelect\('densityPreference', translate\('preferences\.density\.label'\)/);
-  assert.match(english, /'preferences\.theme\.label': 'Theme'/);
-  assert.match(english, /'preferences\.density\.label': 'Density'/);
+  for (const key of keys) {
+    assert.ok(english.includes(`'${key}':`), key);
+    assert.ok(help.includes(`translate('${key}')`), key);
+  }
+  const template = help.match(/wrap\.innerHTML = `(?<body>[\s\S]*?)`;/)?.groups.body ?? '';
+  for (const match of template.matchAll(/translate\(/g)) {
+    assert.ok(template.slice(Math.max(0, match.index - 11), match.index).endsWith('escapeHtml('), `unescaped Help translation near ${match.index}`);
+  }
+  assert.equal((template.match(/<h3>/g) || []).length, 4);
+  assert.equal((template.match(/<ul>/g) || []).length, 4);
+  assert.equal((template.match(/<li>/g) || []).length, 16);
+  assert.equal((template.match(/<strong>/g) || []).length, 11);
+  assert.equal((template.match(/<code>/g) || []).length, 3);
+  assert.match(help, /openModal\(translate\('help\.title'\), wrap\)/);
+  assert.doesNotMatch(help, /This editor helps you inspect|Basic workflow|comfortable\/compact density|The full imported config is processed locally/);
 });
 
 test('Preferences modal routes its complete English surface through escaped localization keys', () => {

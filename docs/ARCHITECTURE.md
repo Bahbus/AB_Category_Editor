@@ -622,11 +622,15 @@ Future localization preferences should integrate here rather than inventing sepa
 
 ### Localization boundary
 
-`src/locales/en.js` is the explicit frozen English catalog. Catalog entries are plain strings, never HTML fragments. Phase 67 intentionally limits the catalog to the complete Preferences modal proof slice while leaving static chrome, Help, validation/status families outside Preferences, lookup/search text, category editing, and generated descriptions untouched.
+`src/locales/en.js` is the explicit frozen English catalog. Catalog entries are plain strings, never HTML fragments. Phase 67 introduced the complete Preferences modal proof slice. Phase 68 adds the complete About / Help and Lookup Cache modal surfaces while leaving static chrome, application-owned cache-clear toasts, broader validation/status families, lookup/search list-editor text, category editing, and generated descriptions untouched.
 
 `src/localization.js` is DOM-free and keeps mechanics separate from locale data. `createTranslator(locale)` resolves the requested locale once, deterministically falls back to English for unsupported locales, and returns a stable keyed lookup function. `formatMessage(...)` replaces simple named parameters and throws when a required parameter is absent; lookup throws for unknown keys. Callers therefore cannot silently render `undefined` or an unresolved named placeholder.
 
-Application orchestration creates the fixed-English translator explicitly and injects it into `showPreferencesModal(...)`. No mutable global locale or implicit locale state exists. A later persisted locale preference can replace the translator at the existing state/orchestration boundary without rewriting Preferences key usage. Translation values entering the modal's HTML templates and accessibility attributes pass through `escapeHtml(...)`; modal titles and statuses use existing plain-text sinks.
+Application orchestration creates the fixed-English translator explicitly and injects it into `showPreferencesModal(...)`, `showHelpModal(...)`, and `showLookupCacheModal(...)`. No mutable global locale or implicit locale state exists. A later persisted locale preference can replace the translator at the existing state/orchestration boundary without rewriting modal key usage. Translation values entering HTML templates and accessibility attributes pass through `escapeHtml(...)`; modal titles and runtime statuses use existing plain-text sinks.
+
+Help keeps all structure in `src/ui/helpModal.js`: paragraph and section order, headings, lists, emphasized action names, and code-formatted `.txt`/`localStorage` tokens. Catalog keys are split at those semantic boundaries rather than carrying markup.
+
+Lookup Cache keeps count formatting and behavior in `src/ui/lookupCacheModal.js`. Useful and unresolved numbers call `toLocaleString()` before becoming named `lookupCache.stats` parameters; the translated result is escaped at the template sink. Active, empty, and late-race refusal messages continue through `textContent`. The modal still subscribes to application-owned producer state, uses shared `lookupCacheClearAvailable(...)`, defensively re-checks clear availability, and unsubscribes through the shared modal close callback.
 
 ### Startup appearance and browser trust boundary
 
@@ -779,6 +783,8 @@ Phase 66 adds direct classic-script execution coverage for every established The
 
 Phase 67 adds direct English lookup, named interpolation, unsupported-locale fallback, unknown-key, missing-parameter, plain-text catalog, and DOM-free coverage. Focused source coverage proves the complete Preferences surface uses translated keys through escaped template sinks while retaining exact tab semantics, keyboard behavior, callbacks, and state persistence; the Phase 66 bootstrap guard now explicitly rejects module/localization coupling. Focused coverage passed 81 tests. The local `npm run check` run syntax-checked 86 files, resolved all static relative imports, and passed all 38 test files / 499 tests; final `git diff --check origin/main` passed with no output. Browser QA passed exact English copy, ArrowRight/ArrowLeft and End/Home tab navigation, Theme/Density/behavior application and reload persistence, launcher focus restoration, both densities at 1280px/840px/390px without body/document/modal overflow, and no CSP violations. Electron's generic development CSP warning was the only warning; original local preferences and viewport were restored. CI and Pages were not run because implementation and publication remain separate.
 
+Phase 68 adds representative Help/Lookup Cache lookup and cache-stat interpolation tests, catalog-wide frozen/plain-text/no-HTML coverage, one-translator injection guards, complete Help key/semantic/escaping source coverage, and Lookup Cache count/status/escaping/availability/subscription/race guards. Focused coverage passed 127 tests. The local `npm run check` run syntax-checked 86 files, resolved all static relative imports, and passed all 38 test files / 501 tests; final `git diff --check origin/main` passed with no output. Browser QA passed exact English copy, Help heading/list/emphasis/code semantics, locale-formatted nonempty cache counts, modal focus containment/return, background restoration, and both densities at 1280px/840px/390px without body/document/modal overflow. The existing 381 cached names were preserved, so browser clear plus empty/active producer states were not exercised; direct tests remain authoritative. Electron's generic development CSP warning was the only warning. The original Compact preference and viewport were restored. CI and Pages were not run because implementation and publication remain separate.
+
 Testing styles:
 
 - direct unit tests for pure logic,
@@ -808,11 +814,11 @@ Phase 56 established three responsibility-owned source suites plus a shared sour
 
 ### Localization
 
-Phase 67 completed the English-only foundation and Preferences proof slice.
+Phase 68 completed the second English-only proof slice for About / Help and Lookup Cache after the Phase 67 Preferences foundation.
 
 Remaining sequence:
 
-1. Extract broader UI chrome and validation/status messages.
+1. Extract static chrome and broader validation/status messages in bounded families.
 2. Add a persisted locale preference and fallback UI through application state/orchestration.
 3. Add locale key-parity tests when another catalog exists.
 4. Localize generated descriptions separately.
