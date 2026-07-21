@@ -1716,6 +1716,24 @@ Validation actually run:
 - the original Comfortable density and viewport were restored and the QA tab was closed;
 - CI, GitHub Pages, deployed QA, and publication were not run because implementation and publication remain separate.
 
+Phase 72 then merged through PR #117, “Phase 72: Localize empty-state guidance,” on 2026-07-21 at merge commit `f978b2c0a525615da11c8908da188c7cc84dcff2`. Phase 72 PR checks passed. Post-merge Project verification run `29874069440`, Pages deployment run `29874068838`, and main-branch security scan run `29874069280` passed.
+
+Live `main` immediately advanced to `5167d1297d02192689ccdc22eba1d0f78dd00447` through the one-line test-only `test/staticTrustBoundaries.test.mjs` commit “Potential fix for code scanning alert no. 1: Bad HTML filtering regexp.” It extends the closing-script regexp through the closing-tag boundary and fixes CodeQL alert #1 (`js/bad-tag-filter`). It changes no runtime code or runtime security boundary. On that exact live tree, Project verification run `29874154312`, Pages deployment run `29874153760`, and main-branch security scan run `29874154077` passed.
+
+Fresh review ran `npm run check` against an archive of exact live `origin/main`: 91 JavaScript files passed syntax checking, all static relative imports resolved, and all 41 test files / 519 tests passed with zero failures, skips, cancellations, or todos. Fresh deployed QA confirmed exact empty-state text, list structure, `strong` semantics, and accessibility; the basic preset action reached the populated Materias editor with `No changes`; and 1280px, 840px, and 390px had no horizontal overflow. Electron's generic development CSP warning was the only console warning. The temporary viewport was reset and the QA tab was closed.
+
+## Phase 72.1
+
+Phase 72.1 resynchronizes the three durable project documents with the merged Phase 72 and exact live-main record. It changes documentation only: no runtime source, tests, styles, workflows, package metadata, presets, localization catalogs, or application behavior.
+
+Validation actually run:
+
+- `npm run check` passed: 91 JavaScript files passed syntax checking, all static relative imports resolved, and all 41 test files / 519 tests passed with zero failures, skips, cancellations, or todos;
+- `git diff --check origin/main` passed with no output;
+- `git diff --name-only origin/main` contained exactly `docs/AI_PROJECT_CONTEXT.md`, `docs/ARCHITECTURE.md`, and `docs/REVIEW_HISTORY.md`;
+- complete diff inspection confirmed historically precise merge-tree/live-main attribution, no stale Phase 72 publication language, and no unrelated scope;
+- browser QA was not rerun because Phase 72.1 changes documentation only. The recorded fresh deployed empty-state QA is post-merge/live-main review evidence, not Phase 72.1 implementation evidence.
+
 # Current next step
 
-Phase 72 implementation and local validation are complete and await a separate publication request. Keep Phase 55 on hold. Remaining localization work begins with later bounded status/validation and populated editor/list families; no second locale or broader family is part of Phase 72.
+Keep Phase 55 on hold. After this Phase 72.1 documentation correction merges, return to the standard full review before selecting the next bounded localization or UI phase.
