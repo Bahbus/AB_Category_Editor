@@ -1,22 +1,25 @@
-import { requireScopedEl } from '../dom.js';
+import { escapeHtml, requireScopedEl } from '../dom.js';
 import { openModal, closeModal } from '../modals.js';
 import { lookupCacheClearAvailable } from '../actionAvailability.js';
 
-function formatLookupCacheStats(stats) {
-  return `${stats.useful.toLocaleString()} useful, ${stats.unresolved.toLocaleString()} unresolved`;
+function formatLookupCacheStats(stats, translate) {
+  return translate('lookupCache.stats', {
+    useful: stats.useful.toLocaleString(),
+    unresolved: stats.unresolved.toLocaleString()
+  });
 }
 
-export function showLookupCacheModal({ lookupCacheStats, clearLookupCache, isLookupCacheProducerActive, onLookupCacheProducerChange }) {
+export function showLookupCacheModal({ lookupCacheStats, clearLookupCache, isLookupCacheProducerActive, onLookupCacheProducerChange, translate }) {
   const wrap = document.createElement('div');
   wrap.className = 'lookup-cache-modal';
   wrap.innerHTML = `
-    <p class="hint">Only Item IDs, ItemUICategory IDs, and item search/scan queries are sent to XIVAPI. Your full imported category config is never uploaded.</p>
+    <p class="hint">${escapeHtml(translate('lookupCache.privacy'))}</p>
     <div class="cache-counts">
-      <div><strong>Item names:</strong> <span>${formatLookupCacheStats(lookupCacheStats('Item'))}</span></div>
-      <div><strong>UI category names:</strong> <span>${formatLookupCacheStats(lookupCacheStats('ItemUICategory'))}</span></div>
+      <div><strong>${escapeHtml(translate('lookupCache.itemNames.label'))}</strong> <span>${escapeHtml(formatLookupCacheStats(lookupCacheStats('Item'), translate))}</span></div>
+      <div><strong>${escapeHtml(translate('lookupCache.uiCategoryNames.label'))}</strong> <span>${escapeHtml(formatLookupCacheStats(lookupCacheStats('ItemUICategory'), translate))}</span></div>
     </div>
     <div class="row modal-action-row modal-action-row-loose">
-      <button id="clearLookupCache" class="danger">Clear lookup cache</button>
+      <button id="clearLookupCache" class="danger">${escapeHtml(translate('lookupCache.clear'))}</button>
     </div>
     <p id="lookupCacheClearUnavailable" class="hint" role="status"></p>
   `;
@@ -26,8 +29,8 @@ export function showLookupCacheModal({ lookupCacheStats, clearLookupCache, isLoo
     const stats = [lookupCacheStats('Item'), lookupCacheStats('ItemUICategory')];
     clearButton.disabled = !lookupCacheClearAvailable(stats, active);
     unavailable.textContent = active
-      ? 'Lookup names are currently being cached. Wait for the lookup or scan to finish before clearing the cache.'
-      : clearButton.disabled ? 'The lookup cache is empty.' : '';
+      ? translate('lookupCache.unavailable.active')
+      : clearButton.disabled ? translate('lookupCache.unavailable.empty') : '';
   };
   updateClearState(isLookupCacheProducerActive());
   const unsubscribe = onLookupCacheProducerChange(updateClearState);
@@ -35,10 +38,10 @@ export function showLookupCacheModal({ lookupCacheStats, clearLookupCache, isLoo
     if (clearButton.disabled) { updateClearState(isLookupCacheProducerActive()); return; }
     if (!clearLookupCache()) {
       updateClearState(true);
-      unavailable.textContent = 'The cache was not cleared because a lookup or scan is still running.';
+      unavailable.textContent = translate('lookupCache.unavailable.race');
       return;
     }
     closeModal();
   };
-  openModal('Lookup Cache', wrap, { onClose: unsubscribe });
+  openModal(translate('lookupCache.title'), wrap, { onClose: unsubscribe });
 }

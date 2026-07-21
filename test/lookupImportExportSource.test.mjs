@@ -347,15 +347,19 @@ test('all live config identity revisions guard both asynchronous export snapshot
 test('lookup cache modal displays useful and unresolved cache stats', () => {
   const app = read('src/app.js');
   const modal = read('src/ui/lookupCacheModal.js');
+  const english = read('src/locales/en.js');
 
   assert.match(app, /function lookupCacheStats\(sheet\) \{/);
   assert.match(app, /values\.filter\(isUsefulLookupName\)\.length/);
   assert.match(app, /return \{ useful, unresolved: values\.length - useful, total: values\.length \};/);
-  assert.match(app, /showLookupCacheModal\(\{ lookupCacheStats, clearLookupCache, isLookupCacheProducerActive:/);
-  assert.match(modal, /formatLookupCacheStats\(stats\)/);
-  assert.match(modal, /\$\{stats\.useful\.toLocaleString\(\)\} useful, \$\{stats\.unresolved\.toLocaleString\(\)\} unresolved/);
-  assert.match(modal, /Item names:/);
-  assert.match(modal, /UI category names:/);
+  assert.match(app, /showLookupCacheModal\(\{ lookupCacheStats, clearLookupCache, isLookupCacheProducerActive:[^}]*translate \}\)/);
+  assert.match(modal, /formatLookupCacheStats\(stats, translate\)/);
+  assert.match(modal, /translate\('lookupCache\.stats', \{\s*useful: stats\.useful\.toLocaleString\(\),\s*unresolved: stats\.unresolved\.toLocaleString\(\)\s*\}\)/);
+  assert.match(modal, /escapeHtml\(formatLookupCacheStats\(lookupCacheStats\('Item'\), translate\)\)/);
+  assert.match(modal, /escapeHtml\(formatLookupCacheStats\(lookupCacheStats\('ItemUICategory'\), translate\)\)/);
+  assert.match(english, /'lookupCache\.stats': '\{useful\} useful, \{unresolved\} unresolved'/);
+  assert.match(english, /'lookupCache\.itemNames\.label': 'Item names:'/);
+  assert.match(english, /'lookupCache\.uiCategoryNames\.label': 'UI category names:'/);
   assert.doesNotMatch(modal, /Cached Item names/);
 });
 
@@ -376,14 +380,31 @@ test('all asynchronous cache producers use finally-safe coordination', () => {
 test('lookup cache modal disables empty and busy clearing while retaining the defensive race guard', () => {
   const app = read('src/app.js');
   const modal = read('src/ui/lookupCacheModal.js');
+  const english = read('src/locales/en.js');
 
   assert.match(app, /clearLookupCacheIfIdle\(\{/);
   assert.match(app, /Lookup cache cannot be cleared while a lookup or scan is running\./);
   assert.match(modal, /clearButton\.disabled = !lookupCacheClearAvailable\(stats, active\);/);
-  assert.match(modal, /The lookup cache is empty\./);
-  assert.match(modal, /Wait for the lookup or scan to finish before clearing the cache\./);
+  assert.match(modal, /unavailable\.textContent = active[\s\S]*?translate\('lookupCache\.unavailable\.active'\)[\s\S]*?translate\('lookupCache\.unavailable\.empty'\)/);
   assert.match(modal, /if \(!clearLookupCache\(\)\)/);
-  assert.match(modal, /The cache was not cleared because a lookup or scan is still running\./);
+  assert.match(modal, /unavailable\.textContent = translate\('lookupCache\.unavailable\.race'\)/);
+  assert.match(modal, /const unsubscribe = onLookupCacheProducerChange\(updateClearState\)/);
+  assert.match(modal, /openModal\(translate\('lookupCache\.title'\), wrap, \{ onClose: unsubscribe \}\)/);
+  assert.match(english, /'lookupCache\.unavailable\.active': 'Lookup names are currently being cached\. Wait for the lookup or scan to finish before clearing the cache\.'/);
+  assert.match(english, /'lookupCache\.unavailable\.empty': 'The lookup cache is empty\.'/);
+  assert.match(english, /'lookupCache\.unavailable\.race': 'The cache was not cleared because a lookup or scan is still running\.'/);
+  assert.doesNotMatch(modal, /Lookup names are currently being cached|The lookup cache is empty|The cache was not cleared because/);
+});
+
+test('Lookup Cache routes translated template values through escaping and runtime statuses through plain-text sinks', () => {
+  const modal = read('src/ui/lookupCacheModal.js');
+  for (const key of ['lookupCache.privacy', 'lookupCache.itemNames.label', 'lookupCache.uiCategoryNames.label', 'lookupCache.clear']) {
+    assert.match(modal, new RegExp(`escapeHtml\\(translate\\('${key.replaceAll('.', '\\.')}'\\)\\)`));
+  }
+  assert.match(modal, /escapeHtml\(formatLookupCacheStats\(/);
+  assert.match(modal, /unavailable\.textContent = active/);
+  assert.match(modal, /unavailable\.textContent = translate\('lookupCache\.unavailable\.race'\)/);
+  assert.doesNotMatch(modal, /\.innerHTML\s*=\s*translate\('lookupCache\.unavailable/);
 });
 
 test('automatic lookup uses quiet success and unresolved statuses while manual lookup remains noisy', () => {
