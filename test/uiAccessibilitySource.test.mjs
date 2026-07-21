@@ -246,13 +246,13 @@ test('generated description UI wiring stays safe and source-consistent', () => {
   assert.match(editor, /if \(!isUsefulGeneratedDescription\(generated\)\) return false;[\s\S]*?return applyGeneratedDescription\(generated\);/);
 });
 
-test('static fallback empty state matches startup guidance', () => {
+test('localized empty state replaces the former hardcoded static fallback', () => {
   const index = read('index.html');
-  assert.doesNotMatch(index, /Start with Import\/Paste or Upload to load an existing AetherBags export, or add a category manually\./);
-  assert.match(index, /Load basic presets/);
-  assert.match(index, /Load advanced presets/);
-  assert.match(index, /Change appearance and other settings in Preferences\./);
-  assert.match(index, /Click \? for more information about this app\./);
+  const emptyState = read('src/ui/emptyState.js');
+  assert.match(index, /<section class="editor" id="editor"><\/section>/);
+  assert.doesNotMatch(index, /No category selected|Start with:|Load basic presets|Load advanced presets|Add a category manually|Click \?/);
+  assert.match(emptyState, /export function buildEmptyState/);
+  assert.match(emptyState, /className = 'card empty-state-card'/);
 });
 
 test('range filter live edits use scheduled list rendering without full rerender', () => {

@@ -21,11 +21,11 @@ test('basic and advanced preset constants are real gzip+Base64 values', () => {
   }
 });
 
-test('preset metadata exposes user-friendly import labels', () => {
+test('preset metadata retains import identity and payload without orphaned UI labels', () => {
   assert.deepEqual(PRESETS.map(preset => preset.id), ['basic', 'advanced']);
-  assert.deepEqual(PRESETS.map(preset => preset.label), ['Load basic presets', 'Load advanced presets']);
   assert.deepEqual(PRESETS.map(preset => preset.sourceLabel), ['Basic presets', 'Advanced presets']);
   assert.deepEqual(PRESETS.map(preset => preset.data), [BASIC_PRESET_BASE64, ADVANCED_PRESET_BASE64]);
+  assert.equal(PRESETS.some(preset => Object.hasOwn(preset, 'label')), false);
 });
 
 test('bundled presets parse through the normal import parser', async t => {

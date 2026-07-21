@@ -159,18 +159,16 @@ test('importText does not keep an unused importSummary binding', () => {
 
 test('empty state startup actions use preset callbacks without owning import parsing', () => {
   const editor = read('src/ui/categoryEditor.js');
-  assert.doesNotMatch(editor, /Start with <strong>Import\/Paste<\/strong> or <strong>Upload<\/strong>/);
-  assert.match(editor, /Start with:/);
-  assert.match(editor, /Load basic presets/);
-  assert.match(editor, /Load advanced presets/);
-  assert.doesNotMatch(editor, /Load presets based on SortaKinda/);
-  assert.match(editor, /Import bundled basic preset categories/);
-  assert.match(editor, /Import bundled advanced preset categories/);
-  assert.match(editor, /Change appearance and other settings in Preferences\./);
-  assert.match(editor, /Click \? for more information about this app\./);
+  const emptyState = read('src/ui/emptyState.js');
+  assert.match(editor, /import \{ buildEmptyState \} from '\.\/emptyState\.js';/);
+  assert.match(editor, /renderEmptyStateIfNeeded\(\{ categories: cats, root, setSelectedIndex, translate, loadBasicPresets, loadAdvancedPresets, commitActiveField \}\)/);
+  assert.match(emptyState, /translate\.rich\('emptyState\.workflow\.message'/);
+  assert.match(emptyState, /strong\(translate\('action\.importPaste'\)\)/);
+  assert.match(emptyState, /strong\(translate\('action\.upload'\)\)/);
+  assert.doesNotMatch(emptyState, /innerHTML|outerHTML|insertAdjacentHTML|DOMParser|createContextualFragment/);
   assert.match(editor, /loadBasicPresets/);
   assert.match(editor, /loadAdvancedPresets/);
-  assert.doesNotMatch(editor, /BASIC_PRESET_BASE64|ADVANCED_PRESET_BASE64|SORTAKINDA_PRESET_BASE64|parseImportedText|validateConfig|importText/);
+  assert.doesNotMatch(emptyState, /BASIC_PRESET_BASE64|ADVANCED_PRESET_BASE64|SORTAKINDA_PRESET_BASE64|parseImportedText|validateConfig|importText/);
 });
 
 test('app owns bundled preset import through normal import path', () => {
@@ -211,7 +209,7 @@ test('legacy import summary and appearance modal alias stay retired', () => {
   assert.doesNotMatch(preferences, /showAppearanceModal/);
 });
 
-test('application injects one explicit English translator into chrome and localized modal entrypoints without changing preference callbacks', () => {
+test('application injects one explicit English translator into chrome, category editor, and localized modal entrypoints without changing preference callbacks', () => {
   const app = read('src/app.js');
   const chrome = read('src/ui/applicationChrome.js');
   const preferences = read('src/ui/preferencesModal.js');
@@ -221,6 +219,7 @@ test('application injects one explicit English translator into chrome and locali
   assert.match(app, /const translate = createTranslator\('en'\);/);
   assert.equal((app.match(/createTranslator\(/g) || []).length, 1);
   assert.match(app, /applyApplicationChromeLocalization\(translate\);[\s\S]*?bindAppEvents\(\);[\s\S]*?applyEditorPreferences\(\);[\s\S]*?waitForStylesheetReady\(\)\.then\(renderAll\)/);
+  assert.match(app, /renderCategoryEditor\(\{[\s\S]*?loadBasicPresets, loadAdvancedPresets, translate,[\s\S]*?listEditorDeps:/);
   assert.match(app, /showPreferencesModal\(\{[\s\S]*?getEditorPreferences:[\s\S]*?applyEditorPreferences,[\s\S]*?setStatus,[\s\S]*?openModal,[\s\S]*?commitActiveField,[\s\S]*?translate[\s\S]*?\}\)/);
   assert.match(app, /showHelpModal\(\{ translate \}\)/);
   assert.match(app, /showLookupCacheModal\(\{ lookupCacheStats, clearLookupCache, isLookupCacheProducerActive: lookupCacheOperations\.isActive, onLookupCacheProducerChange: lookupCacheOperations\.subscribe, translate \}\)/);

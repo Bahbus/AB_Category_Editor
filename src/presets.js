@@ -4,6 +4,6 @@ export const ADVANCED_PRESET_BASE64 = 'H4sIAAAAAAAAA+2dbW8cN5LHv0pj3uwdwDNYZPFJ7
 export const SORTAKINDA_PRESET_BASE64 = BASIC_PRESET_BASE64;
 
 export const PRESETS = [
-  { id: 'basic', label: 'Load basic presets', sourceLabel: 'Basic presets', data: BASIC_PRESET_BASE64 },
-  { id: 'advanced', label: 'Load advanced presets', sourceLabel: 'Advanced presets', data: ADVANCED_PRESET_BASE64 }
+  { id: 'basic', sourceLabel: 'Basic presets', data: BASIC_PRESET_BASE64 },
+  { id: 'advanced', sourceLabel: 'Advanced presets', data: ADVANCED_PRESET_BASE64 }
 ];

@@ -1690,6 +1690,32 @@ Validation actually run:
 - no application warning or error appeared. Electron's generic development CSP warning was the only warning. The temporary viewport override was reset and the QA tab was closed;
 - complete diff inspection found no dependency, build, schema, preset, import/export, lookup, converter, ordering, localization-catalog, CSP, workflow, style, or unrelated UI change.
 
+Phase 71 then merged through PR #116 at `ff1017ad6cb9ed1701e2ff8c851d87a0b30d6db1`. PR Project verification, CodeQL JavaScript/TypeScript and Actions analyses, and the CodeQL aggregate check passed. Post-merge Project verification run `29863854786`, Pages deployment run `29863853734`, and main-branch security scan run `29863853827` passed. Fresh post-merge `npm run check` retained the 89-file / 40-file / 512-test zero-failure baseline; `git diff --check origin/main` passed and the reviewed branch tree exactly matched merged `origin/main`. Fresh deployed QA confirmed Enter selection focused the connected newly rendered Equipment entry, updated the editor heading, retained `No changes`, and kept focus in Search while `materia` filtering removed Equipment. No application warning or error appeared; Electron's generic development CSP warning was the only warning.
+
+## Phase 72
+
+Phase 72 extends the existing English localization boundary to the complete no-category guidance card from freshly fetched Phase 71 `origin/main` at `ff1017ad6cb9ed1701e2ff8c851d87a0b30d6db1`.
+
+Resolution on `agent/phase-72-empty-state-localization`:
+
+- added focused `src/ui/emptyState.js` ownership and injected the one existing translator through application orchestration and `categoryEditor.js`, without a second translator, localization import in UI, global locale state, or populated-editor refactor;
+- migrated the exact heading, `Start with:` hint, complete workflow sentence, two preset button labels/descriptions, manual-add item, Preferences guidance, and Help guidance to shared action keys plus focused `emptyState.*` keys;
+- rendered formatter text as text nodes and semantic contents through `textContent`, with exactly two UI-owned `strong` placeholders and a strong-only local semantic allowlist; a synthetic template can move Upload before Import/Paste without composition changes;
+- preserved the exact card/list/hint structure, list order, English text, button IDs/types/classes/titles/accessible names, active-field commit ordering, callbacks, focus/layout, and selection reset to `-1`; populated rendering bypasses the builder;
+- kept both preset actions on the existing application-owned ID lookup and normal `importText(...)` path, retaining `sourceLabel`, Base64 payloads, validation, replacement/dirty behavior, and all preset contents;
+- removed only the orphaned `PRESETS[*].label` property. The localized catalog now owns the two visible labels, while status-facing `sourceLabel` remains fixed English for a later status family;
+- removed the obsolete hardcoded `index.html` card so every displayed empty-state value crosses the injected translator;
+- left statuses, validation, populated list/editor text, lookup/search, converter, generated descriptions, locale selection/state, second catalogs, pluralization, schemas, preset data, import/export, lookup/cache, ordering, CSS, CSP, workflows, dependencies, build tooling, and Phase 55 unchanged.
+
+Validation actually run:
+
+- focused localization, empty-state, preset, application/data-flow, accessibility, startup, and CSP coverage passed all 94 tests;
+- `npm run check` passed: 91 JavaScript files syntax-checked, all static relative imports resolved, and all 41 test files / 519 tests passed with zero failures, skips, cancellations, or todos;
+- fresh local in-app browser QA passed exact text/list/strong semantics; exact button identity, visible/accessibility values, and titles; the normal 24-category basic and 55-category advanced preset paths; populated Weapons rendering; unchanged `No changes`; Preferences/About modal initial/return focus and background inert/ARIA restoration; and zero body/document/editor overflow in Comfortable and Compact at 1280px, 840px, and 390px;
+- the advanced preset retained its established three warnings and normalized-display-order summary. No CSP violation or unexpected application error appeared; Electron's generic development CSP warning was the only infrastructure warning;
+- the original Comfortable density and viewport were restored and the QA tab was closed;
+- CI, GitHub Pages, deployed QA, and publication were not run because implementation and publication remain separate.
+
 # Current next step
 
-Phase 71 implementation and local validation are complete and await a separate publication request. Keep Phase 55 on hold. Broader localization remains on the roadmap after this accessibility repair, beginning with bounded UI/status message-family extraction; no localization-catalog work is part of Phase 71.
+Phase 72 implementation and local validation are complete and await a separate publication request. Keep Phase 55 on hold. Remaining localization work begins with later bounded status/validation and populated editor/list families; no second locale or broader family is part of Phase 72.
