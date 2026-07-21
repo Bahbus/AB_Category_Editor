@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 70 is implemented and locally validated on `agent/phase-70-application-chrome-localization`, based on the Phase 69.1 merge at `9e8d44e617d10f9db6dbec678296b01a77413c93`; publication remains separate. The existing single application-owned translator now also localizes the persistent document/brand identity, sidebar search and category-action chrome, and topbar groups/actions through the focused UI-owned `src/ui/applicationChrome.js` boundary. Immediate matching English fallback remains in `index.html`; translated values use only `textContent`, `document.title`, and explicit plain-text attributes. Shared neutral action keys replace obsolete Help-owned action-label keys while preserving exact Help and Lookup Cache behavior. `npm run check` syntax-checked 89 JavaScript files, resolved all static relative imports, and passed all 40 test files / 511 tests with zero failures, skips, cancellations, or todos. Browser QA passed exact chrome copy/accessibility, search clear/Escape, contextual global actions, Preferences/Help focus return, Help `4/4/16/11/3` semantics, and zero body/document/topbar/sidebar overflow at the default 1506px desktop viewport, 840px, and 390px. No application warning, error, or CSP violation appeared; Electron's generic development CSP warning was the only warning. Phase 55 remains on hold.
+> **Current state:** Phase 70 merged through PR #114 at `d337e7f4d5c7f4f933a9be9c90d4f80ffe71610e` and passed post-merge review. The existing single application-owned translator now also localizes the persistent document/brand identity, sidebar search and category-action chrome, and topbar groups/actions through the focused UI-owned `src/ui/applicationChrome.js` boundary. Immediate matching English fallback remains in `index.html`; translated values use only `textContent`, `document.title`, and explicit plain-text attributes. Shared neutral action keys replace obsolete Help-owned action-label keys while preserving exact Help and Lookup Cache behavior. Phase 70 changed 13 files with 313 insertions and 39 deletions from the Phase 69.1 merge baseline. Both PR verification checks, post-merge Project verification run `29850360304`, and Pages deployment run `29850356841` passed. Fresh review `npm run check` syntax-checked 89 JavaScript files, resolved all static relative imports, and passed all 40 test files / 511 tests with zero failures, skips, cancellations, or todos; `git diff --check origin/main` passed and the reviewed worktree matched `origin/main`. Fresh deployed QA passed exact chrome copy/accessibility, search Clear/Escape, contextual disabled actions, Preferences/Help focus return, and zero horizontal overflow at 1280px, 840px, and 390px. Phase 55 remains on hold.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -620,14 +620,14 @@ Phase 67 established the English-only foundation, and Phase 68 extended the migr
 - `src/locales/en.js` is the explicit plain-text English catalog.
 - `src/localization.js` owns DOM-free locale resolution, stable keyed lookup, and named interpolation.
 - Unsupported locales deterministically use English; unknown keys and missing named parameters throw rather than rendering missing data or unresolved placeholders.
-- `src/app.js` owns one explicit fixed-English translator and injects it into the Preferences, About / Help, and Lookup Cache modal entrypoints. There is no mutable global locale or user-visible language control.
+- `src/app.js` owns one explicit fixed-English translator and injects it into the persistent application chrome plus the Preferences, About / Help, and Lookup Cache modal entrypoints. There is no mutable global locale or user-visible language control.
 - Phase 67 migrated the complete Preferences modal. Phase 68 additionally migrated the complete About / Help and Lookup Cache modal surfaces.
-- Phase 69 completed the safe reorderable rich-message prerequisite for semantically marked-up Help prose.
+- Phase 69 completed the safe reorderable rich-message prerequisite for semantically marked-up Help prose. Phase 70 migrated the persistent document/brand, sidebar, and topbar application chrome.
 - Catalogs remain frozen plain strings with no HTML. Translated template values are escaped, while modal titles and runtime statuses continue through plain-text sinks.
 
 Still deferred:
 
-- Extract static chrome, broader validation/status messages, lookup/search list-editor text, category editing, and other remaining UI text in bounded message-family phases.
+- Extract broader validation/status messages, lookup/search list-editor text, category editing, and other remaining UI text in bounded message-family phases.
 - Add a persisted locale preference and user-visible fallback behavior through the established state/orchestration boundary.
 - Add locale key-parity checks once a second locale exists.
 - Keep JSON schema keys untouched.
@@ -1058,9 +1058,9 @@ Validation actually run:
 - fresh deployed Help QA passed exact English text, four headings, four lists, sixteen list items, eleven `strong` runs, three `code` runs, Close-button focus, launcher focus return, background `aria-hidden` restoration, and zero body/document/modal horizontal overflow at the default viewport, 840px, and 390px;
 - no application warning, error, or CSP violation appeared. Electron's generic development CSP warning was the only warning. Phase 55 remains on hold.
 
-## Phase 70 local implementation
+## Phase 70 merged implementation
 
-Phase 70 is implemented on `agent/phase-70-application-chrome-localization` from freshly fetched `origin/main` at `9e8d44e617d10f9db6dbec678296b01a77413c93`. Implementation and publication remain separate.
+Phase 70 merged through PR #114 at `d337e7f4d5c7f4f933a9be9c90d4f80ffe71610e` from the Phase 69.1 merge baseline `9e8d44e617d10f9db6dbec678296b01a77413c93`.
 
 - `src/ui/applicationChrome.js` is the focused UI-owned application-chrome localization boundary. It receives the application translator, requires the existing shell targets, and writes only through `textContent`, `document.title`, and explicit `placeholder`, `aria-label`, and `title` attributes. It imports neither localization mechanics nor application orchestration and contains no HTML parser or markup sink.
 - `src/app.js` still creates exactly one fixed-English translator. Startup applies application-chrome localization once before normal event binding, preference application, and deferred rendering without changing the synchronous appearance bootstrap, stylesheet/module order, or CSP.
@@ -1076,4 +1076,20 @@ Validation actually run:
 - direct chrome tests proved exact English output, every injected-translator call, immediate matching HTML fallback, safe sinks, shared-label cleanup, and preserved element/control contracts; existing Help behavior tests retained exact text and `4/4/16/11/3` semantics;
 - local in-app browser QA passed exact visible labels and accessible names; search Clear state and Escape focus; empty versus one-category Export/Copy, Download, Sort, Renumber, and Resolve IDs availability; Preferences and About / Help opening plus launcher focus return; and zero body/document/topbar/sidebar horizontal overflow at the default 1506px desktop viewport, 840px, and 390px;
 - no application warning, error, or CSP violation appeared. Electron's generic development CSP warning was the only warning. The temporary viewport override was reset, the QA tab was closed, and no preference was changed;
-- CI, GitHub Pages, and PR publication were not run because implementation and publication remain separate.
+- Phase 70 changed 13 files with 313 insertions and 39 deletions from the Phase 69.1 merge baseline;
+- both PR verification checks passed;
+- post-merge Project verification run `29850360304` and GitHub Pages deployment run `29850356841` passed;
+- the fresh post-merge review reran `npm run check`: 89 JavaScript files passed syntax checking, all static relative imports resolved, and all 40 test files / 511 tests passed with zero failures, skips, cancellations, or todos;
+- `git diff --check origin/main` passed and the reviewed worktree had no diff from `origin/main`;
+- fresh deployed QA at `https://bahbus.github.io/AB_Category_Editor/` confirmed the expected localized persistent chrome and accessible names, search Clear and Escape behavior, Preferences and Help focus return, contextual disabled actions, and no horizontal overflow at 1280px, 840px, or 390px.
+
+## Phase 70.1 current implementation
+
+Phase 70.1 resynchronizes the three durable project documents with the merged and post-merge-validated Phase 70 state. It changes documentation only: no runtime source, tests, styles, workflows, package metadata, presets, localization catalogs, or application behavior. Phase 55 remains on hold, and no Phase 71 scope is introduced.
+
+Validation actually run:
+
+- `npm run check` passed: 89 JavaScript files passed syntax checking, all static relative imports resolved, and all 40 test files / 511 tests passed with zero failures, skips, cancellations, or todos;
+- `git diff --check origin/main` passed with no output;
+- `git diff --name-only origin/main` contained exactly `docs/AI_PROJECT_CONTEXT.md`, `docs/ARCHITECTURE.md`, and `docs/REVIEW_HISTORY.md`;
+- browser QA was not rerun because Phase 70.1 changes documentation only. The recorded deployed QA is Phase 70 post-merge review evidence, not Phase 70.1 implementation evidence.
