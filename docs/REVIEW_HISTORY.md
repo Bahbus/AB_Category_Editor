@@ -565,19 +565,16 @@ The following behaviors were repeatedly established and should be treated as pro
 
 ## Localization
 
-Phase 67 established the DOM-free English localization mechanics and migrated the complete Preferences modal. Phase 68 additionally migrated the complete About / Help and Lookup Cache modal surfaces. One application-owned fixed-English translator is injected into all three modal entrypoints; catalogs remain frozen plain strings, translated template values are escaped, and runtime statuses use plain-text sinks.
+Phase 67 established the DOM-free English localization mechanics and migrated the complete Preferences modal. Phase 68 additionally migrated the complete About / Help and Lookup Cache modal surfaces. Phase 69 completed the safe reorderable rich-message prerequisite for semantically marked-up Help prose. One application-owned fixed-English translator is injected into all three modal entrypoints; catalogs remain frozen plain strings, translated template values are escaped, and runtime statuses use plain-text sinks.
 
 No locale preference, second locale, pluralization layer, static-chrome migration, broad validation/status extraction, or generated-description localization exists yet.
 
 Recommended future sequence:
 
-1. Replace fixed-order Help sentence fragments with a safe reorderable rich-message mechanism before adding a second locale or migrating more semantically rich prose.
-2. Extract remaining static chrome and broader UI/status families in explicitly scoped phases.
-3. Add language preference and fallback.
-4. Add locale key-parity tests with the second locale.
-5. Treat generated descriptions separately with language-aware templates.
-
-The rich-message mechanism should use complete plain-text templates with named semantic placeholders. Catalogs must contain no HTML, localization mechanics must remain DOM-free, and UI code should construct text nodes plus allowlisted semantic elements without `innerHTML`, raw HTML parsing, or a sanitizer dependency. Exact current English copy and semantics must remain unchanged.
+1. Extract remaining static chrome and broader UI/status families in explicitly scoped, bounded message-family phases.
+2. Add persisted language preference and fallback UI through application state/orchestration.
+3. Add locale key-parity tests with the second locale.
+4. Treat generated descriptions separately with language-aware templates.
 
 ## Category editor modularization
 
@@ -1587,7 +1584,7 @@ Validation actually run:
 
 ## Phase 69
 
-Phase 69 adds safe reorderable rich messages from freshly fetched `origin/main` at `03296f6adea427182a377e33da887d934c291338` on `agent/phase-69-reorderable-rich-messages`.
+Phase 69 added safe reorderable rich messages and merged through PR #112 at `831c6d7271cd146fda9a306904c7de9372340448`.
 
 Resolution:
 
@@ -1607,8 +1604,23 @@ Validation actually run:
 - direct behavior tests proved exact rendered English text, `4/4/16/11/3` semantic counts, text-node rendering, `textContent` semantic contents, strong/code allowlist rejection, and synthetic reordered-placeholder rendering without UI logic changes;
 - local in-app browser QA passed exact English text, semantic counts, focus containment/return, background inert/ARIA restoration, and zero body/document/modal horizontal overflow at the default 1892px desktop viewport, 840px, and 390px;
 - no CSP violation or unexpected application warning/error appeared. Electron's generic development CSP warning was the only warning, and the temporary viewport override was restored;
-- CI, GitHub Pages, commit, and publication were not run because implementation and publication remain separate.
+- both PR verification checks succeeded;
+- post-merge Project verification run `29844811387` and Pages deployment run `29844808768` succeeded;
+- the post-merge review reran `npm run check`: 87 JavaScript files passed syntax checking, all static relative imports resolved, and all 39 test files / 506 tests passed with zero failures, skips, cancellations, or todos;
+- fresh deployed Help QA passed exact English text, four headings, four lists, sixteen list items, eleven `strong` runs, three `code` runs, Close-button focus, launcher focus return, background `aria-hidden` restoration, and zero body/document/modal horizontal overflow at the default viewport, 840px, and 390px;
+- no application warning, error, or CSP violation appeared. Electron's generic development CSP warning was the only warning.
+
+## Phase 69.1
+
+Phase 69.1 resynchronizes the three durable project documents with the merged and post-merge-validated Phase 69 state. It changes documentation only: no runtime source, tests, styles, workflows, package metadata, presets, or application behavior.
+
+Validation actually run:
+
+- `npm run check` passed: 87 JavaScript files passed syntax checking, all static relative imports resolved, and all 39 test files / 506 tests passed with zero failures, skips, cancellations, or todos;
+- `git diff --check origin/main` passed with no output;
+- `git diff --name-only origin/main` contained exactly `docs/AI_PROJECT_CONTEXT.md`, `docs/ARCHITECTURE.md`, and `docs/REVIEW_HISTORY.md`;
+- browser QA was not rerun because Phase 69.1 changes documentation only. The recorded fresh deployed Help QA is Phase 69 post-merge review evidence, not Phase 69.1 implementation evidence.
 
 # Current next step
 
-Phase 69 is implemented and locally validated. Review, commit, or publication remains a separate request. Phase 55 remains on hold.
+Phase 69 is merged and post-merge validated. The remaining localization sequence begins with bounded static-chrome and broader UI/status message-family extraction, followed by persisted locale preference/fallback UI, second-catalog key parity, and generated-description localization as a separate concern. Phase 55 remains on hold.

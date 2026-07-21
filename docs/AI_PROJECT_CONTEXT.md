@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 69 is implemented and locally validated on `agent/phase-69-reorderable-rich-messages` from freshly fetched `origin/main` at `03296f6adea427182a377e33da887d934c291338`. The existing callable translator now exposes one DOM-free rich-message operation that returns ordered text/opaque-placeholder parts while leaving ordinary formatting unchanged. Twelve Help sentences use complete English templates with named semantic placeholders; Help renders formatter text as text nodes and only UI-allowlisted `strong`/`code` nodes through `textContent`, with no translated `innerHTML`, HTML parsing, or sanitizer. Exact English text and the established four headings, four lists, sixteen items, eleven `strong` runs, and three `code` runs are unchanged. `npm run check` syntax-checked 87 JavaScript files, resolved all imports, and passed all 39 test files / 506 tests. Local browser QA passed exact copy, semantic counts, focus containment/return, background inert/ARIA restoration, CSP behavior, and zero body/document/modal overflow at the default 1892px desktop viewport, 840px, and 390px. Publication remains separate. Phase 55 remains on hold.
+> **Current state:** Phase 69 merged through PR #112 at `831c6d7271cd146fda9a306904c7de9372340448`. The existing callable translator now exposes one DOM-free rich-message operation that returns ordered text/opaque-placeholder parts while leaving ordinary formatting unchanged. Twelve Help sentences use complete English templates with named semantic placeholders; Help renders formatter text as text nodes and only UI-allowlisted `strong`/`code` nodes through `textContent`, with no translated `innerHTML`, HTML parsing, or sanitizer. Both PR verification checks succeeded, as did post-merge Project verification run `29844811387` and Pages deployment run `29844808768`. The post-merge review reran `npm run check`: 87 JavaScript files passed syntax checking, all static relative imports resolved, and all 39 test files / 506 tests passed with zero failures, skips, cancellations, or todos. Fresh deployed Help QA passed exact English text, four headings, four lists, sixteen list items, eleven `strong` runs, three `code` runs, Close-button focus, launcher focus return, background `aria-hidden` restoration, and zero body/document/modal horizontal overflow at the default viewport, 840px, and 390px. No application warning, error, or CSP violation appeared; Electron's generic development CSP warning was the only warning. Phase 55 remains on hold.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -622,12 +622,12 @@ Phase 67 established the English-only foundation, and Phase 68 extended the migr
 - Unsupported locales deterministically use English; unknown keys and missing named parameters throw rather than rendering missing data or unresolved placeholders.
 - `src/app.js` owns one explicit fixed-English translator and injects it into the Preferences, About / Help, and Lookup Cache modal entrypoints. There is no mutable global locale or user-visible language control.
 - Phase 67 migrated the complete Preferences modal. Phase 68 additionally migrated the complete About / Help and Lookup Cache modal surfaces.
+- Phase 69 completed the safe reorderable rich-message prerequisite for semantically marked-up Help prose.
 - Catalogs remain frozen plain strings with no HTML. Translated template values are escaped, while modal titles and runtime statuses continue through plain-text sinks.
 
 Still deferred:
 
-- Introduce a safe reorderable rich-message mechanism before adding a second locale or migrating more semantically rich prose.
-- Extract static chrome, broader validation/status messages, lookup/search list-editor text, category editing, and other remaining UI text.
+- Extract static chrome, broader validation/status messages, lookup/search list-editor text, category editing, and other remaining UI text in bounded message-family phases.
 - Add a persisted locale preference and user-visible fallback behavior through the established state/orchestration boundary.
 - Add locale key-parity checks once a second locale exists.
 - Keep JSON schema keys untouched.
@@ -1035,7 +1035,9 @@ Confirmed future-localization limitation:
 - catalogs must still contain no HTML and localization mechanics must remain DOM-free. UI code should validate placeholder parts and construct text nodes plus allowlisted semantic elements without `innerHTML`, raw HTML parsing, or a sanitizer dependency;
 - exact current English copy and semantics must remain unchanged. Designing or implementing this mechanism is outside Phase 68.1 and is the leading candidate for the next numbered phase after the documentation correction is merged and validated.
 
-## Phase 69 local implementation
+## Phase 69 merged implementation
+
+Phase 69 merged through PR #112 at `831c6d7271cd146fda9a306904c7de9372340448`.
 
 - `src/localization.js` retains the callable `createTranslator(locale)` API and unchanged `formatMessage(...)` behavior. `formatRichMessage(...)` parses the same named-placeholder syntax into ordered text and placeholder parts without DOM access or placeholder coercion, preserves opaque values by identity, supports repeated and reordered placeholders, and throws the existing explicit missing-parameter error. The returned translator adds only `translate.rich(...)`, with shared unknown-key failure and unsupported-locale fallback behavior.
 - `src/locales/en.js` replaces the fixed Help descriptions, before/after pieces, translated conjunction, and duplicate Help-only preference labels with twelve complete plain-text templates. Genuine standalone action labels remain reusable; `.txt` and `localStorage` are UI-owned semantic token text. The frozen catalog remains string-only and contains no HTML.
@@ -1050,4 +1052,8 @@ Validation actually run:
 - direct Help tests prove exact English list text, the established `4/4/16/11/3` semantic counts, allowlist rejection, text-node rendering, `textContent` semantic values, and a synthetic template that moves `.txt` before Download without changing UI composition logic;
 - local in-app browser QA passed exact English text, four headings/lists, sixteen items, eleven `strong` runs, three `code` runs, focus containment and return to About / Help, background inert/ARIA restoration, and zero body/document/modal horizontal overflow at the default 1892px desktop viewport, 840px, and 390px;
 - no CSP violation or unexpected application warning/error appeared. Electron's generic development CSP warning was the only warning, and the temporary viewport override was restored;
-- CI, GitHub Pages, commit, and publication were not run because implementation and publication remain separate.
+- both PR verification checks succeeded;
+- post-merge Project verification run `29844811387` and Pages deployment run `29844808768` succeeded;
+- the post-merge review reran `npm run check`: 87 JavaScript files passed syntax checking, all static relative imports resolved, and all 39 test files / 506 tests passed with zero failures, skips, cancellations, or todos;
+- fresh deployed Help QA passed exact English text, four headings, four lists, sixteen list items, eleven `strong` runs, three `code` runs, Close-button focus, launcher focus return, background `aria-hidden` restoration, and zero body/document/modal horizontal overflow at the default viewport, 840px, and 390px;
+- no application warning, error, or CSP violation appeared. Electron's generic development CSP warning was the only warning. Phase 55 remains on hold.
