@@ -1,0 +1,51 @@
+name: Review finding or roadmap candidate
+description: Record a verified defect, maintainability concern, or optional improvement discovered during review.
+title: "Review: "
+labels:
+  - roadmap
+body:
+  - type: dropdown
+    id: classification
+    attributes:
+      label: Classification
+      options:
+        - Confirmed bug or regression
+        - Data-loss or compatibility risk
+        - Accessibility or interaction defect
+        - Security or reliability concern
+        - Maintainability or test debt
+        - Optional UI or documentation improvement
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Separate confirmed behavior from inference and include the affected code, data path, or browser state.
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact and constraints
+      description: Explain severity, affected users/data, behavioral contracts, dependencies, and whether the finding should be Next, Soon, Later, or On Hold.
+    validations:
+      required: true
+
+  - type: textarea
+    id: candidate
+    attributes:
+      label: Candidate phase boundary
+      description: Describe the smallest coherent task, or explain why the item should remain deferred instead of receiving a phase number.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: project_sync
+    attributes:
+      label: Project synchronization
+      options:
+        - label: Add this issue to the AB Category Editor Roadmap and set Priority and Area.
+          required: true

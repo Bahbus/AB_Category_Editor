@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 72 merged through PR #117, “Phase 72: Localize empty-state guidance,” on 2026-07-21 at merge commit `f978b2c0a525615da11c8908da188c7cc84dcff2`. Phase 72 PR checks passed; post-merge Project verification run `29874069440`, Pages deployment run `29874068838`, and main-branch security scan run `29874069280` passed. Live `main` is `5167d1297d02192689ccdc22eba1d0f78dd00447`, an immediately following one-line test-only change to `test/staticTrustBoundaries.test.mjs` titled “Potential fix for code scanning alert no. 1: Bad HTML filtering regexp.” It extends the closing-script regexp through the closing-tag boundary and fixes CodeQL alert #1 (`js/bad-tag-filter`) without changing runtime code or the runtime security boundary. On that live tree, Project verification run `29874154312`, Pages deployment run `29874153760`, and main-branch security scan run `29874154077` passed. Fresh review against an archive of exact live `origin/main` passed `npm run check`: 91 JavaScript files, all static relative imports, and 41 test files / 519 tests with zero failures, skips, cancellations, or todos. Fresh deployed QA confirmed exact empty-state text/list/`strong` semantics and accessibility, the basic preset action reaching the populated Materias editor with `No changes`, and no horizontal overflow at 1280px, 840px, or 390px. Electron's generic development CSP warning was the only console warning; the temporary viewport was reset and the QA tab was closed. Phase 55 remains on hold. After this documentation-only correction merges, perform the standard full review before selecting the next bounded localization or UI phase.
+> **Current state:** Phase 72.1 merged through PR #118 at `d140e21f2726eb892b52f56f1f36efde44d4f0ea`. Phase 73 is establishing the public [AB Category Editor Roadmap](https://github.com/users/Bahbus/projects/2) as the operational planning authority alongside committed code and these three durable documents. Repository issue #119 tracks the active Phase 73 work; Phase 55 is represented by on-hold issue #125 rather than relying only on local or conversational memory.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -52,12 +52,15 @@ The app intentionally has:
 
 The project uses this recurring workflow:
 
-1. Write a numbered phase task.
-2. Implement the phase.
-3. Validate implementation against the written acceptance criteria.
-4. If a follow-up is required, write `X.1`.
-5. If no follow-up is required, perform a full deep-dive review of the repository.
-6. Check:
+1. Begin each review by fetching GitHub `main`, reading the three durable documents, and reconciling the Roadmap's open issues, `Status`, `Priority`, `Area`, and `Phase` values with current code and verified findings.
+2. During review, update existing Roadmap issues and create repository issues for newly verified bugs, risks, debt, or optional candidates. Do not use Project-only draft cards for durable work.
+3. Select the next coherent issue from the updated Roadmap, assign its numbered phase, move it to `In Progress`, and write the phase task in its own planning thread.
+4. Implement the phase and validate it against the written acceptance criteria.
+5. Update all three durable documents and the linked Roadmap issue with actual scope, evidence, and results. Add newly discovered deferred work as separate issues rather than silently widening the active phase.
+6. If a follow-up is required, create `X.1`, link it to the prior issue/PR, and keep the Project current.
+7. Publish pull requests as ready for review, not drafts. Use a closing keyword for the phase issue so the Project can add and complete the linked PR/issue through built-in workflows.
+8. If no follow-up is required, perform a full deep-dive review of the repository and repeat the Project reconciliation before choosing the next phase.
+9. Check:
    - bugs and regressions,
    - data loss,
    - import/export compatibility,
@@ -71,9 +74,9 @@ The project uses this recurring workflow:
    - brittle source checks,
    - small UX inconsistencies,
    - maintainability risks.
-7. Do not call something a confirmed bug until surrounding code and tests support that conclusion.
-8. Never claim CI or tests ran unless they were actually executed.
-9. Prefer `npm run check` as the standard verification command.
+10. Do not call something a confirmed bug until surrounding code and tests support that conclusion.
+11. Never claim CI or tests ran unless they were actually executed.
+12. Prefer `npm run check` as the standard verification command.
 
 ---
 
@@ -633,16 +636,41 @@ Still deferred:
 - Keep JSON schema keys untouched.
 - Treat generated descriptions separately because they need language-aware templates.
 
+### GitHub Project governance
+
+The public [AB Category Editor Roadmap](https://github.com/users/Bahbus/projects/2) is linked to this repository and tracks active, deferred, on-hold, and completed planning work through repository issues and linked pull requests.
+
+Project fields are intentionally small:
+
+- built-in `Status`: `Todo`, `In Progress`, `Done`;
+- `Priority`: `Next`, `Soon`, `Later`, `On Hold`;
+- `Area`: `Localization`, `UI/UX`, `Reliability`, `Documentation`, `Presets/Data`, `Infrastructure`;
+- free-text `Phase` for assigned numbered phases.
+
+Enabled built-in workflows cover item-added defaults, closed items, merged pull requests, linked pull requests, sub-issues, and issue closing. The repository deliberately does not add an Actions workflow requiring a long-lived personal token: the normal repository `GITHUB_TOKEN` cannot write a user-owned Project, while closing-keyword PR links and GitHub's built-in Project workflows cover the required lifecycle without another secret.
+
+Current migrated issues:
+
+- #119 — active Phase 73 Project governance;
+- #122, #121, #120, and #126 — the ordered remaining localization stages;
+- #125 — Phase 55 community-preset stewardship, `On Hold`;
+- #123 and #124 — narrow empty-sidebar polish and broader pill/lookup design work;
+- #127 — possible lightweight real-browser regression harness;
+- #128 — eventual Wiki migration and README streamlining.
+
+Internal issue forms require review evidence, a bounded phase, preserved contracts, verification, durable-document updates, and Project synchronization. A separate triage form accepts public bugs, compatibility/data-loss concerns, accessibility problems, UI requests, features, documentation reports, and questions without requiring phase knowledge; it asks for reproducible workflow, environment, optional AetherBags version, sanitized evidence, and a privacy/duplicate check. The pull-request template requires a closing issue link, actual verification, all three durable-document updates, Project synchronization, and ready-for-review publication.
+
 ---
 
 ## 7. Working-environment guidance
 
 Preferred split:
 
-- **Planning/goal thread:** long-lived strategic thread for roadmap, phase design, priorities, and architectural decisions.
-- **Repository context files:** durable project memory.
+- **GitHub Project and repository issues:** operational backlog, priority, status, phase selection, deferred work, and PR-linked completion.
+- **Planning/goal thread:** strategic discussion, deep review, task writing, and architectural decisions; newly written tasks still belong in their own threads.
+- **Repository context files:** behavioral contracts, architecture, phase history, and verified results that must remain versioned with code.
 - **Work/local environment:** local file inspection, commands, tests, browser/runtime testing, and repository edits.
-- **GitHub:** source of truth for committed code.
+- **GitHub committed code:** source of truth for implementation.
 
 A normal web URL to the planning thread is safer than relying on fragile internal task/thread linking.
 
@@ -1139,4 +1167,12 @@ Validation actually run:
 - Phase 72 merged through PR #117, “Phase 72: Localize empty-state guidance,” on 2026-07-21 at `f978b2c0a525615da11c8908da188c7cc84dcff2`. Phase 72 PR checks passed; post-merge Project verification `29874069440`, Pages `29874068838`, and main security scan `29874069280` passed.
 - Live `main` then advanced to `5167d1297d02192689ccdc22eba1d0f78dd00447` through the one-line test-only `test/staticTrustBoundaries.test.mjs` change “Potential fix for code scanning alert no. 1: Bad HTML filtering regexp.” The closing-script regexp now matches through the closing-tag boundary, resolving CodeQL alert #1 (`js/bad-tag-filter`) without changing runtime code or the runtime security boundary. Live-main Project verification `29874154312`, Pages `29874153760`, and main security scan `29874154077` passed.
 - Fresh review against an archive of exact live `origin/main` passed `npm run check` with 91 JavaScript files, all static relative imports, and 41 test files / 519 tests with zero failures, skips, cancellations, or todos. Fresh deployed QA confirmed exact empty-state text/list/`strong` semantics and accessibility, the basic preset action reaching the populated Materias editor with `No changes`, and zero horizontal overflow at 1280px, 840px, and 390px. Electron's generic development CSP warning was the only console warning; the viewport was reset and the QA tab was closed.
-- Phase 55 remains on hold. After the Phase 72.1 documentation correction merges, return to the standard full review before selecting the next bounded localization or UI phase.
+- Phase 72.1 merged through PR #118 at `d140e21f2726eb892b52f56f1f36efde44d4f0ea`. Complete and publish Phase 73 from issue #119, then run the standard full review with Roadmap reconciliation. Keep issue #125 / Phase 55 on hold. The updated Project—not conversational memory alone—must determine which `Soon` item becomes the next numbered coding phase.
+
+## Phase 73 current implementation
+
+- Public Project #2, issue #119, labels, ten migrated repository issues, custom fields, deliberate priorities, and six enabled built-in workflows were verified through GitHub's CLI/GraphQL interfaces.
+- Structured phase/review forms, a public-friendly triage form, and the PR template make evidence, privacy, documentation, and Project synchronization explicit; source coverage prevents those contracts and canonical links from silently disappearing.
+- `npm run check` passed: 92 JavaScript files syntax-checked, all static relative imports resolved, and all 42 test files / 524 tests passed with zero failures, skips, cancellations, or todos.
+- All four issue-template YAML files plus the existing verification workflow parsed successfully. After adding the new files to intent-to-add visibility, final `git diff --check origin/main` passed with no output and complete diff inspection found no unrelated change.
+- Browser QA is not applicable to repository governance files. No runtime source, application behavior, schema, preset, style, CSP, dependency, build, import/export, lookup, dirty-state, focus, or responsive contract changed.

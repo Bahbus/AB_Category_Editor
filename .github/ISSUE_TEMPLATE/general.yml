@@ -1,0 +1,102 @@
+name: Bug, request, or question
+description: Report a problem, suggest an improvement, or ask a project question.
+title: ""
+labels:
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve AB Category Editor. Please do not post a full category export if it contains information you do not want public. A small, sanitized example is usually more useful.
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of issue is this?
+      options:
+        - Bug or regression
+        - Import, export, validation, or data-loss concern
+        - Accessibility or keyboard/focus problem
+        - UI or responsive-layout improvement
+        - Feature request
+        - Documentation problem
+        - Question or support request
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Briefly explain the problem, request, or question and why it matters.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce or proposed workflow
+      description: For bugs, give the smallest reliable sequence. For requests, describe the workflow you want to improve.
+      placeholder: |
+        1. Open the published editor
+        2. Import or create...
+        3. Change...
+        4. Observe...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should happen instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: What happened? Include exact visible messages when relevant.
+    validations:
+      required: true
+
+  - type: input
+    id: app_version
+    attributes:
+      label: App source
+      description: State whether you used the published GitHub Pages app or a local checkout/commit.
+      placeholder: Published app, or local commit SHA
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and operating system
+      placeholder: Firefox 140 on Windows 11
+    validations:
+      required: true
+
+  - type: input
+    id: aetherbags_version
+    attributes:
+      label: AetherBags version
+      description: Include this when the report concerns import/export behavior or plugin compatibility.
+      placeholder: Version or unknown
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Additional evidence
+      description: Add sanitized minimal JSON, screenshots, console messages, or links. Remove private or unrelated configuration data first.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and the Roadmap for the same report or request.
+          required: true
+        - label: I removed secrets, private data, and unrelated configuration from anything attached here.
+          required: true
