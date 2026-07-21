@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 68 is implemented locally on `agent/phase-68-secondary-modal-localization` from freshly fetched merged Phase 67 `origin/main` at `d66e7c66ce189726ce3ee0c7c03e4697634dcdeb`. The frozen plain-text English catalog now covers the complete Preferences, About / Help, and Lookup Cache modal surfaces through the same dependency-free, DOM-free localization boundary and one application-owned fixed-English translator. Help retains its exact headings, lists, `strong`, and `code` semantics with every translated template value escaped. Lookup Cache retains exact privacy copy, labels, locale-formatted useful/unresolved counts through named interpolation, clear availability, plain-text unavailable/refusal statuses, producer subscription, late race guard, close cleanup, non-dirty behavior, and focus restoration. Phase 66 startup/CSP boundaries and Phase 67 Preferences behavior remain unchanged. Local `npm run check` passed with 86 JavaScript files, 38 test files, and 501 tests. In-app browser QA covered exact English copy, Help semantics, cache counts, modal focus containment/return, background ARIA restoration, and Comfortable/Compact layouts at 1280px, 840px, and 390px without body/document/modal overflow. Browser cache clearing and manufactured empty/active states were not exercised because the profile contained 381 cached names; focused tests remain authoritative for those paths. CI and GitHub Pages were not run because implementation and publication remain separate.
+> **Current state:** Phase 68 merged through PR #110 at `d53fd23f161480e7fdbd139dfdd0f1e9b2583772`. The frozen plain-text English catalog covers the complete Preferences, About / Help, and Lookup Cache modal surfaces through the same dependency-free, DOM-free localization boundary and one application-owned fixed-English translator. Translated template values are escaped and runtime statuses use plain-text sinks. PR checks, post-merge Project verification, and GitHub Pages deployment passed; the post-merge `npm run check` rerun syntax-checked 86 JavaScript files and passed all 38 test files / 501 tests with zero failures, skips, cancellations, or todos. Fresh deployed QA passed exact Help and Lookup Cache English copy, Help semantic structure, nonempty locale-formatted cache counts, focus containment/return, background ARIA restoration, CSP behavior, and 840px/390px overflow checks. Cache clearing was deliberately not exercised against the profile's existing data. Phase 68.1 is a documentation-only resynchronization on `agent/phase-68-1-localization-doc-sync`; it records fixed-order Help sentence fragments as a future localization design limitation, not a current English bug or Phase 68 regression. Phase 55 remains on hold.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -615,17 +615,19 @@ Source checks are useful for DOM-heavy static code, but regex-based checks can b
 
 ### Localization
 
-Phase 67 establishes the English-only foundation:
+Phase 67 established the English-only foundation, and Phase 68 extended the migrated surface:
 
 - `src/locales/en.js` is the explicit plain-text English catalog.
 - `src/localization.js` owns DOM-free locale resolution, stable keyed lookup, and named interpolation.
 - Unsupported locales deterministically use English; unknown keys and missing named parameters throw rather than rendering missing data or unresolved placeholders.
-- `src/app.js` owns an explicit fixed-English translator and injects it into the Preferences modal. There is no mutable global locale or user-visible language control.
-- The complete Preferences modal is the only migrated proof slice. Translation results entering its existing HTML-template sinks remain escaped; modal-title and status APIs continue to receive plain text.
+- `src/app.js` owns one explicit fixed-English translator and injects it into the Preferences, About / Help, and Lookup Cache modal entrypoints. There is no mutable global locale or user-visible language control.
+- Phase 67 migrated the complete Preferences modal. Phase 68 additionally migrated the complete About / Help and Lookup Cache modal surfaces.
+- Catalogs remain frozen plain strings with no HTML. Translated template values are escaped, while modal titles and runtime statuses continue through plain-text sinks.
 
-Deferred sequence:
+Still deferred:
 
-- Extract broader UI chrome, validation/status messages, help, and other modal text.
+- Introduce a safe reorderable rich-message mechanism before adding a second locale or migrating more semantically rich prose.
+- Extract static chrome, broader validation/status messages, lookup/search list-editor text, category editing, and other remaining UI text.
 - Add a persisted locale preference and user-visible fallback behavior through the established state/orchestration boundary.
 - Add locale key-parity checks once a second locale exists.
 - Keep JSON schema keys untouched.
@@ -987,13 +989,13 @@ Validation actually run:
 - browser QA also passed a real XIVAPI Item Search, same-origin module-worker scan construction/progress/cancellation with a retained completed match, bundled-preset and normal JSON import, Export/Copy with successful clipboard copy, Blob Download completion status, modal initial/return focus plus background inert/ARIA restoration, and live category/color/range/progress inline styles. No CSP violation was recorded. Electron's generic development CSP warning and the deliberately triggered import-review warning were the only console warnings;
 - CI and GitHub Pages were not run because implementation and publication remain separate. Phase 55 remains on hold. Localization remains deferred with the existing English-foundation, message extraction, locale preference/fallback, key-parity, and separate generated-description stages.
 
-## Phase 67 current implementation
+## Phase 67 implementation record
 
-- `src/locales/en.js` owns a frozen, flat, plain-text English catalog. It currently contains only the complete Preferences modal surface: title, introduction, tablist accessibility label, tab/section text, Theme/Density labels and every option/hint, both behavior checkbox labels/hints, and the saved-status message.
+- Phase 67 established `src/locales/en.js` as a frozen, flat, plain-text English catalog and migrated the complete Preferences modal surface: title, introduction, tablist accessibility label, tab/section text, Theme/Density labels and every option/hint, both behavior checkbox labels/hints, and the saved-status message.
 - `src/localization.js` owns the DOM-free catalog registry, default English locale, unsupported-locale resolution, stable keyed lookup, and named-parameter interpolation. Unknown keys and missing named parameters throw explicit errors; catalogs never supply HTML fragments.
 - `src/app.js` constructs one fixed-English translator and injects it into `showPreferencesModal(...)`. No mutable global locale, locale storage, language preference, selector, or startup-bootstrap dependency was added.
 - `src/ui/preferencesModal.js` retains every ID, option value, control order, tab/panel relationship, keyboard handler, callback, and status severity. Every translation used inside `innerHTML` or an attribute passes through `escapeHtml(...)`; modal title and status remain plain-text sinks.
-- Static `index.html` chrome, empty-state Preferences guidance, Help, validation/export messages, lookup/search text, category-editor strings, generated descriptions, schema/presets, import/export, service worker, analytics, dependencies, and unrelated modules remain unchanged.
+- At the Phase 67 boundary, static `index.html` chrome, empty-state Preferences guidance, Help, validation/export messages, lookup/search text, category-editor strings, generated descriptions, schema/presets, import/export, service worker, analytics, dependencies, and unrelated modules remained unchanged. Phase 68 subsequently migrated the complete About / Help and Lookup Cache modal surfaces.
 
 Validation actually run:
 
@@ -1005,7 +1007,9 @@ Validation actually run:
 - no CSP violation or unexpected application warning/error appeared. Electron's generic development CSP warning was the only warning. Original local preference values and the browser viewport were restored after QA;
 - CI and GitHub Pages were not run because implementation and publication remain separate. Phase 55 remains on hold. Broader extraction, locale preference/fallback UI, locale parity, and localized generated descriptions remain deferred.
 
-## Phase 68 current implementation
+## Phase 68 merged implementation
+
+Phase 68 merged through PR #110 at `d53fd23f161480e7fdbd139dfdd0f1e9b2583772`.
 
 - `src/locales/en.js` now also owns the complete About / Help and Lookup Cache modal English surfaces. Help keys are split at semantic emphasis and code boundaries so catalogs remain plain text; Lookup Cache statistics use the existing named interpolation mechanism with already locale-formatted count parameters.
 - `src/app.js` injects its existing single fixed-English translator into `showHelpModal(...)` and `showLookupCacheModal(...)`. Neither modal imports localization mechanics or application orchestration, and no mutable/global locale state, persistence, selector, second catalog, or pluralization layer was added.
@@ -1013,12 +1017,20 @@ Validation actually run:
 - `src/ui/lookupCacheModal.js` retains `toLocaleString()` for useful/unresolved counts, passes those strings through the named `lookupCache.stats` template, escapes every translated HTML-template value, and keeps active/empty/race status updates on `textContent`. Availability, producer subscription, defensive re-checks, successful clear/close, `onClose` unsubscribe, category/cache behavior, dirty state, and focus behavior are unchanged.
 - Static `index.html` launcher text, application-owned cache-clear success/refusal status, broader lookup/search, import/export, validation, category-editor, generated-description, schema, preset, startup, CSP, workflow, dependency, and unrelated UI surfaces remain unchanged. Phase 55 remains on hold.
 
-Validation actually run:
+Implementation and post-merge validation actually run:
 
 - focused localization, application/data-flow, Help/accessibility, Lookup Cache/import/export, action-availability, cache-operation, and UI-summary coverage passed all 127 tests;
 - `npm run check` passed: 86 JavaScript files syntax-checked, all static relative imports resolved, and all 38 test files / 501 tests passed;
 - `git diff --check origin/main` passed with no output before the durable-document update and was rerun on the final diff;
-- in-app browser QA verified exact Help and Lookup Cache English copy, the four Help headings/lists plus all emphasis/code semantics, `304 useful, 0 unresolved` and `77 useful, 0 unresolved` cache text, enabled nonempty clearing, modal focus containment/return, and background `aria-hidden` restoration;
-- Comfortable and Compact each retained equal body/document/modal client and scroll widths at 1280px, 840px, and 390px. No CSP violation or unexpected application warning/error appeared; Electron's generic development CSP warning was the only warning. The original Compact preference and viewport were restored;
-- the browser profile contained 381 useful cached names, so destructive clearing and manufactured empty/active producer states were not exercised. Direct availability, race-refusal, successful-clear, producer, cleanup, and source coverage remain authoritative for those paths;
-- CI and GitHub Pages were not run because implementation and publication remain separate. Phase 55 remains on hold. Static chrome and broader validation/status extraction, locale preference/fallback UI, locale parity, and localized generated descriptions remain later phases.
+- PR checks, post-merge Project verification, and GitHub Pages deployment all passed;
+- the post-merge review reran `npm run check`: 86 JavaScript files were syntax-checked, all static relative imports resolved, and all 38 test files / 501 tests passed with zero failures, skips, cancellations, or todos;
+- fresh deployed QA verified exact Help and Lookup Cache English copy, Help semantic structure, nonempty locale-formatted cache counts, modal focus containment/return, background ARIA restoration, CSP behavior, and 840px/390px overflow behavior;
+- cache clearing was deliberately not exercised against the browser profile's existing data. Direct availability, race-refusal, successful-clear, producer, cleanup, and source coverage remain authoritative for those paths;
+- Phase 55 remains on hold. No locale preference, second locale, pluralization layer, static-chrome migration, broad validation/status extraction, or generated-description localization exists yet.
+
+Confirmed future-localization limitation:
+
+- several Help sentences currently assemble fixed-order catalog fragments around UI-owned `strong` and `code` nodes. This preserves exact English copy and semantics and is not a current English runtime bug or Phase 68 regression, but it constrains translator-controlled word order, grammar, and inflection;
+- before adding a real second locale or migrating more semantically rich prose, introduce a reorderable rich-message mechanism based on complete plain-text templates with named semantic placeholders;
+- catalogs must still contain no HTML and localization mechanics must remain DOM-free. UI code should validate placeholder parts and construct text nodes plus allowlisted semantic elements without `innerHTML`, raw HTML parsing, or a sanitizer dependency;
+- exact current English copy and semantics must remain unchanged. Designing or implementing this mechanism is outside Phase 68.1 and is the leading candidate for the next numbered phase after the documentation correction is merged and validated.
