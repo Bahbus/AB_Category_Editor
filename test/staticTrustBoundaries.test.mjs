@@ -30,7 +30,7 @@ test('CSP meta precedes every governed resource and the synchronous bootstrap pr
 });
 
 test('index contains no inline executable scripts', () => {
-  const scripts = [...index.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
+  const scripts = [...index.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\b[^>]*>/gi)];
   assert.ok(scripts.length >= 2);
   for (const [, attributes, body] of scripts) {
     assert.match(attributes, /\bsrc="[^"]+"/);
