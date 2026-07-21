@@ -565,13 +565,13 @@ The following behaviors were repeatedly established and should be treated as pro
 
 ## Localization
 
-Phase 67 established the DOM-free English localization mechanics and migrated the complete Preferences modal. Phase 68 additionally migrated the complete About / Help and Lookup Cache modal surfaces. Phase 69 completed the safe reorderable rich-message prerequisite for semantically marked-up Help prose. One application-owned fixed-English translator is injected into all three modal entrypoints; catalogs remain frozen plain strings, translated template values are escaped, and runtime statuses use plain-text sinks.
+Phase 67 established the DOM-free English localization mechanics and migrated the complete Preferences modal. Phase 68 additionally migrated the complete About / Help and Lookup Cache modal surfaces. Phase 69 completed the safe reorderable rich-message prerequisite for semantically marked-up Help prose. Phase 70 migrated the persistent document/brand, sidebar, and topbar application chrome. One application-owned fixed-English translator is injected into the persistent chrome and all three modal entrypoints; catalogs remain frozen plain strings, translated template values are escaped, and runtime statuses use plain-text sinks.
 
-No locale preference, second locale, pluralization layer, static-chrome migration, broad validation/status extraction, or generated-description localization exists yet.
+No locale preference, second locale, pluralization layer, broad validation/status extraction, or generated-description localization exists yet.
 
 Recommended future sequence:
 
-1. Extract remaining static chrome and broader UI/status families in explicitly scoped, bounded message-family phases.
+1. Extract broader UI/status and remaining message families in explicitly scoped, bounded phases.
 2. Add persisted language preference and fallback UI through application state/orchestration.
 3. Add locale key-parity tests with the second locale.
 4. Treat generated descriptions separately with language-aware templates.
@@ -1623,7 +1623,7 @@ Validation actually run:
 
 ## Phase 70
 
-Phase 70 localizes the persistent application chrome on `agent/phase-70-application-chrome-localization`, based on freshly fetched `origin/main` at the Phase 69.1 merge `9e8d44e617d10f9db6dbec678296b01a77413c93`. Publication remains separate.
+Phase 70 localized the persistent application chrome and merged through PR #114 at `d337e7f4d5c7f4f933a9be9c90d4f80ffe71610e`, from the Phase 69.1 merge baseline `9e8d44e617d10f9db6dbec678296b01a77413c93`.
 
 Resolution:
 
@@ -1642,8 +1642,24 @@ Validation actually run:
 - direct tests proved exact runtime English, every translator-backed sink, matching HTML fallback, shared-key cleanup, safe sink restrictions, single-translator ownership, startup placement, and retained Help behavior;
 - in-app browser QA passed exact visible/accessibility chrome, search clear/Escape with focus retention, empty and one-category contextual global actions, Preferences and About / Help open/close focus return, Help `4/4/16/11/3` semantics, and zero body/document/topbar/sidebar horizontal overflow at the default 1506px desktop viewport, 840px, and 390px;
 - no application warning, error, or CSP violation appeared. Electron's generic development CSP warning was the only warning. The temporary viewport override was reset, the QA tab was closed, and no preference was changed;
-- CI, Pages, and PR publication were not run because implementation and publication remain separate.
+- Phase 70 changed 13 files with 313 insertions and 39 deletions from the Phase 69.1 merge baseline;
+- both PR verification checks passed;
+- post-merge Project verification run `29850360304` and Pages deployment run `29850356841` passed;
+- the fresh post-merge review reran `npm run check`: 89 JavaScript files passed syntax checking, all static relative imports resolved, and all 40 test files / 511 tests passed with zero failures, skips, cancellations, or todos;
+- `git diff --check origin/main` passed and the reviewed worktree had no diff from `origin/main`;
+- fresh deployed QA at `https://bahbus.github.io/AB_Category_Editor/` confirmed the expected localized persistent chrome and accessible names, search Clear and Escape behavior, Preferences and Help focus return, contextual disabled actions, and no horizontal overflow at 1280px, 840px, or 390px.
+
+## Phase 70.1
+
+Phase 70.1 resynchronizes the three durable project documents with the merged and post-merge-validated Phase 70 state. It changes documentation only: no runtime source, tests, styles, workflows, package metadata, presets, localization catalogs, or application behavior. It preserves the Phase 55 hold and does not define Phase 71.
+
+Validation actually run:
+
+- `npm run check` passed: 89 JavaScript files passed syntax checking, all static relative imports resolved, and all 40 test files / 511 tests passed with zero failures, skips, cancellations, or todos;
+- `git diff --check origin/main` passed with no output;
+- `git diff --name-only origin/main` contained exactly `docs/AI_PROJECT_CONTEXT.md`, `docs/ARCHITECTURE.md`, and `docs/REVIEW_HISTORY.md`;
+- browser QA was not rerun because Phase 70.1 changes documentation only. The recorded deployed QA is Phase 70 post-merge review evidence, not Phase 70.1 implementation evidence.
 
 # Current next step
 
-Phase 70 is implemented and locally validated; publication is the separate next step only when explicitly requested. Remaining localization work begins with bounded broader UI/status message-family extraction, followed by persisted locale preference/fallback UI, second-catalog key parity, and generated-description localization as a separate concern. Phase 55 remains on hold.
+Phase 70 is merged and post-merge validated. Phase 70.1 documentation resynchronization is complete and awaits a separate publication request. Remaining localization work begins with bounded broader UI/status message-family extraction, followed by persisted locale preference/fallback UI, second-catalog key parity, and generated-description localization as a separate concern. Phase 55 remains on hold; no Phase 71 scope is defined here.
