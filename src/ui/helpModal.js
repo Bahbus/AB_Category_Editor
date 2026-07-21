@@ -58,16 +58,16 @@ export function buildHelpContent(translate, documentRef = document) {
 
   appendSection(documentRef, wrap, translate, 'help.workflow.title', [
     richListItem(documentRef, translate, 'help.workflow.import.message', {
-      action: strong(translate('help.workflow.import.label'))
+      action: strong(translate('action.importPaste'))
     }),
     richListItem(documentRef, translate, 'help.workflow.upload.message', {
-      action: strong(translate('help.workflow.upload.label'))
+      action: strong(translate('action.upload'))
     }),
     richListItem(documentRef, translate, 'help.workflow.export.message', {
-      action: strong(translate('help.workflow.export.label'))
+      action: strong(translate('action.exportCopy'))
     }),
     richListItem(documentRef, translate, 'help.workflow.download.message', {
-      action: strong(translate('help.workflow.download.label')),
+      action: strong(translate('action.download')),
       extension: code('.txt')
     }),
     textListItem(documentRef, translate, 'help.workflow.reimport')
@@ -75,10 +75,10 @@ export function buildHelpContent(translate, documentRef = document) {
 
   appendSection(documentRef, wrap, translate, 'help.lookup.title', [
     richListItem(documentRef, translate, 'help.lookup.resolveIds.message', {
-      action: strong(translate('help.lookup.resolveIds.label'))
+      action: strong(translate('action.resolveIds'))
     }),
     richListItem(documentRef, translate, 'help.lookup.cache.message', {
-      action: strong(translate('help.lookup.cache.label'))
+      action: strong(translate('action.lookupCache'))
     }),
     richListItem(documentRef, translate, 'help.lookup.regex.message', {
       action: strong(translate('help.lookup.regex.label'))
@@ -87,7 +87,7 @@ export function buildHelpContent(translate, documentRef = document) {
 
   appendSection(documentRef, wrap, translate, 'help.preferences.title', [
     richListItem(documentRef, translate, 'help.preferences.preferences.message', {
-      action: strong(translate('help.preferences.preferences.label'))
+      action: strong(translate('action.preferences'))
     }),
     richListItem(documentRef, translate, 'help.preferences.generate.message', {
       action: strong(translate('help.preferences.generate.label'))
@@ -114,5 +114,5 @@ export function buildHelpContent(translate, documentRef = document) {
 }
 
 export function showHelpModal({ translate }) {
-  openModal(translate('help.title'), buildHelpContent(translate));
+  openModal(translate('action.aboutHelp'), buildHelpContent(translate));
 }

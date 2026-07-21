@@ -107,27 +107,27 @@ test('Help routes complete rich messages through allowlisted semantic nodes with
   const help = read('src/ui/helpModal.js');
   const english = read('src/locales/en.js');
   const keys = [
-    'help.title',
+    'action.aboutHelp',
     'help.introduction',
     'help.workflow.title',
-    'help.workflow.import.label',
+    'action.importPaste',
     'help.workflow.import.message',
-    'help.workflow.upload.label',
+    'action.upload',
     'help.workflow.upload.message',
-    'help.workflow.export.label',
+    'action.exportCopy',
     'help.workflow.export.message',
-    'help.workflow.download.label',
+    'action.download',
     'help.workflow.download.message',
     'help.workflow.reimport',
     'help.lookup.title',
-    'help.lookup.resolveIds.label',
+    'action.resolveIds',
     'help.lookup.resolveIds.message',
-    'help.lookup.cache.label',
+    'action.lookupCache',
     'help.lookup.cache.message',
     'help.lookup.regex.label',
     'help.lookup.regex.message',
     'help.preferences.title',
-    'help.preferences.preferences.label',
+    'action.preferences',
     'help.preferences.preferences.message',
     'help.preferences.generate.label',
     'help.preferences.generate.message',
@@ -160,7 +160,7 @@ test('Help routes complete rich messages through allowlisted semantic nodes with
   assert.match(help, /translate\.rich\(key, placeholders\)/);
   assert.match(help, /documentRef\.createTextNode\(part\.value\)/);
   assert.match(help, /element\.textContent = part\.value\.text/);
-  assert.match(help, /openModal\(translate\('help\.title'\), buildHelpContent\(translate\)\)/);
+  assert.match(help, /openModal\(translate\('action\.aboutHelp'\), buildHelpContent\(translate\)\)/);
   assert.doesNotMatch(help, /innerHTML|insertAdjacentHTML|DOMParser/);
   assert.doesNotMatch(help, /escapeHtml/);
   assert.doesNotMatch(help, /This editor helps you inspect|Basic workflow|comfortable\/compact density|The full imported config is processed locally/);

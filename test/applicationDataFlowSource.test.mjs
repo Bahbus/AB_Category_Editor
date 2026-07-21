@@ -211,20 +211,22 @@ test('legacy import summary and appearance modal alias stay retired', () => {
   assert.doesNotMatch(preferences, /showAppearanceModal/);
 });
 
-test('application injects one explicit English translator into the localized modal entrypoints without changing preference callbacks', () => {
+test('application injects one explicit English translator into chrome and localized modal entrypoints without changing preference callbacks', () => {
   const app = read('src/app.js');
+  const chrome = read('src/ui/applicationChrome.js');
   const preferences = read('src/ui/preferencesModal.js');
   const help = read('src/ui/helpModal.js');
   const lookupCache = read('src/ui/lookupCacheModal.js');
   assert.match(app, /import \{ createTranslator \} from '\.\/localization\.js';/);
   assert.match(app, /const translate = createTranslator\('en'\);/);
   assert.equal((app.match(/createTranslator\(/g) || []).length, 1);
+  assert.match(app, /applyApplicationChromeLocalization\(translate\);[\s\S]*?bindAppEvents\(\);[\s\S]*?applyEditorPreferences\(\);[\s\S]*?waitForStylesheetReady\(\)\.then\(renderAll\)/);
   assert.match(app, /showPreferencesModal\(\{[\s\S]*?getEditorPreferences:[\s\S]*?applyEditorPreferences,[\s\S]*?setStatus,[\s\S]*?openModal,[\s\S]*?commitActiveField,[\s\S]*?translate[\s\S]*?\}\)/);
   assert.match(app, /showHelpModal\(\{ translate \}\)/);
   assert.match(app, /showLookupCacheModal\(\{ lookupCacheStats, clearLookupCache, isLookupCacheProducerActive: lookupCacheOperations\.isActive, onLookupCacheProducerChange: lookupCacheOperations\.subscribe, translate \}\)/);
   assert.match(help, /export function showHelpModal\(\{ translate \}\)/);
   assert.match(lookupCache, /export function showLookupCacheModal\(\{ lookupCacheStats, clearLookupCache, isLookupCacheProducerActive, onLookupCacheProducerChange, translate \}\)/);
-  for (const modal of [help, lookupCache]) {
+  for (const modal of [chrome, help, lookupCache]) {
     assert.doesNotMatch(modal, /createTranslator|DEFAULT_LOCALE|localization\.js|app\.js/);
   }
   assert.match(preferences, /applyEditorPreferences\(\{ \.\.\.getEditorPreferences\(\), \[key\]: e\.target\.value \}\)/);

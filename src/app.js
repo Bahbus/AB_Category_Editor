@@ -8,6 +8,7 @@ import { renderEditor as renderCategoryEditor } from './ui/categoryEditor.js';
 import { showHelpModal } from './ui/helpModal.js';
 import { showLookupCacheModal } from './ui/lookupCacheModal.js';
 import { showPreferencesModal } from './ui/preferencesModal.js';
+import { applyApplicationChromeLocalization } from './ui/applicationChrome.js';
 import { createTranslator } from './localization.js';
 import { openRegexToItemIdsTool as openRegexTool } from './tools/regexToItemIds.js';
 import { EXPORT_FILENAME, assertJsonTextWithinLimit, copyTextToClipboard, downloadText, makeBase64Export, parseImportedText, parseJsonText, readImportFileText } from './importExport.js';
@@ -609,6 +610,7 @@ function waitForStylesheetReady() {
 function startApp() {
   if (started) return;
   started = true;
+  applyApplicationChromeLocalization(translate);
   bindAppEvents();
   applyEditorPreferences();
   waitForStylesheetReady().then(renderAll);

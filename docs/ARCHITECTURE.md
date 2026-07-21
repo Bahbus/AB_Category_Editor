@@ -622,7 +622,7 @@ Future localization preferences should integrate here rather than inventing sepa
 
 ### Localization boundary
 
-`src/locales/en.js` is the explicit frozen English catalog. Catalog entries are plain strings, never HTML fragments. Phase 67 introduced the complete Preferences modal proof slice. Phase 68 adds the complete About / Help and Lookup Cache modal surfaces while leaving static chrome, application-owned cache-clear toasts, broader validation/status families, lookup/search list-editor text, category editing, and generated descriptions untouched.
+`src/locales/en.js` is the explicit frozen English catalog. Catalog entries are plain strings, never HTML fragments. Phase 67 introduced the complete Preferences modal proof slice. Phase 68 added the complete About / Help and Lookup Cache modal surfaces. Phase 70 adds only persistent document/brand, sidebar, and topbar chrome while leaving application-owned cache-clear toasts, broader validation/status families, lookup/search list-editor text, category editing, empty-state prose, modal infrastructure, busy messages, Regex converter text, and generated descriptions untouched.
 
 Phase 68 merged through PR #110 at `d53fd23f161480e7fdbd139dfdd0f1e9b2583772`. PR checks, post-merge Project verification, and GitHub Pages deployment passed. A post-merge `npm run check` rerun syntax-checked 86 JavaScript files, resolved all static relative imports, and passed all 38 test files / 501 tests with zero failures, skips, cancellations, or todos. Fresh deployed QA passed exact Help and Lookup Cache English copy, Help semantic structure, nonempty locale-formatted cache counts, focus containment/return, background ARIA restoration, CSP behavior, and 840px/390px overflow checks. Cache clearing was deliberately not exercised against the browser profile's existing data.
 
@@ -630,7 +630,11 @@ Phase 68 merged through PR #110 at `d53fd23f161480e7fdbd139dfdd0f1e9b2583772`. P
 
 Phase 69 merged through PR #112 at `831c6d7271cd146fda9a306904c7de9372340448`. Both PR verification checks succeeded, as did post-merge Project verification run `29844811387` and Pages deployment run `29844808768`. The post-merge review reran `npm run check`: 87 JavaScript files passed syntax checking, all static relative imports resolved, and all 39 test files / 506 tests passed with zero failures, skips, cancellations, or todos.
 
-Application orchestration creates the fixed-English translator explicitly and injects it into `showPreferencesModal(...)`, `showHelpModal(...)`, and `showLookupCacheModal(...)`. No mutable global locale or implicit locale state exists. A later persisted locale preference can replace the translator at the existing state/orchestration boundary without rewriting modal key usage. Translation values entering HTML templates and accessibility attributes pass through `escapeHtml(...)`; modal titles and runtime statuses use existing plain-text sinks.
+Application orchestration creates the fixed-English translator explicitly and injects it into `applyApplicationChromeLocalization(...)`, `showPreferencesModal(...)`, `showHelpModal(...)`, and `showLookupCacheModal(...)`. No mutable global locale or implicit locale state exists. A later persisted locale preference can replace the translator at the existing state/orchestration boundary without rewriting UI key usage. Translation values entering modal HTML templates and accessibility attributes pass through `escapeHtml(...)`; modal titles and runtime statuses use existing plain-text sinks.
+
+`src/ui/applicationChrome.js` owns the Phase 70 shell application boundary. It does not import localization mechanics or application orchestration. Startup calls it once with the existing translator before event binding and normal rendering. The helper targets the established DOM identity without replacing elements and assigns only `textContent`, `document.title`, and explicit plain-text `placeholder`, `aria-label`, and `title` attributes. `index.html` retains identical immediate English fallback, `lang="en"`, CSP placement/text, synchronous startup-preference ordering, stylesheet/module ordering, roles, types, disabled states, grouping, and action order.
+
+Neutral `action.*` keys are the shared authority for Import/Paste, Upload, Export/Copy, Download, Resolve IDs, Lookup Cache, Preferences, and About / Help across chrome and existing modal content/titles. Phase 70 removes the superseded Help-owned action-label keys and duplicate Help/Lookup Cache title keys rather than adding parallel English values. Help still owns complete rich templates and its UI-local `strong`/`code` semantic allowlist.
 
 Help keeps all structure in `src/ui/helpModal.js`: paragraph and section order, headings, lists, emphasized action names, and code-formatted `.txt`/`localStorage` tokens. Phase 69 replaces the fixed grammatical fragments with twelve complete plain-text templates containing named semantic placeholders. Genuine standalone action labels remain separate catalog values, while duplicate Help-only labels and before/after/conjunction fragments are removed.
 
@@ -638,7 +642,7 @@ The Help renderer builds the surface with DOM node operations rather than `inner
 
 Lookup Cache keeps count formatting and behavior in `src/ui/lookupCacheModal.js`. Useful and unresolved numbers call `toLocaleString()` before becoming named `lookupCache.stats` parameters; the translated result is escaped at the template sink. Active, empty, and late-race refusal messages continue through `textContent`. The modal still subscribes to application-owned producer state, uses shared `lookupCacheClearAvailable(...)`, defensively re-checks clear availability, and unsubscribes through the shared modal close callback.
 
-No locale preference, second locale, pluralization layer, static-chrome migration, broad validation/status extraction, or generated-description localization exists yet. Phase 55 remains on hold.
+No locale preference, second locale, pluralization layer, broad validation/status extraction, editor/list/empty-state migration, or generated-description localization exists yet. Phase 55 remains on hold.
 
 ### Startup appearance and browser trust boundary
 
@@ -795,6 +799,8 @@ Phase 68 adds representative Help/Lookup Cache lookup and cache-stat interpolati
 
 Phase 69 adds direct ordered-part, surrounding-text, reordering, repetition, opaque-identity, missing-parameter, unknown-key, plain-catalog, and DOM-free localization coverage. A new Help behavior suite directly builds the modal content with a minimal document boundary and proves exact English list text, `4/4/16/11/3` semantics, allowlist rejection, safe text handling, and synthetic placeholder reordering; source guards retain no-HTML-parser and single-translator boundaries. Focused coverage passed 72 tests. The implementation `npm run check` run syntax-checked 87 files, resolved all static relative imports, and passed all 39 test files / 506 tests; `git diff --check origin/main` passed before durable-doc updates. Phase 69 then merged through PR #112 at `831c6d7271cd146fda9a306904c7de9372340448`; both PR verification checks, post-merge Project verification run `29844811387`, and Pages deployment run `29844808768` succeeded. The post-merge review reran the same 87-file / 39-file / 506-test baseline with zero failures, skips, cancellations, or todos. Fresh deployed Help QA passed exact English text, four headings, four lists, sixteen list items, eleven `strong` runs, three `code` runs, Close-button focus, launcher focus return, background `aria-hidden` restoration, and zero body/document/modal horizontal overflow at the default viewport, 840px, and 390px. No application warning, error, or CSP violation appeared; Electron's generic development CSP warning was the only warning.
 
+Phase 70 adds direct behavior coverage for every localized chrome text/attribute, exact English output, injected-translator use, safe sinks, immediate HTML fallback, shared action-label promotion, and retained Help behavior. Focused chrome/localization/Help/accessibility/application/startup/CSP coverage passed 115 tests. The local `npm run check` run syntax-checked 89 files, resolved all static relative imports, and passed all 40 test files / 511 tests with zero failures, skips, cancellations, or todos; final `git diff --check origin/main` passed. Browser QA passed exact visible/accessibility chrome, search clear/Escape, contextual global actions, Preferences/Help focus return, Help `4/4/16/11/3` semantics, and zero body/document/topbar/sidebar overflow at the default 1506px desktop viewport, 840px, and 390px. No application warning, error, or CSP violation appeared; Electron's generic development CSP warning was the only warning. The viewport override was reset and no preference was changed. CI and Pages were not run because publication remains separate.
+
 Testing styles:
 
 - direct unit tests for pure logic,
@@ -824,11 +830,11 @@ Phase 56 established three responsibility-owned source suites plus a shared sour
 
 ### Localization
 
-Phase 69 completed the safe reorderable rich-message boundary for semantically marked-up Help prose after the Phase 67–68 English-only modal proof slices.
+Phase 70 completed the bounded persistent application-chrome extraction after the Phase 67–69 English-only modal and rich-message foundations.
 
 Remaining sequence:
 
-1. Extract static chrome and broader validation/status messages in bounded families.
+1. Extract broader validation/status and remaining UI message families in bounded phases.
 2. Add a persisted locale preference and fallback UI through application state/orchestration.
 3. Add locale key-parity tests when another catalog exists.
 4. Localize generated descriptions separately.

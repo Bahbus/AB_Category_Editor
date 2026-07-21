@@ -389,7 +389,7 @@ test('lookup cache modal disables empty and busy clearing while retaining the de
   assert.match(modal, /if \(!clearLookupCache\(\)\)/);
   assert.match(modal, /unavailable\.textContent = translate\('lookupCache\.unavailable\.race'\)/);
   assert.match(modal, /const unsubscribe = onLookupCacheProducerChange\(updateClearState\)/);
-  assert.match(modal, /openModal\(translate\('lookupCache\.title'\), wrap, \{ onClose: unsubscribe \}\)/);
+  assert.match(modal, /openModal\(translate\('action\.lookupCache'\), wrap, \{ onClose: unsubscribe \}\)/);
   assert.match(english, /'lookupCache\.unavailable\.active': 'Lookup names are currently being cached\. Wait for the lookup or scan to finish before clearing the cache\.'/);
   assert.match(english, /'lookupCache\.unavailable\.empty': 'The lookup cache is empty\.'/);
   assert.match(english, /'lookupCache\.unavailable\.race': 'The cache was not cleared because a lookup or scan is still running\.'/);
