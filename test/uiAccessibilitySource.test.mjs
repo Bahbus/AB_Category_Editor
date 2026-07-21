@@ -103,7 +103,7 @@ test('ordering rerenders use deterministic enabled focus fallbacks', () => {
   assert.match(list, /target && !target\.disabled && !target\.hidden/);
 });
 
-test('Help routes its complete English surface through escaped localization keys while retaining semantic markup', () => {
+test('Help routes complete rich messages through allowlisted semantic nodes without HTML parsing', () => {
   const help = read('src/ui/helpModal.js');
   const english = read('src/locales/en.js');
   const keys = [
@@ -111,58 +111,58 @@ test('Help routes its complete English surface through escaped localization keys
     'help.introduction',
     'help.workflow.title',
     'help.workflow.import.label',
-    'help.workflow.import.description',
+    'help.workflow.import.message',
     'help.workflow.upload.label',
-    'help.workflow.upload.description',
+    'help.workflow.upload.message',
     'help.workflow.export.label',
-    'help.workflow.export.description',
+    'help.workflow.export.message',
     'help.workflow.download.label',
-    'help.workflow.download.beforeExtension',
-    'help.workflow.download.extension',
-    'help.workflow.download.afterExtension',
+    'help.workflow.download.message',
     'help.workflow.reimport',
     'help.lookup.title',
     'help.lookup.resolveIds.label',
-    'help.lookup.resolveIds.description',
+    'help.lookup.resolveIds.message',
     'help.lookup.cache.label',
-    'help.lookup.cache.description',
+    'help.lookup.cache.message',
     'help.lookup.regex.label',
-    'help.lookup.regex.description',
+    'help.lookup.regex.message',
     'help.preferences.title',
     'help.preferences.preferences.label',
-    'help.preferences.preferences.description',
+    'help.preferences.preferences.message',
     'help.preferences.generate.label',
-    'help.preferences.generate.description',
-    'help.preferences.autoLookup.label',
-    'help.preferences.autoGenerate.label',
-    'help.preferences.behavior.joiner',
-    'help.preferences.behavior.description',
-    'help.preferences.storage.beforeName',
-    'help.preferences.storage.name',
-    'help.preferences.storage.afterName',
+    'help.preferences.generate.message',
+    'help.preferences.behavior.message',
+    'help.preferences.storage.message',
     'help.privacy.title',
     'help.privacy.localProcessing',
-    'help.privacy.storage.beforeName',
-    'help.privacy.storage.name',
-    'help.privacy.storage.afterName',
+    'help.privacy.storage.message',
     'help.privacy.xivapi',
     'help.privacy.repository'
   ];
 
   for (const key of keys) {
     assert.ok(english.includes(`'${key}':`), key);
-    assert.ok(help.includes(`translate('${key}')`), key);
+    assert.ok(help.includes(`'${key}'`), key);
   }
-  const template = help.match(/wrap\.innerHTML = `(?<body>[\s\S]*?)`;/)?.groups.body ?? '';
-  for (const match of template.matchAll(/translate\(/g)) {
-    assert.ok(template.slice(Math.max(0, match.index - 11), match.index).endsWith('escapeHtml('), `unescaped Help translation near ${match.index}`);
+  const obsoleteFragments = [
+    'help.workflow.download.beforeExtension',
+    'help.workflow.download.afterExtension',
+    'help.preferences.behavior.joiner',
+    'help.preferences.storage.beforeName',
+    'help.preferences.storage.afterName',
+    'help.privacy.storage.beforeName',
+    'help.privacy.storage.afterName'
+  ];
+  for (const key of obsoleteFragments) {
+    assert.doesNotMatch(english, new RegExp(key.replaceAll('.', '\\.')));
   }
-  assert.equal((template.match(/<h3>/g) || []).length, 4);
-  assert.equal((template.match(/<ul>/g) || []).length, 4);
-  assert.equal((template.match(/<li>/g) || []).length, 16);
-  assert.equal((template.match(/<strong>/g) || []).length, 11);
-  assert.equal((template.match(/<code>/g) || []).length, 3);
-  assert.match(help, /openModal\(translate\('help\.title'\), wrap\)/);
+  assert.match(help, /HELP_SEMANTIC_ELEMENTS = Object\.freeze\(\{[\s\S]*?strong: 'strong',[\s\S]*?code: 'code'[\s\S]*?\}\)/);
+  assert.match(help, /translate\.rich\(key, placeholders\)/);
+  assert.match(help, /documentRef\.createTextNode\(part\.value\)/);
+  assert.match(help, /element\.textContent = part\.value\.text/);
+  assert.match(help, /openModal\(translate\('help\.title'\), buildHelpContent\(translate\)\)/);
+  assert.doesNotMatch(help, /innerHTML|insertAdjacentHTML|DOMParser/);
+  assert.doesNotMatch(help, /escapeHtml/);
   assert.doesNotMatch(help, /This editor helps you inspect|Basic workflow|comfortable\/compact density|The full imported config is processed locally/);
 });
 

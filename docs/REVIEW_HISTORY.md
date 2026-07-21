@@ -1585,6 +1585,30 @@ Validation actually run:
 - `git diff --name-only origin/main` contained exactly `docs/AI_PROJECT_CONTEXT.md`, `docs/ARCHITECTURE.md`, and `docs/REVIEW_HISTORY.md`;
 - browser QA was not rerun because Phase 68.1 changes documentation only. The recorded fresh deployed QA is post-merge Phase 68 evidence, not Phase 68.1 implementation evidence.
 
+## Phase 69
+
+Phase 69 adds safe reorderable rich messages from freshly fetched `origin/main` at `03296f6adea427182a377e33da887d934c291338` on `agent/phase-69-reorderable-rich-messages`.
+
+Resolution:
+
+- retained the callable `createTranslator(locale)` and unchanged ordinary `formatMessage(...)` behavior while adding one `translate.rich(...)` operation backed by directly testable, DOM-free `formatRichMessage(...)`;
+- returned ordered text and opaque placeholder parts according to template order, including repeated placeholders, without inspecting, coercing, cloning, or stringifying placeholder objects;
+- reused the existing explicit missing-parameter, unknown-key, and unsupported-locale behavior;
+- replaced twelve Help sentences containing semantic markup with complete English templates and named placeholders, removing obsolete descriptions, before/after fragments, translated conjunctions, and duplicate Help-only preference labels;
+- rebuilt Help through DOM node operations, appending formatter text as text nodes and creating only UI-owned allowlisted `strong`/`code` placeholders whose contents use `textContent`;
+- preserved exact English copy, four headings, four lists, sixteen list items, eleven `strong` runs, three `code` runs, content order, modal behavior, accessibility, focus, responsive layout, and CSP;
+- made no second-locale, selector, preference, pluralization, static-chrome, broader localization, generated-description, dependency, build, schema, preset, import/export, cache, dirty-state, converter, service-worker, analytics, or unrelated UI change. Phase 55 remains on hold.
+
+Validation actually run:
+
+- focused localization, Help behavior, accessibility/source, application/data-flow, and static trust-boundary coverage passed all 72 tests;
+- `npm run check` passed: 87 JavaScript files syntax-checked, all static relative imports resolved, and all 39 test files / 506 tests passed with zero failures, skips, cancellations, or todos;
+- `git diff --check origin/main` passed with no output before durable-document updates, and the implementation diff was inspected for obsolete fragments and unrelated scope;
+- direct behavior tests proved exact rendered English text, `4/4/16/11/3` semantic counts, text-node rendering, `textContent` semantic contents, strong/code allowlist rejection, and synthetic reordered-placeholder rendering without UI logic changes;
+- local in-app browser QA passed exact English text, semantic counts, focus containment/return, background inert/ARIA restoration, and zero body/document/modal horizontal overflow at the default 1892px desktop viewport, 840px, and 390px;
+- no CSP violation or unexpected application warning/error appeared. Electron's generic development CSP warning was the only warning, and the temporary viewport override was restored;
+- CI, GitHub Pages, commit, and publication were not run because implementation and publication remain separate.
+
 # Current next step
 
-Phase 68.1 is implemented and locally validated as a documentation-only correction. After Phase 68.1 is merged, the leading candidate for the next numbered localization phase is safe reorderable rich-message composition. Phase 55 remains on hold. Commit or publish only when separately requested.
+Phase 69 is implemented and locally validated. Review, commit, or publication remains a separate request. Phase 55 remains on hold.

@@ -1,39 +1,118 @@
-import { escapeHtml } from '../dom.js';
 import { openModal } from '../modals.js';
 
-export function showHelpModal({ translate }) {
-  const wrap = document.createElement('div');
+const HELP_SEMANTIC_ELEMENTS = Object.freeze({
+  strong: 'strong',
+  code: 'code'
+});
+
+const semantic = (kind, text) => ({ kind, text });
+const strong = text => semantic('strong', text);
+const code = text => semantic('code', text);
+
+function textElement(documentRef, tagName, text) {
+  const element = documentRef.createElement(tagName);
+  element.textContent = text;
+  return element;
+}
+
+export function appendHelpRichMessage(target, parts, documentRef = document) {
+  for (const part of parts) {
+    if (part.type === 'text') {
+      target.appendChild(documentRef.createTextNode(part.value));
+      continue;
+    }
+    if (part.type !== 'placeholder') {
+      throw new Error(`Unknown rich-message part type: ${part.type}`);
+    }
+    const tagName = HELP_SEMANTIC_ELEMENTS[part.value?.kind];
+    if (!tagName) {
+      throw new Error(`Unsupported Help rich-message semantic: ${part.value?.kind}`);
+    }
+    const element = documentRef.createElement(tagName);
+    element.textContent = part.value.text;
+    target.appendChild(element);
+  }
+}
+
+function richListItem(documentRef, translate, key, placeholders) {
+  const item = documentRef.createElement('li');
+  appendHelpRichMessage(item, translate.rich(key, placeholders), documentRef);
+  return item;
+}
+
+function textListItem(documentRef, translate, key) {
+  return textElement(documentRef, 'li', translate(key));
+}
+
+function appendSection(documentRef, wrap, translate, headingKey, items) {
+  wrap.appendChild(textElement(documentRef, 'h3', translate(headingKey)));
+  const list = documentRef.createElement('ul');
+  list.append(...items);
+  wrap.appendChild(list);
+}
+
+export function buildHelpContent(translate, documentRef = document) {
+  const wrap = documentRef.createElement('div');
   wrap.className = 'help-modal';
-  wrap.innerHTML = `
-    <p>${escapeHtml(translate('help.introduction'))}</p>
-    <h3>${escapeHtml(translate('help.workflow.title'))}</h3>
-    <ul>
-      <li><strong>${escapeHtml(translate('help.workflow.import.label'))}</strong> ${escapeHtml(translate('help.workflow.import.description'))}</li>
-      <li><strong>${escapeHtml(translate('help.workflow.upload.label'))}</strong> ${escapeHtml(translate('help.workflow.upload.description'))}</li>
-      <li><strong>${escapeHtml(translate('help.workflow.export.label'))}</strong> ${escapeHtml(translate('help.workflow.export.description'))}</li>
-      <li><strong>${escapeHtml(translate('help.workflow.download.label'))}</strong> ${escapeHtml(translate('help.workflow.download.beforeExtension'))} <code>${escapeHtml(translate('help.workflow.download.extension'))}</code> ${escapeHtml(translate('help.workflow.download.afterExtension'))}</li>
-      <li>${escapeHtml(translate('help.workflow.reimport'))}</li>
-    </ul>
-    <h3>${escapeHtml(translate('help.lookup.title'))}</h3>
-    <ul>
-      <li><strong>${escapeHtml(translate('help.lookup.resolveIds.label'))}</strong> ${escapeHtml(translate('help.lookup.resolveIds.description'))}</li>
-      <li><strong>${escapeHtml(translate('help.lookup.cache.label'))}</strong> ${escapeHtml(translate('help.lookup.cache.description'))}</li>
-      <li><strong>${escapeHtml(translate('help.lookup.regex.label'))}</strong> ${escapeHtml(translate('help.lookup.regex.description'))}</li>
-    </ul>
-    <h3>${escapeHtml(translate('help.preferences.title'))}</h3>
-    <ul>
-      <li><strong>${escapeHtml(translate('help.preferences.preferences.label'))}</strong> ${escapeHtml(translate('help.preferences.preferences.description'))}</li>
-      <li><strong>${escapeHtml(translate('help.preferences.generate.label'))}</strong> ${escapeHtml(translate('help.preferences.generate.description'))}</li>
-      <li><strong>${escapeHtml(translate('help.preferences.autoLookup.label'))}</strong> ${escapeHtml(translate('help.preferences.behavior.joiner'))} <strong>${escapeHtml(translate('help.preferences.autoGenerate.label'))}</strong> ${escapeHtml(translate('help.preferences.behavior.description'))}</li>
-      <li>${escapeHtml(translate('help.preferences.storage.beforeName'))} <code>${escapeHtml(translate('help.preferences.storage.name'))}</code> ${escapeHtml(translate('help.preferences.storage.afterName'))}</li>
-    </ul>
-    <h3>${escapeHtml(translate('help.privacy.title'))}</h3>
-    <ul>
-      <li>${escapeHtml(translate('help.privacy.localProcessing'))}</li>
-      <li>${escapeHtml(translate('help.privacy.storage.beforeName'))} <code>${escapeHtml(translate('help.privacy.storage.name'))}</code> ${escapeHtml(translate('help.privacy.storage.afterName'))}</li>
-      <li>${escapeHtml(translate('help.privacy.xivapi'))}</li>
-      <li>${escapeHtml(translate('help.privacy.repository'))}</li>
-    </ul>
-  `;
-  openModal(translate('help.title'), wrap);
+  wrap.appendChild(textElement(documentRef, 'p', translate('help.introduction')));
+
+  appendSection(documentRef, wrap, translate, 'help.workflow.title', [
+    richListItem(documentRef, translate, 'help.workflow.import.message', {
+      action: strong(translate('help.workflow.import.label'))
+    }),
+    richListItem(documentRef, translate, 'help.workflow.upload.message', {
+      action: strong(translate('help.workflow.upload.label'))
+    }),
+    richListItem(documentRef, translate, 'help.workflow.export.message', {
+      action: strong(translate('help.workflow.export.label'))
+    }),
+    richListItem(documentRef, translate, 'help.workflow.download.message', {
+      action: strong(translate('help.workflow.download.label')),
+      extension: code('.txt')
+    }),
+    textListItem(documentRef, translate, 'help.workflow.reimport')
+  ]);
+
+  appendSection(documentRef, wrap, translate, 'help.lookup.title', [
+    richListItem(documentRef, translate, 'help.lookup.resolveIds.message', {
+      action: strong(translate('help.lookup.resolveIds.label'))
+    }),
+    richListItem(documentRef, translate, 'help.lookup.cache.message', {
+      action: strong(translate('help.lookup.cache.label'))
+    }),
+    richListItem(documentRef, translate, 'help.lookup.regex.message', {
+      action: strong(translate('help.lookup.regex.label'))
+    })
+  ]);
+
+  appendSection(documentRef, wrap, translate, 'help.preferences.title', [
+    richListItem(documentRef, translate, 'help.preferences.preferences.message', {
+      action: strong(translate('help.preferences.preferences.label'))
+    }),
+    richListItem(documentRef, translate, 'help.preferences.generate.message', {
+      action: strong(translate('help.preferences.generate.label'))
+    }),
+    richListItem(documentRef, translate, 'help.preferences.behavior.message', {
+      autoLookup: strong(translate('preferences.autoLookupImportedIds.label')),
+      autoGenerate: strong(translate('preferences.autoGenerateDescriptions.label'))
+    }),
+    richListItem(documentRef, translate, 'help.preferences.storage.message', {
+      storage: code('localStorage')
+    })
+  ]);
+
+  appendSection(documentRef, wrap, translate, 'help.privacy.title', [
+    textListItem(documentRef, translate, 'help.privacy.localProcessing'),
+    richListItem(documentRef, translate, 'help.privacy.storage.message', {
+      storage: code('localStorage')
+    }),
+    textListItem(documentRef, translate, 'help.privacy.xivapi'),
+    textListItem(documentRef, translate, 'help.privacy.repository')
+  ]);
+
+  return wrap;
+}
+
+export function showHelpModal({ translate }) {
+  openModal(translate('help.title'), buildHelpContent(translate));
 }

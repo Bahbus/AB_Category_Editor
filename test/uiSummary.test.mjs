@@ -208,8 +208,8 @@ test('regex tool and help modal source text stay current', () => {
   assert.doesNotMatch(regexSource, /class="[^"]*"\s+class=/);
   assert.match(regexSource, /class="grid cols-3 modal-action-row"/);
   assert.doesNotMatch(helpSource, /checkbox style/i);
-  assert.match(helpSource, /translate\('help\.preferences\.preferences\.description'\)/);
-  assert.match(englishSource, /'help\.preferences\.preferences\.description': 'lets you choose editor-only themes and comfortable\/compact density, plus behavior settings like auto-lookup and description generation\.'/);
+  assert.match(helpSource, /'help\.preferences\.preferences\.message'/);
+  assert.match(englishSource, /'help\.preferences\.preferences\.message': '\{action\} lets you choose editor-only themes and comfortable\/compact density, plus behavior settings like auto-lookup and description generation\.'/);
 });
 
 test('shared state filters are imported by validation and editor', () => {
