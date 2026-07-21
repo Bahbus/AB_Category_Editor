@@ -565,15 +565,19 @@ The following behaviors were repeatedly established and should be treated as pro
 
 ## Localization
 
-Feasible and intentionally deferred.
+Phase 67 established the DOM-free English localization mechanics and migrated the complete Preferences modal. Phase 68 additionally migrated the complete About / Help and Lookup Cache modal surfaces. One application-owned fixed-English translator is injected into all three modal entrypoints; catalogs remain frozen plain strings, translated template values are escaped, and runtime statuses use plain-text sinks.
+
+No locale preference, second locale, pluralization layer, static-chrome migration, broad validation/status extraction, or generated-description localization exists yet.
 
 Recommended future sequence:
 
-1. English-only i18n foundation.
-2. Extract UI chrome and messages.
+1. Replace fixed-order Help sentence fragments with a safe reorderable rich-message mechanism before adding a second locale or migrating more semantically rich prose.
+2. Extract remaining static chrome and broader UI/status families in explicitly scoped phases.
 3. Add language preference and fallback.
-4. Add locale key-parity tests.
+4. Add locale key-parity tests with the second locale.
 5. Treat generated descriptions separately with language-aware templates.
+
+The rich-message mechanism should use complete plain-text templates with named semantic placeholders. Catalogs must contain no HTML, localization mechanics must remain DOM-free, and UI code should construct text nodes plus allowlisted semantic elements without `innerHTML`, raw HTML parsing, or a sanitizer dependency. Exact current English copy and semantics must remain unchanged.
 
 ## Category editor modularization
 
@@ -1541,6 +1545,8 @@ Validation actually run:
 
 Phase 68 extends the English localization proof boundary from freshly fetched merged Phase 67 `origin/main` at `d66e7c66ce189726ce3ee0c7c03e4697634dcdeb`.
 
+Phase 68 merged through PR #110 at `d53fd23f161480e7fdbd139dfdd0f1e9b2583772`.
+
 Resolution on `agent/phase-68-secondary-modal-localization`:
 
 - extended frozen plain-text `src/locales/en.js` with the complete About / Help and Lookup Cache modal surfaces, splitting Help text at UI-owned `strong` and `code` boundaries and using one named cache-stat template without HTML or pluralization;
@@ -1558,8 +1564,27 @@ Validation actually run:
 - in-app browser QA verified exact Help and Lookup Cache copy; Help headings, lists, emphasis, and code semantics; locale-formatted counts; enabled nonempty clearing; focus containment/return; and background ARIA restoration;
 - Comfortable and Compact passed at 1280px, 840px, and 390px with equal body/document/modal client and scroll widths. No CSP violation or unexpected application warning/error appeared; Electron's generic development CSP warning was the only warning. The original Compact preference and viewport were restored;
 - the existing browser profile contained 381 useful cached names, so destructive clearing and manufactured empty/active producer states were not exercised. Direct availability, race-refusal, successful-clear, producer, cleanup, and source tests remain authoritative;
-- CI and GitHub Pages were not run because implementation and publication remain separate. Static chrome and broader validation/status extraction, locale preference/fallback UI, locale key parity, and localized generated descriptions remain later phases.
+- PR checks, post-merge Project verification, and GitHub Pages deployment all passed;
+- the post-merge review reran `npm run check`: 86 JavaScript files were syntax-checked, all static relative imports resolved, and all 38 test files / 501 tests passed with zero failures, skips, cancellations, or todos;
+- fresh deployed QA passed exact Help and Lookup Cache English copy, Help semantic structure, nonempty locale-formatted cache counts, focus containment/return, background ARIA restoration, CSP behavior, and 840px/390px overflow checks;
+- cache clearing was deliberately not exercised against the browser profile's existing data. Direct availability, race-refusal, successful-clear, producer, cleanup, and source tests remain authoritative;
+- static chrome and broader validation/status extraction, locale preference/fallback UI, locale key parity, and localized generated descriptions remain later phases. Phase 55 remains on hold.
+
+Post-merge review confirmed one future-localization design limitation rather than a current English runtime bug or Phase 68 regression: several Help sentences are assembled from fixed-order translated fragments around `strong` and `code` nodes. That preserves exact English copy and semantics but constrains translator-controlled word order, grammar, and inflection. Before a real second locale or more semantically rich prose, use complete plain-text templates with named semantic placeholders; keep catalogs HTML-free and localization mechanics DOM-free; and have UI code construct validated text nodes and allowlisted semantic elements without `innerHTML`, raw HTML parsing, or a sanitizer dependency.
+
+## Phase 68.1
+
+Phase 68.1 resynchronizes the three durable project documents with the merged Phase 68 state. It changes documentation only: no runtime source, tests, styles, workflows, package metadata, presets, static assets, or application behavior.
+
+The documentation correction records PR #110 and its post-merge verification, replaces the obsolete proof-slice roadmap with the completed Phase 67/68 boundary, and identifies reorderable rich-message composition as the leading candidate for the next numbered localization phase after this correction is merged and validated. It does not design or implement that mechanism. Phase 55 remains on hold.
+
+Validation actually run:
+
+- `npm run check` passed: 86 JavaScript files syntax-checked, all static relative imports resolved, and all 38 test files / 501 tests passed with zero failures, skips, cancellations, or todos;
+- `git diff --check origin/main` passed with no output;
+- `git diff --name-only origin/main` contained exactly `docs/AI_PROJECT_CONTEXT.md`, `docs/ARCHITECTURE.md`, and `docs/REVIEW_HISTORY.md`;
+- browser QA was not rerun because Phase 68.1 changes documentation only. The recorded fresh deployed QA is post-merge Phase 68 evidence, not Phase 68.1 implementation evidence.
 
 # Current next step
 
-Phase 68 is implemented and locally verified. Phase 55 remains on hold. Commit or publish only when separately requested.
+Phase 68.1 is implemented and locally validated as a documentation-only correction. After Phase 68.1 is merged, the leading candidate for the next numbered localization phase is safe reorderable rich-message composition. Phase 55 remains on hold. Commit or publish only when separately requested.
