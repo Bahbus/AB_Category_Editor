@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: AB Category Editor Roadmap
+    url: https://github.com/users/Bahbus/projects/2
+    about: Review active, deferred, and completed planning work before opening a duplicate issue.

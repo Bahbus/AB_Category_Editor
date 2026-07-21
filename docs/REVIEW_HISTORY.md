@@ -1736,4 +1736,34 @@ Validation actually run:
 
 # Current next step
 
-Keep Phase 55 on hold. After this Phase 72.1 documentation correction merges, return to the standard full review before selecting the next bounded localization or UI phase.
+Phase 72.1 merged through PR #118 at `d140e21f2726eb892b52f56f1f36efde44d4f0ea`.
+
+## Phase 73
+
+Phase 73 moves operational planning from conversational/local memory into a public GitHub Project while retaining committed code and the three durable documents as their appropriate authorities.
+
+Implementation on `agent/phase-73-github-project-governance` from freshly fetched Phase 72.1 `origin/main`:
+
+- created and publicly linked [AB Category Editor Roadmap](https://github.com/users/Bahbus/projects/2), leaving the unrelated empty/closed personal Project #1 untouched;
+- kept the Project schema small: built-in `Status`; custom `Priority` (`Next`, `Soon`, `Later`, `On Hold`); `Area` (`Localization`, `UI/UX`, `Reliability`, `Documentation`, `Presets/Data`, `Infrastructure`); and free-text `Phase`;
+- verified the Project's enabled built-in workflows for item-added defaults, closed items, merged PRs, linked PRs, sub-issues, and issue closing;
+- avoided a repository Action and long-lived personal-token secret because repository `GITHUB_TOKEN` cannot write the user-owned Project and the built-in workflows cover the intended lifecycle;
+- created repository issues #119–#128 and added them to the Project with deliberate field values: active Phase 73; the four remaining localization stages; Phase 55 on hold; empty-sidebar and pill/lookup UI candidates; a real-browser harness evaluation; and the eventual Wiki/README migration;
+- added `roadmap`, `phase`, `on hold`, `localization`, `ui/ux`, `infrastructure`, `preset/data`, and `reliability` labels while reusing the established `documentation` and `enhancement` labels;
+- added structured numbered-phase and review-finding issue forms plus a public-friendly general triage form for bugs, data/compatibility risks, accessibility, UI, features, documentation, and questions; the general form requires a reproducible/proposed workflow, expected/actual behavior, app source, environment, sanitized evidence guidance, and privacy/duplicate checks without internal phase jargon;
+- disabled blank issues, linked the Project from issue configuration and README, and added a ready-for-review PR template requiring a closing issue link, actual verification, all three durable-document updates, and Project synchronization;
+- added direct repository-governance coverage for the canonical Project links and task/PR contracts;
+- changed the publication default from draft to ready for review. PRs must link their issue so Project automation can track and complete the work.
+
+Validation actually run:
+
+- focused `test/repositoryGovernance.test.mjs` passed all 5 tests;
+- `npm run check` passed: 92 JavaScript files syntax-checked, all static relative imports resolved, and all 42 test files / 524 tests passed with zero failures, skips, cancellations, or todos;
+- the four new issue-template YAML files and existing Project verification workflow parsed successfully;
+- live Project inspection confirmed public visibility, repository linkage, ten repository-issue items, intended Status/Priority/Area/Phase values, and six enabled built-in workflows;
+- browser QA was not run because repository templates, planning metadata, labels/issues/Project state, and documentation do not change the application runtime;
+- after adding new files to intent-to-add visibility, final `git diff --check origin/main` passed with no output; complete diff inspection covered all nine changed files and found no unrelated runtime or workflow change.
+
+# Current next step
+
+Phase 73 implementation and validation are complete; publication remains separate. After merge, run the standard deep review, reconcile the Roadmap, and select the next numbered phase from verified `Soon` candidates. Keep issue #125 / Phase 55 on hold.

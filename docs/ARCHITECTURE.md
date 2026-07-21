@@ -852,3 +852,34 @@ Remaining sequence:
 2. Add a persisted locale preference and fallback UI through application state/orchestration.
 3. Add locale key-parity tests when another catalog exists.
 4. Localize generated descriptions separately.
+
+---
+
+## 18. Repository planning and delivery architecture
+
+The public [AB Category Editor Roadmap](https://github.com/users/Bahbus/projects/2) is the operational planning layer. Committed code remains the implementation source of truth, while repository issues provide durable task/evidence history and the three project documents retain behavioral contracts, architecture, and phase results.
+
+The Project uses built-in `Status` plus custom `Priority`, `Area`, and `Phase` fields. Durable candidates are repository issues labeled `roadmap`; numbered work also uses `phase`. Project-only draft cards are avoided because repository issues can link PRs, close automatically, retain discussion, and remain useful if the Project is reorganized.
+
+Review is a synchronization boundary:
+
+1. fetch and inspect live `main` plus the durable documents;
+2. reconcile open issues and Project fields against verified code/review evidence;
+3. create or update issues without promoting speculation to a bug;
+4. select one coherent next item, assign its Phase, and move it to `In Progress`;
+5. hand the written task to its own planning thread.
+
+Coding phases update the three durable documents and Project issue as part of acceptance, record new deferred findings as separate issues, and publish a ready-for-review PR with a closing link to the phase issue. Enabled GitHub Project workflows handle item-added defaults, linked PRs, merged PRs, closed items, sub-issues, and issue closing.
+
+No repository Actions workflow stores a personal Projects token. GitHub's repository-scoped `GITHUB_TOKEN` cannot write a user-owned Project, and the current lifecycle is covered by built-in Project automation plus explicit task/PR templates. This avoids adding a broad, long-lived credential merely to shuffle cards.
+
+Repository governance surfaces:
+
+- `.github/ISSUE_TEMPLATE/phase.yml` — numbered phase evidence, scope, contracts, verification, docs, Project, and PR-link requirements;
+- `.github/ISSUE_TEMPLATE/review-finding.yml` — skeptical review classification and candidate-phase boundary;
+- `.github/ISSUE_TEMPLATE/general.yml` — public and maintainer triage for bugs, data compatibility, accessibility, UI, features, documentation, and questions, with sanitized evidence and environment guidance;
+- `.github/ISSUE_TEMPLATE/config.yml` — disables unstructured blank issues and links the canonical Roadmap;
+- `.github/pull_request_template.md` — closing issue link, actual verification, durable synchronization, and ready-for-review contract;
+- `test/repositoryGovernance.test.mjs` — direct source coverage for those repository workflow contracts.
+
+Phase 73 validation includes focused governance coverage for internal task/review contracts, the public triage form, canonical Project links, and ready-for-review PR behavior. The issue/workflow YAML is parsed separately. Live Project inspection confirms the public linked Project, ten repository-issue items, intended field values, and all six enabled built-in workflows. Browser QA is not applicable because Phase 73 changes repository planning/delivery metadata and documentation, not application runtime behavior.

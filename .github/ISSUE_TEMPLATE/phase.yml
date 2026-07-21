@@ -1,0 +1,64 @@
+name: Numbered phase
+description: Plan a numbered implementation or follow-up phase from a verified review finding.
+title: "Phase X: "
+labels:
+  - roadmap
+  - phase
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Create this issue from the current GitHub Project review decision. Add it to the **AB Category Editor Roadmap**, set its Priority, Area, and Phase fields, and keep those fields current while work proceeds.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: State the verified problem or bounded improvement and the intended outcome.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Review evidence and Project decision
+      description: Record the evidence that justified this phase and identify any related Project issue or deferred item.
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Implementation
+      description: Provide the precise in-scope changes and explicit exclusions.
+    validations:
+      required: true
+
+  - type: textarea
+    id: contracts
+    attributes:
+      label: Behavioral contracts
+      description: List the data, dirty-state, focus, accessibility, responsive, compatibility, security, and architectural behavior that must remain unchanged.
+    validations:
+      required: true
+
+  - type: textarea
+    id: verification
+    attributes:
+      label: Verification
+      description: Include focused coverage, npm run check, diff checks, and browser QA requirements or an honest reason browser QA is not applicable.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: completion
+    attributes:
+      label: Completion synchronization
+      description: These are acceptance requirements, not optional bookkeeping.
+      options:
+        - label: Update docs/AI_PROJECT_CONTEXT.md, docs/ARCHITECTURE.md, and docs/REVIEW_HISTORY.md with actual implementation and validation results.
+          required: true
+        - label: Update the Roadmap item fields and add any newly verified deferred work as a separate repository issue.
+          required: true
+        - label: Link the pull request to this issue with a closing keyword so the Project workflows can complete both items after merge.
+          required: true

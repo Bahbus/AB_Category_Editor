@@ -4,6 +4,8 @@ A browser-based, dependency-free editor for AetherBags category exports for FFXI
 
 Published page: <https://bahbus.github.io/AB_Category_Editor/>
 
+Roadmap: <https://github.com/users/Bahbus/projects/2>
+
 ## Features
 
 - Import/paste AetherBags gzip+Base64 category data, or upload text/Base64/JSON exports.
@@ -36,6 +38,7 @@ Published page: <https://bahbus.github.io/AB_Category_Editor/>
 
 - Keep the app dependency-free and GitHub Pages-compatible.
 - Any user/config-provided values inserted into `innerHTML` must be escaped with `escapeHtml()` first. Prefer `textContent` when markup is not needed.
+- Check the linked Roadmap before planning work. Numbered phases and review findings use repository issues so they can carry evidence, link to ready-for-review pull requests, and remain synchronized with Project status.
 
 ## Development checks
 
