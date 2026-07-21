@@ -34,15 +34,14 @@ test('bundled preset metadata points at the expected preset payloads', () => {
   assert.ok(advanced);
 
   assert.equal(basic.id, 'basic');
-  assert.equal(basic.label, 'Load basic presets');
   assert.equal(basic.sourceLabel, 'Basic presets');
   assert.equal(basic.data, BASIC_PRESET_BASE64);
 
   assert.equal(advanced.id, 'advanced');
-  assert.equal(advanced.label, 'Load advanced presets');
   assert.equal(advanced.sourceLabel, 'Advanced presets');
   assert.equal(advanced.data, ADVANCED_PRESET_BASE64);
 
+  assert.equal(PRESETS.some(preset => Object.hasOwn(preset, 'label')), false);
   assert.equal(new Set(PRESETS.map(preset => preset.id)).size, PRESETS.length);
 });
 
