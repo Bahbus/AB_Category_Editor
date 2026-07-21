@@ -1651,15 +1651,45 @@ Validation actually run:
 
 ## Phase 70.1
 
-Phase 70.1 resynchronizes the three durable project documents with the merged and post-merge-validated Phase 70 state. It changes documentation only: no runtime source, tests, styles, workflows, package metadata, presets, localization catalogs, or application behavior. It preserves the Phase 55 hold and does not define Phase 71.
+Phase 70.1 merged through PR #115 at `e458689777ac34ac8fbcabdf1d14bbb24907ad0d`. It resynchronized the three durable project documents with the merged and post-merge-validated Phase 70 state and changed only those documents: no runtime source, tests, styles, workflows, package metadata, presets, localization catalogs, or application behavior.
 
 Validation actually run:
 
+- both PR verification checks passed;
+- post-merge Project verification run `29859389669` and Pages deployment run `29859388338` passed;
+- the post-merge review reran `npm run check`: 89 JavaScript files passed syntax checking, all static relative imports resolved, and all 40 test files / 511 tests passed with zero failures, skips, cancellations, or todos;
+- `git diff --check origin/main` passed and the reviewed tree matched `origin/main`;
+- the merged Phase 70.1 tree changed only `docs/AI_PROJECT_CONTEXT.md`, `docs/ARCHITECTURE.md`, and `docs/REVIEW_HISTORY.md`;
 - `npm run check` passed: 89 JavaScript files passed syntax checking, all static relative imports resolved, and all 40 test files / 511 tests passed with zero failures, skips, cancellations, or todos;
 - `git diff --check origin/main` passed with no output;
 - `git diff --name-only origin/main` contained exactly `docs/AI_PROJECT_CONTEXT.md`, `docs/ARCHITECTURE.md`, and `docs/REVIEW_HISTORY.md`;
 - browser QA was not rerun because Phase 70.1 changes documentation only. The recorded deployed QA is Phase 70 post-merge review evidence, not Phase 70.1 implementation evidence.
 
+## Phase 71
+
+The post-Phase-70.1 accessibility review confirmed that ordinary sidebar selection correctly changed the selected category but destroyed the activated `.cat-item` during `renderAll()`, leaving both pointer and keyboard activation focused on `document.body`.
+
+Resolution on `agent/phase-71-sidebar-selection-focus-continuity` from freshly fetched Phase 70.1 `origin/main` at `e458689777ac34ac8fbcabdf1d14bbb24907ad0d`:
+
+- kept category selection and focus recovery inside `src/ui/categoryList.js`;
+- retained the exact active-field commit, selected-index update, and full-render sequence, then queried the newly rendered `.cat-item[aria-current="true"]` and focused it only while connected;
+- reused the one existing selection handler for pointer click, Enter, and Space, including stable re-selection of the already selected category;
+- avoided category names, IDs, stored node references, timeouts, roving tabindex, element-type changes, or generalized focus infrastructure;
+- left search input, validation/list refreshes, name edits, drag/drop, structural-action focus planning, and unrelated rerenders outside the recovery path;
+- preserved selection, render count/order, active editor updates, search filtering, automatic renumbering, dirty/no-op behavior, category identity, list semantics, `role="button"`, `tabIndex`, `aria-current`, accessible names, and theme focus styling;
+- added direct fake-DOM coverage with duplicate names and blank IDs that proves click, Enter, Space, and repeated selection each render once, disconnect the activated node, and focus the connected newly rendered selected entry.
+
+Validation actually run:
+
+- focused `test/categoryList.test.mjs` and `test/uiAccessibilitySource.test.mjs` coverage passed all 43 tests;
+- `npm run check` passed: 89 JavaScript files syntax-checked, all static relative imports resolved, and all 40 test files / 512 tests passed with zero failures, skips, cancellations, or todos;
+- `git diff --check origin/main` passed with no output;
+- fresh local in-app browser QA passed pointer selection, Enter selection, Space selection, repeated Equipment selection, matching editor heading/content, and unchanged `No changes` state;
+- category search retained focus while filtering to two entries and did not focus a sidebar item when the selected Equipment entry was filtered out;
+- 1280px, 840px, and 390px each retained equal body/document/sidebar client and scroll widths plus the selected entry's solid 2px outline and visible halo;
+- no application warning or error appeared. Electron's generic development CSP warning was the only warning. The temporary viewport override was reset and the QA tab was closed;
+- complete diff inspection found no dependency, build, schema, preset, import/export, lookup, converter, ordering, localization-catalog, CSP, workflow, style, or unrelated UI change.
+
 # Current next step
 
-Phase 70 is merged and post-merge validated. Phase 70.1 documentation resynchronization is complete and awaits a separate publication request. Remaining localization work begins with bounded broader UI/status message-family extraction, followed by persisted locale preference/fallback UI, second-catalog key parity, and generated-description localization as a separate concern. Phase 55 remains on hold; no Phase 71 scope is defined here.
+Phase 71 implementation and local validation are complete and await a separate publication request. Keep Phase 55 on hold. Broader localization remains on the roadmap after this accessibility repair, beginning with bounded UI/status message-family extraction; no localization-catalog work is part of Phase 71.

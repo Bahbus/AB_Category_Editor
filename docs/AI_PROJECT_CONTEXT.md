@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 70 merged through PR #114 at `d337e7f4d5c7f4f933a9be9c90d4f80ffe71610e` and passed post-merge review. The existing single application-owned translator now also localizes the persistent document/brand identity, sidebar search and category-action chrome, and topbar groups/actions through the focused UI-owned `src/ui/applicationChrome.js` boundary. Immediate matching English fallback remains in `index.html`; translated values use only `textContent`, `document.title`, and explicit plain-text attributes. Shared neutral action keys replace obsolete Help-owned action-label keys while preserving exact Help and Lookup Cache behavior. Phase 70 changed 13 files with 313 insertions and 39 deletions from the Phase 69.1 merge baseline. Both PR verification checks, post-merge Project verification run `29850360304`, and Pages deployment run `29850356841` passed. Fresh review `npm run check` syntax-checked 89 JavaScript files, resolved all static relative imports, and passed all 40 test files / 511 tests with zero failures, skips, cancellations, or todos; `git diff --check origin/main` passed and the reviewed worktree matched `origin/main`. Fresh deployed QA passed exact chrome copy/accessibility, search Clear/Escape, contextual disabled actions, Preferences/Help focus return, and zero horizontal overflow at 1280px, 840px, and 390px. Phase 55 remains on hold.
+> **Current state:** Phase 70.1 merged through PR #115 at `e458689777ac34ac8fbcabdf1d14bbb24907ad0d`. Both PR verification checks, post-merge Project verification run `29859389669`, and Pages deployment run `29859388338` passed. The post-merge review reran `npm run check`: 89 JavaScript files, all static relative imports, and 40 test files / 511 tests passed with zero failures, skips, cancellations, or todos; `git diff --check origin/main` passed, the reviewed tree matched `origin/main`, and Phase 70.1 changed only the three durable documents. Phase 71 now keeps ordinary category selection in `src/ui/categoryList.js` and restores focus after its existing full render to the newly rendered `.cat-item[aria-current="true"]` when that target is still connected. Pointer, Enter, and Space share the same path; unrelated list rerenders do not participate. Focused coverage passed 43 tests, and `npm run check` passed 89 JavaScript files / 40 test files / 512 tests. Fresh local browser QA passed pointer, Enter, Space, repeated selection, editor updates, search-focus preservation, visible category focus, and zero horizontal overflow at 1280px, 840px, and 390px. Implementation is complete; publication remains separate. Phase 55 remains on hold, and broader localization remains on the roadmap after this accessibility repair.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -1083,13 +1083,37 @@ Validation actually run:
 - `git diff --check origin/main` passed and the reviewed worktree had no diff from `origin/main`;
 - fresh deployed QA at `https://bahbus.github.io/AB_Category_Editor/` confirmed the expected localized persistent chrome and accessible names, search Clear and Escape behavior, Preferences and Help focus return, contextual disabled actions, and no horizontal overflow at 1280px, 840px, or 390px.
 
-## Phase 70.1 current implementation
+## Phase 70.1 merged documentation correction
 
-Phase 70.1 resynchronizes the three durable project documents with the merged and post-merge-validated Phase 70 state. It changes documentation only: no runtime source, tests, styles, workflows, package metadata, presets, localization catalogs, or application behavior. Phase 55 remains on hold, and no Phase 71 scope is introduced.
+Phase 70.1 merged through PR #115 at `e458689777ac34ac8fbcabdf1d14bbb24907ad0d`. It resynchronized the three durable project documents with the merged and post-merge-validated Phase 70 state and changed only those documents: no runtime source, tests, styles, workflows, package metadata, presets, localization catalogs, or application behavior.
 
 Validation actually run:
 
+- both PR verification checks passed;
+- post-merge Project verification run `29859389669` and Pages deployment run `29859388338` passed;
+- the post-merge review reran `npm run check`: 89 JavaScript files passed syntax checking, all static relative imports resolved, and all 40 test files / 511 tests passed with zero failures, skips, cancellations, or todos;
+- `git diff --check origin/main` passed and the reviewed tree matched `origin/main`;
+- the final merged Phase 70.1 change contained only `docs/AI_PROJECT_CONTEXT.md`, `docs/ARCHITECTURE.md`, and `docs/REVIEW_HISTORY.md`;
 - `npm run check` passed: 89 JavaScript files passed syntax checking, all static relative imports resolved, and all 40 test files / 511 tests passed with zero failures, skips, cancellations, or todos;
 - `git diff --check origin/main` passed with no output;
 - `git diff --name-only origin/main` contained exactly `docs/AI_PROJECT_CONTEXT.md`, `docs/ARCHITECTURE.md`, and `docs/REVIEW_HISTORY.md`;
 - browser QA was not rerun because Phase 70.1 changes documentation only. The recorded deployed QA is Phase 70 post-merge review evidence, not Phase 70.1 implementation evidence.
+
+## Phase 71 current implementation
+
+- Ordinary category selection remains owned by `src/ui/categoryList.js`. After the existing `commitActiveField()` → selected-index update → `renderAll()` sequence, the shared selection handler queries the unique rendered selection contract `.cat-item[aria-current="true"]` and focuses it only when it remains in the document.
+- Pointer click, Enter, and Space continue through that one handler. The recovery does not use category names, IDs, or the destroyed activated node; duplicate or blank identity fields cannot redirect it.
+- The recovery exists only in explicit category selection. Search input, validation/list refreshes, name edits, drag/drop, and unrelated sidebar rerenders retain their existing focus behavior.
+- Selection index, full-render count/order, editor updates, search filtering, drag/drop, renumbering, dirty/no-op behavior, category identity, list semantics, roles, `tabIndex`, `aria-current`, accessible names, and theme focus styling are unchanged.
+- A direct dependency-free fake-DOM test proves click, Enter, Space, and repeated selection each focus a connected newly rendered selected entry after one full render. It uses categories with duplicate names and blank IDs and proves the stale activated node is disconnected.
+
+Validation actually run:
+
+- focused `test/categoryList.test.mjs` and `test/uiAccessibilitySource.test.mjs` coverage passed all 43 tests;
+- `npm run check` passed: 89 JavaScript files syntax-checked, all static relative imports resolved, and all 40 test files / 512 tests passed with zero failures, skips, cancellations, or todos;
+- `git diff --check origin/main` passed with no output;
+- local in-app browser QA in a fresh app tab passed pointer selection, Enter selection, Space selection, repeated selection, matching selected editor content, and unchanged `No changes` saved state;
+- search retained focus while filtering to two Materia-related entries even though the selected Equipment entry was filtered out, and clearing search restored all 24 entries without focus theft;
+- at 1280px, 840px, and 390px, body, document, and sidebar client widths matched scroll widths. The focused selected entry retained a solid 2px focus outline and visible halo at every width;
+- no application warning or error appeared. Electron's generic development CSP warning was the only warning. The temporary viewport override was reset and the QA tab was closed;
+- complete diff inspection found no dependency, build, schema, preset, import/export, lookup, converter, ordering, localization-catalog, CSP, workflow, style, or unrelated UI change. Phase 55 remains on hold, and broader localization remains deferred until after this repair.
