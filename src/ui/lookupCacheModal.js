@@ -43,5 +43,5 @@ export function showLookupCacheModal({ lookupCacheStats, clearLookupCache, isLoo
     }
     closeModal();
   };
-  openModal(translate('lookupCache.title'), wrap, { onClose: unsubscribe });
+  openModal(translate('action.lookupCache'), wrap, { onClose: unsubscribe });
 }

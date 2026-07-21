@@ -10,10 +10,10 @@ test('English lookup returns established localized modal copy', () => {
   assert.equal(translate('preferences.title'), 'Editor Preferences');
   assert.equal(translate('preferences.theme.highContrast.label'), 'High Contrast');
   assert.equal(translate('preferences.saved'), 'Editor preferences saved locally.');
-  assert.equal(translate('help.title'), 'About / Help');
+  assert.equal(translate('action.aboutHelp'), 'About / Help');
   assert.equal(translate('help.workflow.download.message', { action: 'Download', extension: '.txt' }), 'Download saves the updated gzip+Base64 text as a local .txt file.');
   assert.equal(translate('help.privacy.repository'), 'The app does not upload the full category config to this repository.');
-  assert.equal(translate('lookupCache.title'), 'Lookup Cache');
+  assert.equal(translate('action.lookupCache'), 'Lookup Cache');
   assert.equal(translate('lookupCache.unavailable.race'), 'The cache was not cleared because a lookup or scan is still running.');
 });
 

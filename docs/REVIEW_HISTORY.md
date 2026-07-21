@@ -1621,6 +1621,29 @@ Validation actually run:
 - `git diff --name-only origin/main` contained exactly `docs/AI_PROJECT_CONTEXT.md`, `docs/ARCHITECTURE.md`, and `docs/REVIEW_HISTORY.md`;
 - browser QA was not rerun because Phase 69.1 changes documentation only. The recorded fresh deployed Help QA is Phase 69 post-merge review evidence, not Phase 69.1 implementation evidence.
 
+## Phase 70
+
+Phase 70 localizes the persistent application chrome on `agent/phase-70-application-chrome-localization`, based on freshly fetched `origin/main` at the Phase 69.1 merge `9e8d44e617d10f9db6dbec678296b01a77413c93`. Publication remains separate.
+
+Resolution:
+
+- added focused UI-owned `src/ui/applicationChrome.js`, injected with the existing single application translator and run once before event binding/rendering;
+- migrated exactly the document title/brand, sidebar search and global category actions, and topbar group/action strings while retaining exact English output in both the catalog-backed runtime and immediate `index.html` fallback;
+- used only `textContent`, `document.title`, and explicit plain-text `placeholder`, `aria-label`, and `title` attributes, with no HTML parsing, markup catalog values, sanitizer, localization-mechanics import, or orchestration import;
+- promoted reusable Help-owned action labels and Help/Lookup Cache titles to neutral shared `action.*` keys, removed the obsolete duplicates, and preserved exact Help text, `4/4/16/11/3` semantics, rich-message ordering/allowlist behavior, and modal behavior;
+- preserved all IDs, classes, roles, button types, disabled-state ownership, grouping/order, event wiring, focus, dirty state, data behavior, CSP/startup/style ordering, themes/density/responsive rules, dependencies, schemas, presets, and Phase 55 hold;
+- left dynamic statuses, list/editor/search prose, empty-state prose, modal defaults/infrastructure, busy messages, validation/import/export text, Regex converter copy, generated descriptions, locale persistence/selection, second catalogs, parity, and pluralization outside this phase.
+
+Validation actually run:
+
+- focused chrome/localization/Help/accessibility/application/startup/CSP coverage passed all 115 tests;
+- `npm run check` passed: 89 JavaScript files syntax-checked, all static relative imports resolved, and all 40 test files / 511 tests passed with zero failures, skips, cancellations, or todos;
+- `git diff --check origin/main` passed before and after durable-document updates;
+- direct tests proved exact runtime English, every translator-backed sink, matching HTML fallback, shared-key cleanup, safe sink restrictions, single-translator ownership, startup placement, and retained Help behavior;
+- in-app browser QA passed exact visible/accessibility chrome, search clear/Escape with focus retention, empty and one-category contextual global actions, Preferences and About / Help open/close focus return, Help `4/4/16/11/3` semantics, and zero body/document/topbar/sidebar horizontal overflow at the default 1506px desktop viewport, 840px, and 390px;
+- no application warning, error, or CSP violation appeared. Electron's generic development CSP warning was the only warning. The temporary viewport override was reset, the QA tab was closed, and no preference was changed;
+- CI, Pages, and PR publication were not run because implementation and publication remain separate.
+
 # Current next step
 
-Phase 69 is merged and post-merge validated. The remaining localization sequence begins with bounded static-chrome and broader UI/status message-family extraction, followed by persisted locale preference/fallback UI, second-catalog key parity, and generated-description localization as a separate concern. Phase 55 remains on hold.
+Phase 70 is implemented and locally validated; publication is the separate next step only when explicitly requested. Remaining localization work begins with bounded broader UI/status message-family extraction, followed by persisted locale preference/fallback UI, second-catalog key parity, and generated-description localization as a separate concern. Phase 55 remains on hold.
