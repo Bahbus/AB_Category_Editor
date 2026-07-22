@@ -19,8 +19,41 @@ const pullRequestTemplate = read('.github/pull_request_template.md');
 const readme = read('README.md');
 
 const PROJECT_URL = 'https://github.com/users/Bahbus/projects/2';
+const STRING_SCALAR_KEYS = new Set([
+  'name', 'description', 'title', 'id', 'type', 'label', 'placeholder', 'value', 'render',
+]);
 
-function assertFormContract(path, labels, ids) {
+function assertNoBlankStringScalars(path, source) {
+  for (const [index, line] of source.split('\n').entries()) {
+    const scalar = line.match(/^\s*([a-z_]+):\s*(.*)$/i);
+    if (!scalar || !STRING_SCALAR_KEYS.has(scalar[1])) continue;
+    const value = scalar[2].trim();
+    const blankQuotedString = value.match(/^(["'])(\s*)\1(?:\s+#.*)?$/);
+    assert.equal(
+      value === '' || Boolean(blankQuotedString),
+      false,
+      `${path}:${index + 1} must omit optional string keys instead of assigning an empty value`,
+    );
+  }
+}
+
+function assertRequiredFields(form, requiredIds) {
+  for (const id of requiredIds) {
+    const start = form.indexOf(`\n    id: ${id}\n`);
+    assert.notEqual(start, -1, `missing required field ${id}`);
+    const nextBlock = form.indexOf('\n  - type:', start + 1);
+    const block = form.slice(start, nextBlock === -1 ? undefined : nextBlock);
+    if (block.includes('\n      options:')) {
+      const options = block.match(/^\s+- label: /gm) ?? [];
+      const requiredOptions = block.match(/^\s+required: true\b/gm) ?? [];
+      assert.equal(requiredOptions.length, options.length, `${id} options must remain required`);
+    } else {
+      assert.match(block, /\n\s+validations:\n\s+required: true\b/, `${id} must remain required`);
+    }
+  }
+}
+
+function assertFormContract(path, labels, ids, requiredIds) {
   const form = publicForms.get(path);
   for (const label of labels) {
     assert.match(form, new RegExp(`labels:[\\s\\S]*- ${label.replaceAll('/', '\\/')}\\b`));
@@ -28,6 +61,7 @@ function assertFormContract(path, labels, ids) {
   for (const id of ids) {
     assert.match(form, new RegExp(`id: ${id}\\b`));
   }
+  assertRequiredFields(form, requiredIds);
 }
 
 test('the chooser links planned work and private security reporting in plain language', () => {
@@ -56,10 +90,24 @@ test('the public chooser contains focused forms and no internal workflow forms',
   assert.doesNotMatch(publicText, /numbered phase|phase boundary|review finding|roadmap candidate|project synchronization|implementation acceptance/i);
 });
 
+test('public forms omit empty and whitespace-only string scalars rejected by GitHub', () => {
+  for (const [path, form] of publicForms) assertNoBlankStringScalars(path, form);
+  assert.throws(
+    () => assertNoBlankStringScalars('empty.yml', 'name: Example\ntitle: ""\nbody:\n'),
+    /must omit optional string keys/,
+  );
+  assert.throws(
+    () => assertNoBlankStringScalars('whitespace.yml', "name: Example\ntitle: '   '\nbody:\n"),
+    /must omit optional string keys/,
+  );
+});
+
 test('the bug form collects reproduction and diagnostic details safely', () => {
   assertFormContract(`${PUBLIC_FORM_DIR}/bug.yml`, ['bug', 'triage'], [
     'summary', 'steps', 'expected', 'actual', 'app_source', 'environment',
     'aetherbags_version', 'evidence', 'checks',
+  ], [
+    'summary', 'steps', 'expected', 'actual', 'app_source', 'environment', 'checks',
   ]);
   const form = publicForms.get(`${PUBLIC_FORM_DIR}/bug.yml`);
   assert.match(form, /published website or a local copy/i);
@@ -70,6 +118,8 @@ test('the bug form collects reproduction and diagnostic details safely', () => {
 test('the improvement form asks about the desired result without requiring implementation knowledge', () => {
   assertFormContract(`${PUBLIC_FORM_DIR}/improvement.yml`, ['enhancement', 'triage'], [
     'goal', 'current_workflow', 'proposed_change', 'benefit', 'alternatives', 'evidence', 'checks',
+  ], [
+    'goal', 'current_workflow', 'proposed_change', 'benefit', 'checks',
   ]);
   const form = publicForms.get(`${PUBLIC_FORM_DIR}/improvement.yml`);
   assert.match(form, /you do not need to know how the editor is built/i);
@@ -80,6 +130,8 @@ test('the accessibility form collects the affected interaction and relevant envi
   assertFormContract(`${PUBLIC_FORM_DIR}/accessibility.yml`, ['ui/ux', 'triage'], [
     'summary', 'steps', 'expected', 'actual', 'assistive_technology', 'app_source',
     'environment', 'evidence', 'checks',
+  ], [
+    'summary', 'steps', 'expected', 'actual', 'app_source', 'environment', 'checks',
   ]);
   const form = publicForms.get(`${PUBLIC_FORM_DIR}/accessibility.yml`);
   assert.match(form, /no accessibility expertise is required/i);
@@ -89,6 +141,8 @@ test('the accessibility form collects the affected interaction and relevant envi
 test('the documentation form identifies the location, problem, and useful correction', () => {
   assertFormContract(`${PUBLIC_FORM_DIR}/documentation.yml`, ['documentation', 'triage'], [
     'location', 'problem', 'suggested_change', 'context', 'checks',
+  ], [
+    'location', 'problem', 'suggested_change', 'checks',
   ]);
   const form = publicForms.get(`${PUBLIC_FORM_DIR}/documentation.yml`);
   assert.match(form, /URL or section name/);
@@ -98,6 +152,8 @@ test('the documentation form identifies the location, problem, and useful correc
 test('the general form preserves a safe path for questions and uncategorized problems', () => {
   assertFormContract(`${PUBLIC_FORM_DIR}/general.yml`, ['question', 'triage'], [
     'summary', 'details', 'app_source', 'environment', 'evidence', 'checks',
+  ], [
+    'summary', 'details', 'checks',
   ]);
   const form = publicForms.get(`${PUBLIC_FORM_DIR}/general.yml`);
   assert.match(form, /none of the other choices fit/i);

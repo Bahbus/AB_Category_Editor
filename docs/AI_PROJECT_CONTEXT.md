@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 73 merged through PR #129 at `701b4cc34af1c1b7ecfead07e03767c186ba828c`, establishing the public [AB Category Editor Roadmap](https://github.com/users/Bahbus/projects/2) as the operational planning authority alongside committed code and these three durable documents. Repository issue #130 tracks active Phase 73.1 work to separate the public issue choices from the maintainer-only numbered-phase convention; Phase 55 remains represented by on-hold issue #125 rather than relying only on local or conversational memory.
+> **Current state:** Phase 73.1 merged through PR #131 at `0892b97f8138f268e94f6359a208306ccb84fd14`, separating five friendly public issue forms from the maintainer-only numbered-phase convention. Issue #132 tracks Phase 73.2 because GitHub rejects all five merged forms when the optional `title` string is present but empty; source/schema correction and default-branch live chooser verification remain deliberately separate. Phase 55 remains represented by on-hold issue #125 rather than relying only on local or conversational memory.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -1192,3 +1192,21 @@ Phase 73 merged through ready-for-review PR #129 at `701b4cc34af1c1b7ecfead07e03
 - Expanded governance coverage from five to nine tests for exact chooser inventory, focused form fields/labels, plain public language, private security routing, the off-chooser maintainer workflow, and the unchanged ready-for-review PR contract.
 - Issue #130 remains Phase `73.1`, `Next`, `Infrastructure`, and `In Progress` in the live Project. Application runtime behavior and dependencies remain unchanged.
 - Focused governance coverage passed all 9 tests. PyYAML 6.0.3 parsed all six public chooser/form YAML files as mappings. `npm run check` passed with 92 JavaScript files, all static relative imports, and 42 test files / 528 tests with zero failures, skips, cancellations, or todos. Browser QA of the application was not run because no runtime file changed; live chooser inspection is reserved for the published branch.
+
+Phase 73.1 merged through ready-for-review PR #131 at `0892b97f8138f268e94f6359a208306ccb84fd14`. Post-merge live inspection found that GitHub rejected every public form, exposed Blank issue despite `blank_issues_enabled: false`, and reported `issue_template: null` through the community-profile API.
+
+## Phase 73.2 current implementation
+
+- The confirmed root cause was the optional empty scalar `title: ""` in all five public forms. GitHub's issue-form validator rejects empty and whitespace-only strings even though PyYAML accepts them as valid YAML.
+- Removed the optional `title` key from `bug.yml`, `improvement.yml`, `accessibility.yml`, `documentation.yml`, and `general.yml` without adding title prefixes or changing public names, descriptions, labels, questions, examples, security routing, or template taxonomy.
+- Audited the remaining form definitions against GitHub's current official issue-form syntax, form schema, and validation-error guidance. No further violation was confirmed: required top-level keys, permitted keys/types, non-Markdown inputs, unique IDs/labels, allowed ID characters, and distinct required checkbox options remain valid.
+- Strengthened `test/repositoryGovernance.test.mjs` so empty and whitespace-only string scalars fail, with direct synthetic regression examples, and so every established required text field and checkbox option remains explicitly guarded. Exact public inventory, friendly language, labels, security routing, maintainer phase workflow, and ready-for-review PR policy remain covered.
+- README was not changed because reporter or maintainer instructions did not change. No application runtime, dependency, data, import/export, localization, layout, accessibility behavior, security behavior, or template copy/taxonomy changed.
+
+Validation actually run:
+
+- PyYAML 6.0.3 parsed all six chooser/form YAML files as mappings;
+- focused `test/repositoryGovernance.test.mjs` passed all 10 tests;
+- `npm run check` passed: 92 JavaScript files syntax-checked, all static relative imports resolved, and all 42 test files / 529 tests passed with zero failures, skips, cancellations, or todos;
+- `git diff --check origin/main` passed before the durable-document update and must be rerun on the final complete diff;
+- source/schema proof is complete on the Phase 73.2 branch, but the default-branch chooser and community-profile API are not fixed or verified before merge. After merge, inspect all five live chooser entries and direct form URLs and confirm `issue_template` is detected; reopen Issue #132 if GitHub still rejects the forms.

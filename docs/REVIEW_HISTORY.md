@@ -1794,6 +1794,31 @@ Validation actually run:
 - live Project inspection confirmed Issue #130 at Phase `73.1`, Priority `Next`, Area `Infrastructure`, and Status `In Progress` before publication;
 - browser QA of the application was not run because no runtime file changed. Live GitHub chooser verification remains a separate post-publication check.
 
+Phase 73.1 merged through ready-for-review PR #131 at `0892b97f8138f268e94f6359a208306ccb84fd14`. The required live chooser inspection then confirmed a release-blocking repository-governance defect: all five public forms were rejected, Blank issue appeared despite `blank_issues_enabled: false`, direct form URLs did not render usable forms, and the community-profile API reported `issue_template: null`.
+
+## Phase 73.2
+
+Issue #132 traced the live failure to `title: ""` in every public form. GitHub's official validation guidance rejects empty or whitespace-only values whenever a field expects a string and directs maintainers to delete an optional key-value pair when it has no value. PyYAML 6.0.3 accepted the documents because this is a GitHub schema rule rather than a generic YAML syntax error; the Phase 73.1 tests never asserted the rule.
+
+Resolution on `agent/phase-73-2-restore-public-issue-forms` from freshly fetched Phase 73.1 `origin/main` at `0892b97f8138f268e94f6359a208306ccb84fd14`:
+
+- removed only the optional empty `title` key from `bug.yml`, `improvement.yml`, `accessibility.yml`, `documentation.yml`, and `general.yml`, without adding noisy title prefixes;
+- audited all remaining top-level and body definitions against GitHub's current official issue-form syntax, form schema, and common validation errors; confirmed no additional invalid key, type, ID, label, option, body, or required-value state;
+- added a focused source guard for empty and whitespace-only string scalars, direct synthetic regressions for both forms of invalid `title`, and explicit preservation checks for every required text field and required checkbox option;
+- preserved the exact five-form public inventory, labels, questions, required/optional split, friendly language, privacy guidance, private-security routing, disabled blank issues, both contact links, off-chooser maintainer phase workflow, and ready-for-review PR policy;
+- left README unchanged because user-facing reporting and maintainer instructions did not change;
+- changed no application runtime, dependency, data, import/export, localization, layout, accessibility behavior, security behavior, or template taxonomy/copy.
+
+Validation actually run:
+
+- PyYAML 6.0.3 parsed all six public chooser/form YAML files as mappings;
+- focused `test/repositoryGovernance.test.mjs` passed all 10 tests;
+- `npm run check` passed: 92 JavaScript files syntax-checked, all static relative imports resolved, and all 42 test files / 529 tests passed with zero failures, skips, cancellations, or todos;
+- `git diff --check origin/main` passed before the durable-document update and is rerun on the final complete diff;
+- browser QA of the application is not applicable because no runtime surface changed.
+
+Source/schema proof is complete on the Phase 73.2 branch. This does not prove the live chooser is restored: GitHub reads issue forms from the default branch. After merge, inspect all five chooser entries and direct form URLs and confirm the community-profile API detects issue templates. If GitHub still rejects any form, reopen Issue #132 rather than declaring success.
+
 # Current next step
 
-Complete full repository verification, publish Phase 73.1 directly ready for review with `Closes #130`, add the PR to the Project with current fields, and inspect the rendered GitHub issue chooser without merging the PR.
+Publish Phase 73.2 directly ready for review with `Closes #132`, add the PR to the Project with current fields, and do not merge it. After merge, perform the required live default-branch chooser, direct-URL, and community-profile API verification.

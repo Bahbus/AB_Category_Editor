@@ -1,6 +1,5 @@
 name: Documentation problem
 description: Tell us what is missing, unclear, incorrect, or out of date in the project guides.
-title: ""
 labels:
   - documentation
   - triage

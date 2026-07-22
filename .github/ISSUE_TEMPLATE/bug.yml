@@ -1,6 +1,5 @@
 name: Something is broken
 description: Tell us about a problem you can repeat or something that stopped working.
-title: ""
 labels:
   - bug
   - triage
