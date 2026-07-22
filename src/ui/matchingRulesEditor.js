@@ -5,13 +5,47 @@ import { normalizeRowIdValue, parseTypedRowIdValue } from '../rowIds.js';
 import { validateCategory, validateRegexPattern } from '../validation.js';
 import { listEditor } from './listEditor.js';
 
+const RARITY_MESSAGE_KEYS = new Map([
+  [1, 'matchingRules.rarity.common'],
+  [2, 'matchingRules.rarity.uncommon'],
+  [3, 'matchingRules.rarity.rare'],
+  [4, 'matchingRules.rarity.relic'],
+  [7, 'matchingRules.rarity.aetherial']
+]);
+
+export function createMatchingRuleMessages(translate) {
+  return Object.freeze({
+    allowedUiCategoryIds: Object.freeze({
+      title: translate('matchingRules.allowedUiCategoryIds.title'),
+      hint: translate('matchingRules.allowedUiCategoryIds.hint'),
+      error: translate('matchingRules.allowedUiCategoryIds.error')
+    }),
+    allowedItemIds: Object.freeze({
+      title: translate('matchingRules.allowedItemIds.title'),
+      hint: translate('matchingRules.allowedItemIds.hint'),
+      error: translate('matchingRules.allowedItemIds.error')
+    }),
+    allowedItemNamePatterns: Object.freeze({
+      title: translate('matchingRules.allowedItemNamePatterns.title'),
+      hint: translate('matchingRules.allowedItemNamePatterns.hint'),
+      placeholder: translate('matchingRules.allowedItemNamePatterns.placeholder'),
+      convert: translate('matchingRules.allowedItemNamePatterns.convert')
+    }),
+    allowedRarities: Object.freeze({
+      title: translate('matchingRules.allowedRarities.title'),
+      hint: translate('matchingRules.allowedRarities.hint'),
+      label: rarityId => translate(RARITY_MESSAGE_KEYS.get(rarityId))
+    })
+  });
+}
+
 function renderAllowedRaritiesEditor(category, deps) {
-  const { markDirty, onRulesChanged = () => {} } = deps;
+  const { markDirty, onRulesChanged = () => {}, messages } = deps;
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = `
-    <h3>Allowed Rarities</h3>
-    <p class="hint">Select the item rarities this category accepts. Leave all unchecked to ignore rarity.</p>
+    <h3>${escapeHtml(messages.title)}</h3>
+    <p class="hint">${escapeHtml(messages.hint)}</p>
   `;
 
   const grid = document.createElement('div');
@@ -23,7 +57,7 @@ function renderAllowedRaritiesEditor(category, deps) {
     label.className = 'check rarity-check';
     label.innerHTML = `
       <input type="checkbox" value="${rarity.id}" ${selected.has(rarity.id) ? 'checked' : ''}>
-      <span>${escapeHtml(rarity.label)}</span>
+      <span>${escapeHtml(messages.label(rarity.id))}</span>
     `;
     label.querySelector('input').onchange = () => {
       category.Rules.AllowedRarities = Array.from(grid.querySelectorAll('input[type="checkbox"]:checked'))
@@ -46,57 +80,62 @@ export function renderMatchingRulesEditor(category, deps = {}) {
     markDirty,
     onRulesChanged = () => {},
     openRegexToItemIdsTool,
-    listEditorDeps = {}
+    listEditorDeps = {},
+    translate
   } = deps;
+  const messages = createMatchingRuleMessages(translate);
   const rules = category.Rules;
   const ruleGrid = document.createElement('div');
   ruleGrid.className = 'grid cols-2';
 
-  const patternsCard = listEditor('Allowed Item Name Patterns', rules.AllowedItemNamePatterns, x => x, x => x, {
-    hint: 'Regex/name patterns matched against item names.',
+  const patternsCard = listEditor(messages.allowedItemNamePatterns.title, rules.AllowedItemNamePatterns, x => x, x => x, {
+    hint: messages.allowedItemNamePatterns.hint,
     markDirty,
     validateValue: validateRegexPattern,
     validateList: () => validateCategory(category, categories).filter(item => item.field === 'AllowedItemNamePatterns'),
     splitInputOnCommas: false,
-    inputPlaceholder: 'Add one regex/name pattern',
+    inputPlaceholder: messages.allowedItemNamePatterns.placeholder,
+    translate,
     onItemsChanged: () => onRulesChanged('name patterns changed')
   });
   const converterButton = document.createElement('button');
   converterButton.type = 'button';
   converterButton.className = 'pattern-converter-action';
-  converterButton.textContent = 'Convert patterns to Item IDs';
+  converterButton.textContent = messages.allowedItemNamePatterns.convert;
   converterButton.onclick = openRegexToItemIdsTool;
   requireScopedEl(patternsCard, '.list-editor-row', 'name patterns').appendChild(converterButton);
 
   ruleGrid.append(
-    listEditor('Allowed UI Category IDs', rules.AllowedUiCategoryIds, x => {
+    listEditor(messages.allowedUiCategoryIds.title, rules.AllowedUiCategoryIds, x => {
       const value = parseTypedRowIdValue(x);
-      if (value === null) throw new Error('UI category IDs must be exact integers from 0 through 4294967295.');
+      if (value === null) throw new Error(messages.allowedUiCategoryIds.error);
       return value;
     }, x => x, {
-      hint: 'Game ItemUICategory row IDs accepted by this category.',
+      hint: messages.allowedUiCategoryIds.hint,
       lookupSheet: 'ItemUICategory',
       validateList: () => validateCategory(category, categories).filter(item => item.field === 'AllowedUiCategoryIds'),
       dedupeValues: true,
       dedupeKey: normalizeRowIdValue,
       onItemsChanged: () => onRulesChanged('allowed UI category IDs changed'),
+      translate,
       ...listEditorDeps
     }),
-    listEditor('Allowed Item IDs', rules.AllowedItemIds, x => {
+    listEditor(messages.allowedItemIds.title, rules.AllowedItemIds, x => {
       const value = parseTypedRowIdValue(x);
-      if (value === null) throw new Error('Item IDs must be exact integers from 0 through 4294967295.');
+      if (value === null) throw new Error(messages.allowedItemIds.error);
       return value;
     }, x => x, {
-      hint: 'Specific Item row IDs accepted by this category.',
+      hint: messages.allowedItemIds.hint,
       lookupSheet: 'Item',
       validateList: () => validateCategory(category, categories).filter(item => item.field === 'AllowedItemIds'),
       dedupeValues: true,
       dedupeKey: normalizeRowIdValue,
       onItemsChanged: () => onRulesChanged('allowed item IDs changed'),
+      translate,
       ...listEditorDeps
     }),
     patternsCard,
-    renderAllowedRaritiesEditor(category, { markDirty, onRulesChanged })
+    renderAllowedRaritiesEditor(category, { markDirty, onRulesChanged, messages: messages.allowedRarities })
   );
 
   return ruleGrid;

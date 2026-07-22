@@ -30,6 +30,8 @@ test('category editor delegates matching-rule composition to its focused module'
 
   assert.match(categoryEditor, /import \{ renderMatchingRulesEditor \} from ['"]\.\/matchingRulesEditor\.js['"];/);
   assert.match(categoryEditor, /root\.appendChild\(renderMatchingRulesEditor\(cat, \{/);
+  assert.match(categoryEditor, /renderMatchingRulesEditor\(cat, \{[\s\S]*?listEditorDeps,[\s\S]*?translate/);
+  assert.match(categoryEditor, /renderItemOrderingEditor\(cat, \{[\s\S]*?listEditorDeps,[\s\S]*?translate/);
   assert.doesNotMatch(categoryEditor, /\blistEditor\(|renderAllowedRaritiesEditor|parseTypedRowIdValue|normalizeRowIdValue|Allowed Item Name Patterns|Allowed UI Category IDs|Allowed Item IDs|Allowed Rarities/);
   assert.match(matchingRulesEditor, /export function renderMatchingRulesEditor\(category, deps = \{\}\)/);
   assert.match(matchingRulesEditor, /ruleGrid\.className = 'grid cols-2'/);
@@ -218,6 +220,20 @@ test('application injects one explicit English translator into chrome, category 
   assert.match(app, /import \{ createTranslator \} from '\.\/localization\.js';/);
   assert.match(app, /const translate = createTranslator\('en'\);/);
   assert.equal((app.match(/createTranslator\(/g) || []).length, 1);
+  for (const source of [read('src/ui/matchingRulesEditor.js'), read('src/ui/listEditor.js'), read('src/ui/itemOrderingEditor.js')]) {
+    assert.doesNotMatch(source, /createTranslator|DEFAULT_LOCALE|localization\.js|locales\/en\.js/);
+  }
+  const matchingRules = read('src/ui/matchingRulesEditor.js');
+  const listEditor = read('src/ui/listEditor.js');
+  assert.match(matchingRules, /escapeHtml\(messages\.title\)/);
+  assert.match(matchingRules, /escapeHtml\(messages\.hint\)/);
+  assert.match(matchingRules, /escapeHtml\(messages\.label\(rarity\.id\)\)/);
+  assert.match(listEditor, /<h3>\$\{escapeHtml\(title\)\}<\/h3>/);
+  assert.match(listEditor, /escapeHtml\(messages\.unresolvedName\)/);
+  assert.match(listEditor, /escapeHtml\(messages\.searchLabel\)/);
+  assert.match(listEditor, /escapeHtml\(displayName\)/);
+  assert.match(listEditor, /addButton\.setAttribute\('aria-label', addLabel\)/);
+  assert.doesNotMatch(`${matchingRules}\n${listEditor}`, /innerHTML\s*=\s*translate\(/);
   assert.match(app, /applyApplicationChromeLocalization\(translate\);[\s\S]*?bindAppEvents\(\);[\s\S]*?applyEditorPreferences\(\);[\s\S]*?waitForStylesheetReady\(\)\.then\(renderAll\)/);
   assert.match(app, /renderCategoryEditor\(\{[\s\S]*?loadBasicPresets, loadAdvancedPresets, translate,[\s\S]*?listEditorDeps:/);
   assert.match(app, /showPreferencesModal\(\{[\s\S]*?getEditorPreferences:[\s\S]*?applyEditorPreferences,[\s\S]*?setStatus,[\s\S]*?openModal,[\s\S]*?commitActiveField,[\s\S]*?translate[\s\S]*?\}\)/);

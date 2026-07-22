@@ -43,7 +43,8 @@ export function renderItemOrderingEditor(category, deps = {}) {
     onValidationChanged = () => {},
     onOrderingChanged = () => {},
     openRawCategoryEditor = () => {},
-    listEditorDeps = {}
+    listEditorDeps = {},
+    translate
   } = deps;
   const details = document.createElement('details');
   details.className = 'card item-ordering-card';
@@ -258,20 +259,21 @@ export function renderItemOrderingEditor(category, deps = {}) {
       : 'Earlier IDs rank first. Ranked items stay ahead of unranked items; Descending reverses only the ranked order.';
     section.appendChild(state);
     const values = analysis.customOrder;
-    const editor = listEditor('Custom Item Ranks', values, text => {
+    const customItemRanksError = translate('itemOrdering.customItemRanks.error');
+    const editor = listEditor(translate('itemOrdering.customItemRanks.title'), values, text => {
       const value = parseTypedRowIdValue(text);
-      if (value === null) throw new Error('Custom Item IDs must be exact integers from 0 through 4294967295.');
+      if (value === null) throw new Error(customItemRanksError);
       return value;
     }, value => `#${value}`, {
-      hint: 'Add Item IDs in rank order.',
+      hint: translate('itemOrdering.customItemRanks.hint'),
       lookupSheet: 'Item',
       dedupeValues: true,
       dedupeKey: normalizeRowIdValue,
       ordered: true,
       preserveInputOnNoop: true,
-      inputPlaceholder: 'Add one Item ID, or comma-separated Item IDs',
+      inputPlaceholder: translate('itemOrdering.customItemRanks.placeholder'),
       validateValue: text => parseTypedRowIdValue(text) === null
-        ? [{ severity: 'error', field: 'CustomItemOrder', message: 'Custom Item IDs must be exact integers from 0 through 4294967295.' }]
+        ? [{ severity: 'error', field: 'CustomItemOrder', message: customItemRanksError }]
         : [],
       validateList: () => analyzeItemOrdering({ ...category, CustomItemOrder: values }).customIssues,
       onItemsChanged: changedValues => {
@@ -287,7 +289,8 @@ export function renderItemOrderingEditor(category, deps = {}) {
         refreshOrderingOverview();
       },
       ...listEditorDeps,
-      markDirty
+      markDirty,
+      translate
     });
     editor.classList.add('nested-card', 'custom-order-list-editor');
     section.appendChild(editor);
