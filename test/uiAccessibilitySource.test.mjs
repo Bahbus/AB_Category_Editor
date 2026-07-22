@@ -16,10 +16,11 @@ test('Item Ordering uses shared summary, issue styling, accessible controls, and
   const source = read('src/ui/itemOrderingEditor.js');
   assert.match(source, /setDetailsSummary\(details, orderingSummary/);
   assert.match(source, /issueCount/);
-  assert.match(source, /setAttribute\('aria-label', `Field for sort criterion/);
+  assert.match(source, /createItemOrderingMessages\(translate\)/);
+  assert.match(source, /setAttribute\('aria-label', messages\.criteria\.fieldAccessible\(index \+ 1\)\)/);
   assert.match(source, /aria-describedby/);
-  assert.match(source, /\['↑', 'up', -1\], \['↓', 'down', 1\]/);
-  assert.match(source, /`Move sort criterion \$\{index \+ 1\} \$\{directionName\}`/);
+  assert.match(source, /\['↑', -1\], \['↓', 1\]/);
+  assert.match(source, /messages\.criteria\.move\(index \+ 1, offset\)/);
   assert.match(source, /button\.className = 'icon-button movement-button'/);
   assert.match(source, /syncButtonTooltip\(button, movementLabel\)/);
   assert.match(source, /remove\.className = 'icon-button danger'/);
@@ -27,9 +28,10 @@ test('Item Ordering uses shared summary, issue styling, accessible controls, and
   assert.match(source, /remove\.title = removeLabel/);
   assert.match(source, /add\.className = 'icon-button add-icon-button ordering-contextual-icon'/);
   assert.match(source, /add\.textContent = '\+'/);
-  assert.match(source, /`Remove sort criterion \$\{index \+ 1\}`/);
-  assert.match(source, /Replace with AetherBags-normalized criteria/);
-  assert.match(source, /Edit in Raw JSON/);
+  assert.match(source, /messages\.criteria\.remove\(index \+ 1\)/);
+  assert.match(source, /button\.textContent = messages\.criteria\.normalizedAction/);
+  assert.match(source, /rawCorrectionAction\(messages\.customOrder\.rawAction, messages\.customOrder\.rawDescription\)/);
+  assert.match(source, /hint\.textContent = messages\.criteria\.normalizedPreview\(preview\)/);
   assert.match(source, /ITEM_SORT_FIELDS\.filter\(option => option\.value !== 5\)[\s\S]*ITEM_SORT_FIELDS\.find\(option => option\.value === 5\)/);
   assert.doesNotMatch(source, /className = 'row ordering-(?:row-actions|add-row)'/);
   assert.ok(source.indexOf('section.appendChild(addRow)') < source.indexOf('section.appendChild(rows)'));
@@ -83,10 +85,12 @@ test('rendering effective Use Global never inserts ordering properties', () => {
 
 test('extra-member criteria route to selected-category Raw JSON without structured mutation controls', () => {
   const source = read('src/ui/itemOrderingEditor.js');
+  const english = read('src/locales/en.js');
   const guard = source.match(/if \(!analysis\.criteriaStructuredEditable\)[\s\S]*?return section;/)?.[0] || '';
-  assert.match(guard, /additional properties/);
-  assert.match(guard, /selected-category Raw JSON/);
-  assert.match(guard, /preserved exactly/);
+  assert.match(guard, /messages\.criteria\.rawAdditionalProperties/);
+  assert.match(guard, /messages\.criteria\.rawUnsafe/);
+  assert.match(guard, /rawCorrectionAction\(messages\.criteria\.rawAction, description\)/);
+  assert.match(english, /itemOrdering\.criteria\.raw\.additionalProperties[^\n]*additional properties[^\n]*selected-category Raw JSON[^\n]*preserved exactly/);
   assert.doesNotMatch(guard, /decideCriterion(?:Add|Change|Remove)|decideOrderedMove|decideCanonicalCriteriaRepair/);
 });
 

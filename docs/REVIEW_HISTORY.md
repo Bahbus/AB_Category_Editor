@@ -1912,3 +1912,27 @@ Validation actually run:
 - two coordinate and handle drag attempts did not synthesize an HTML drag/drop in the available browser. The browser also reports `Element.animate` as unavailable and offers no reduced-motion emulation. Live committed drag, visible animation, and emulated reduced motion are therefore not claimed; progressive fallback was exercised, while direct helper tests and retained drag/drop tests are authoritative. Agent Workspace browser tools were unavailable, so a second animation-capable browser was not used;
 - no application error or CSP violation appeared. Electron's generic development CSP warning and the advanced preset's expected three-warning import summary were the only warnings;
 - complete diff inspection found no unrelated scope; Project reconciliation, publication state, and PR checks are recorded before handoff.
+
+## Phase 77
+
+Issue #140 bounded the next child of #122 to Item Ordering editor-owned UI text and accessible names. DOM-free ordering analysis, validation, and compatibility findings remain exact English for a later validation-family phase.
+
+Resolution on `agent/phase-77-item-ordering-localization` from freshly fetched `origin/main` at `a3effb1218fd67adc6b28f7db66f094c317ed162`:
+
+- added focused plain-text English catalog keys and exported `createItemOrderingMessages(translate)` for the disclosure title, summary/issue badges, introduction, criterion title/hint/options/groups/actions, both structured-editing Raw JSON routes, normalized preview/action/success, Custom Item Order guidance/correction, and existing Custom Item Ranks caller values;
+- kept runtime counts, criterion positions, movement direction, and normalized criteria display as named interpolation parameters;
+- rendered translated values only through `textContent`, explicit accessible attributes/tooltips, or the reusable list-editor's existing safe boundary;
+- kept `src/itemOrdering.js` byte-for-byte unchanged, including `ITEM_SORT_FIELDS`, `ITEM_SORT_DIRECTIONS`, analyzer decisions, and every validation/compatibility message surfaced by `validateList`;
+- preserved criterion/rank occurrence keys, motion capture and cancellation, synchronous mutation/focus/dirty authority, canonical repair, relevance decisions, lookup/cache leases, responsive behavior, import/export, CSP, dependencies, and locale-state boundaries;
+- updated direct adapter tests and focused source guards without adding whitespace-sensitive implementation matching where exact behavior assertions are practical.
+
+Validation actually run:
+
+- focused ordering, localization, list-editor, motion, category-change, compatibility, lookup/request/cache, accessibility, summary, and application/source coverage passed 266 tests;
+- `npm run check` passed: 96 JavaScript files syntax-checked, all static relative imports resolved, and all 45 test files / 555 tests passed with zero failures, skips, cancellations, or todos;
+- local in-app browser QA loaded the 55-category advanced preset and exercised criterion add/change/move/remove; Custom Order activation and retained-inactive guidance; ranks `101`, `202`, and `303`; rank movement and localized focus recovery; disabled movement/action state; safe additional-property Raw JSON routing with focus on `rawCategory`; and the AetherBags-normalized preview, repair action, and success status;
+- Comfortable and Compact passed at 1280px, 840px, and 390px with populated criteria and three ranks. Document, body, main, and Item Ordering client/scroll widths matched at every matrix entry; the original Comfortable density and viewport were restored and the QA tab/server were closed;
+- browser-control inspection still reported `Element.animate` as unavailable and exposed no reduced-motion emulation. This Phase 77 automation therefore proves progressive fallback and immediate behavior but does not claim visible criterion/rank animation or reduced-motion emulation. The post-Phase-76 review separately records the user's direct observation of visible category reorder animation in the in-app browser despite that same browser-control feature-inspection limitation;
+- no application error or CSP violation appeared. Electron's generic development CSP warning and the advanced preset's expected three-warning import summary were the only warnings.
+
+Issue #140 and Project #2 remain `In Progress`, Priority `Next`, Area `Localization`, Phase `77` until the ready-for-review PR is published. No deferred finding required a new issue and no Phase 77 scope expansion was made.
