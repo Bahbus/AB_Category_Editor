@@ -1888,3 +1888,27 @@ Validation actually run:
 # Current next step
 
 Phase 75 is published ready for review through PR #138 with `Closes #137`; it remains unmerged. Review and merge remain separate work. Keep Issue #125 / Phase 55 on hold, and keep broader localization work under Issue #122.
+
+## Phase 76
+
+Issue #136 scoped restrained reorder transitions to category header movement, category drag/drop and Sort by Order, Item Sort Criteria movement, and ordered Custom Item Ranks movement, explicitly excluding generic animation and ordinary rerenders.
+
+Resolution on `agent/phase-76-reorder-motion` from freshly fetched `origin/main` at `f7b8e4ec95492660f1c5348ad2c6f9bdabb4afdd`:
+
+- added one dependency-free FLIP-style helper with a 180 ms transform-only Web Animation, reduced-motion suppression, failed or unsupported API fallback, connected-node checks, stale-run cancellation, and completion or cancellation cleanup;
+- keyed category replacement nodes by object reference and keyed copied or primitive criterion and rank surfaces with occurrence tokens, avoiding display text, IDs, JSON equality, and repeated-label ambiguity;
+- integrated motion only after successful real category header moves, real identity-validated drops, changed Sort by Order decisions, changed criterion moves, and valid ordered-rank moves;
+- preserved immediate mutation, selection, optional renumbering, exactly-one-render decisions, dirty state, drag indicator cleanup, callbacks, validation, announcements, accessible names, and existing structural or ordered focus restoration;
+- kept add, remove, duplicate, filter, validation, disclosure, modal, and ordinary render paths motionless while making replacement boundaries cancel active keyed motion;
+- added direct coverage for identity planning, FLIP setup and deltas, completion cleanup, rapid interruption, explicit newer-render cancellation, disconnected nodes, unsupported or failed animation setup, no displacement, no-op identity movement, and reduced motion, plus source coverage for all four integrations;
+- changed no dependency, schema, import/export, lookup, localization, preset, button, CSP, or unrelated style contract.
+
+Validation actually run:
+
+- final `npm run check` passed with 95 JavaScript files syntax-checked, all static relative imports resolved, and all 44 test files / 552 tests passing with zero failures, skips, cancellations, or todos;
+- final `git diff --check origin/main` passed with no output;
+- local in-app browser QA loaded the 55-category advanced preset, added a second Custom Order criterion and ranks `101`, `202`, and `303`, and passed category header movement, Sort by Order, criterion movement, rank movement, rapid repeated moves, selected-category identity, moved-control focus, and final order at both Comfortable and Compact densities at 1280px, 840px, and 390px;
+- all six density and viewport combinations had zero document horizontal overflow; Comfortable density, auto-renumber, and the viewport override were restored, and the QA tab and server were closed;
+- two coordinate and handle drag attempts did not synthesize an HTML drag/drop in the available browser. The browser also reports `Element.animate` as unavailable and offers no reduced-motion emulation. Live committed drag, visible animation, and emulated reduced motion are therefore not claimed; progressive fallback was exercised, while direct helper tests and retained drag/drop tests are authoritative. Agent Workspace browser tools were unavailable, so a second animation-capable browser was not used;
+- no application error or CSP violation appeared. Electron's generic development CSP warning and the advanced preset's expected three-warning import summary were the only warnings;
+- complete diff inspection found no unrelated scope; Project reconciliation, publication state, and PR checks are recorded before handoff.

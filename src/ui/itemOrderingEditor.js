@@ -13,6 +13,14 @@ import {
 } from '../itemOrdering.js';
 import { setDetailsSummary } from './detailsSummary.js';
 import { listEditor } from './listEditor.js';
+import {
+  animateReorderMotion,
+  cancelReorderMotion,
+  captureReorderMotion,
+  createOccurrenceMotionKeys,
+  moveOccurrenceMotionKey,
+  syncOccurrenceMotionKeys
+} from '../reorderMotion.js';
 
 const UI_ITEM_SORT_FIELDS = Object.freeze([
   ...ITEM_SORT_FIELDS.filter(option => option.value !== 5),
@@ -50,6 +58,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
   details.className = 'card item-ordering-card';
   details.innerHTML = '<summary></summary><div class="details-body item-ordering-body"></div>';
   const body = details.querySelector('.item-ordering-body');
+  const criteriaMotionKeys = createOccurrenceMotionKeys(analyzeItemOrdering(category).effectiveCriteria.length, 'criterion');
 
   function afterChange(message = '') {
     markDirty();
@@ -117,6 +126,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
     }
 
     const criteria = analysis.effectiveCriteria;
+    syncOccurrenceMotionKeys(criteriaMotionKeys, criteria.length, 'criterion');
     const rows = document.createElement('div');
     rows.className = 'ordering-criteria-list';
     const usedFields = new Set(criteria.map(criterion => criterion.Field));
@@ -125,6 +135,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
       row.className = 'ordering-criterion-row';
       row.setAttribute('role', 'group');
       row.setAttribute('aria-label', `Sort criterion ${index + 1}`);
+      row.dataset.reorderMotionKey = criteriaMotionKeys[index];
 
       const fieldLabel = document.createElement('label');
       fieldLabel.textContent = 'Field';
@@ -162,12 +173,17 @@ export function renderItemOrderingEditor(category, deps = {}) {
         button.onclick = () => {
           const plan = listMutationFocusPlan('move', index, criteria.length, offset);
           const movedIndex = plan.indices[0];
-          applyCriteriaDecision(decideOrderedMove(criteria, index, offset), '', [
+          const decision = decideOrderedMove(criteria, index, offset);
+          if (!decision.changed) return;
+          const positions = captureReorderMotion(rows);
+          moveOccurrenceMotionKey(criteriaMotionKeys, index, offset);
+          applyCriteriaDecision(decision, '', [
             `move-${offset}-${movedIndex}`,
             `move-${offset * -1}-${movedIndex}`,
             `field-${movedIndex}`,
             'add-field'
           ]);
+          animateReorderMotion(body.querySelector('.ordering-criteria-list'), positions);
         };
         actions.appendChild(button);
       }
@@ -300,6 +316,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
   function renderBody() {
     const analysis = analyzeItemOrdering(category);
     const issueId = `item-ordering-issues-${Math.random().toString(36).slice(2)}`;
+    cancelReorderMotion(body);
     body.replaceChildren();
     const intro = document.createElement('p');
     intro.className = 'hint ordering-intro';

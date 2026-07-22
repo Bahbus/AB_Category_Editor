@@ -10,6 +10,7 @@ import { renderMatchingRulesEditor } from './matchingRulesEditor.js';
 import { renderColorEditor } from './colorEditor.js';
 import { renderRangeStateFiltersEditor } from './rangeStateFiltersEditor.js';
 import { applySelectedCategoryCandidate, selectedCategoryStructuralFocusPlan } from '../categoryChanges.js';
+import { animateReorderMotion, cancelReorderMotion, captureReorderMotion } from '../reorderMotion.js';
 import { textActionAvailable } from '../actionAvailability.js';
 import { INT32_MAX, isSignedInt32Scalar } from '../filterScalars.js';
 import { parseJsonText } from '../importExport.js';
@@ -57,6 +58,7 @@ export function renderEditor(deps) {
   let selectedIndex = getSelectedIndex();
   const cats = getCategories();
   const root = requireEl('editor');
+  cancelReorderMotion(root);
   root.innerHTML = '';
 
   if (renderEmptyStateIfNeeded({ categories: cats, root, setSelectedIndex, translate, loadBasicPresets, loadAdvancedPresets, commitActiveField })) return;
@@ -213,21 +215,25 @@ export function renderEditor(deps) {
   el('moveUp').onclick = () => {
     commitActiveField();
     if (selectedIndex <= 0) return;
+    const positions = captureReorderMotion(el('categoryList'));
     [cats[selectedIndex - 1], cats[selectedIndex]] = [cats[selectedIndex], cats[selectedIndex - 1]];
     selectedIndex--; setSelectedIndex(selectedIndex);
     if (el('autoRenumberDrag').checked) renumberCategories();
     markDirty();
     renderAll();
+    animateReorderMotion(el('categoryList'), positions);
     restoreStructuralActionFocus('move-up');
   };
   el('moveDown').onclick = () => {
     commitActiveField();
     if (selectedIndex >= cats.length - 1) return;
+    const positions = captureReorderMotion(el('categoryList'));
     [cats[selectedIndex + 1], cats[selectedIndex]] = [cats[selectedIndex], cats[selectedIndex + 1]];
     selectedIndex++; setSelectedIndex(selectedIndex);
     if (el('autoRenumberDrag').checked) renumberCategories();
     markDirty();
     renderAll();
+    animateReorderMotion(el('categoryList'), positions);
     restoreStructuralActionFocus('move-down');
   };
   el('duplicateCat').onclick = () => {

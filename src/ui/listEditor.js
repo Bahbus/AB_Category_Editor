@@ -4,6 +4,14 @@ import { normalizeRowIdValue } from '../rowIds.js';
 import { isUsefulLookupName } from '../lookupNames.js';
 import { listMutationFocusPlan } from '../itemOrdering.js';
 import { lookupResultAddAvailable, textActionAvailable } from '../actionAvailability.js';
+import {
+  animateReorderMotion,
+  cancelReorderMotion,
+  captureReorderMotion,
+  createOccurrenceMotionKeys,
+  moveOccurrenceMotionKey,
+  syncOccurrenceMotionKeys
+} from '../reorderMotion.js';
 
 export function tokenizeListInput(rawInput, splitOnCommas = true) {
   const trimmedInput = rawInput.trim();
@@ -97,6 +105,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
 
   const pills = document.createElement('div');
   pills.className = 'pill-list';
+  const pillMotionKeys = createOccurrenceMotionKeys(arr.length, 'list-item');
   const pillsWrap = document.createElement('div');
   pillsWrap.className = 'pill-list-shell';
   pillsWrap.appendChild(pills);
@@ -130,11 +139,14 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
   }
 
   function renderPills() {
+    cancelReorderMotion(pills);
     pills.innerHTML = '';
+    syncOccurrenceMotionKeys(pillMotionKeys, arr.length, 'list-item');
 
     arr.forEach((v, i) => {
       const pill = document.createElement('span');
       pill.className = 'pill';
+      if (ordered) pill.dataset.reorderMotionKey = pillMotionKeys[i];
       let extra = '';
 
       if (lookupSheet) {
@@ -158,9 +170,12 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         moveUp.onclick = () => {
           if (i === 0) return;
           const plan = listMutationFocusPlan('move', i, arr.length, -1);
+          const positions = captureReorderMotion(pills);
           [arr[i - 1], arr[i]] = [arr[i], arr[i - 1]];
+          moveOccurrenceMotionKey(pillMotionKeys, i, -1);
           markDirty();
           renderPills();
+          animateReorderMotion(pills, positions);
           focusOrderedControl([`move-up-${plan.indices[0]}`, `move-down-${plan.indices[0]}`, `remove-${plan.indices[0]}`, 'input']);
           notifyItemsChanged();
         };
@@ -176,9 +191,12 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         moveDown.onclick = () => {
           if (i === arr.length - 1) return;
           const plan = listMutationFocusPlan('move', i, arr.length, 1);
+          const positions = captureReorderMotion(pills);
           [arr[i], arr[i + 1]] = [arr[i + 1], arr[i]];
+          moveOccurrenceMotionKey(pillMotionKeys, i, 1);
           markDirty();
           renderPills();
+          animateReorderMotion(pills, positions);
           focusOrderedControl([`move-down-${plan.indices[0]}`, `move-up-${plan.indices[0]}`, `remove-${plan.indices[0]}`, 'input']);
           notifyItemsChanged();
         };
@@ -195,6 +213,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       removeButton.onclick = () => {
         const plan = listMutationFocusPlan('remove', i, arr.length - 1);
         arr.splice(i, 1);
+        pillMotionKeys.splice(i, 1);
         markDirty();
         renderPills();
         focusOrderedControl([...plan.indices.map(position => `remove-${position}`), 'input']);

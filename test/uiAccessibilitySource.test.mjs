@@ -386,8 +386,26 @@ test('selected-category structural actions restore focus after full rerenders', 
   assert.match(category, /document\.querySelector\('\.cat-item\[aria-current="true"\]'\)/);
   assert.match(category, /target && !target\.disabled && !target\.hidden && document\.contains\(target\)/);
   for (const action of ['move-up', 'move-down', 'duplicate', 'delete']) {
-    assert.match(category, new RegExp(`renderAll\\(\\);\\s*restoreStructuralActionFocus\\('${action}'\\)`));
+    const optionalMotion = action.startsWith('move-') ? "(?:\\s*animateReorderMotion\\(el\\('categoryList'\\), positions\\);)?" : '';
+    assert.match(category, new RegExp(`renderAll\\(\\);${optionalMotion}\\s*restoreStructuralActionFocus\\('${action}'\\)`));
   }
+});
+
+test('real reorder surfaces share occurrence-safe progressive motion without moving behavior authority', () => {
+  const app = read('src/app.js');
+  const category = read('src/ui/categoryEditor.js');
+  const categoryList = read('src/ui/categoryList.js');
+  const ordering = read('src/ui/itemOrderingEditor.js');
+  const list = read('src/ui/listEditor.js');
+  const motion = read('src/reorderMotion.js');
+  assert.match(app, /if \(result\.changed\) animateReorderMotion\(el\('categoryList'\), positions\)/);
+  assert.match(category, /captureReorderMotion\(el\('categoryList'\)\)[\s\S]*renderAll\(\);[\s\S]*animateReorderMotion\(el\('categoryList'\), positions\)/);
+  assert.match(categoryList, /item\.dataset\.reorderMotionKey = categoryMotionKey\(cat\)/);
+  assert.match(categoryList, /if \(result\.changed\) animateReorderMotion\(el\('categoryList'\), positions\)/);
+  assert.match(ordering, /row\.dataset\.reorderMotionKey = criteriaMotionKeys\[index\]/);
+  assert.match(list, /if \(ordered\) pill\.dataset\.reorderMotionKey = pillMotionKeys\[i\]/);
+  assert.match(motion, /prefers-reduced-motion: reduce/);
+  assert.match(motion, /typeof node\.animate !== 'function'/);
 });
 
 test('movement icon controls retain precise names, enabled-only titles, and disabled boundaries', () => {

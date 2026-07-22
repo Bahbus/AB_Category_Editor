@@ -19,6 +19,7 @@ import { analyzeImportedConfig, mergeValidationFindings } from './validation.js'
 import { PRESETS } from './presets.js';
 import { createLookupCacheOperationCoordinator, clearLookupCacheIfIdle } from './lookupCacheOperations.js';
 import { applyConfigReplacement, applyFullConfigCandidate, renumberCategories as applyCategoryRenumber, sortCategoriesPreservingSelection } from './categoryChanges.js';
+import { animateReorderMotion, captureReorderMotion } from './reorderMotion.js';
 import { isSnapshotCurrent, makeRevisionedExportSnapshot, saveSnapshotIfCurrent } from './exportSnapshots.js';
 import { runAetherBagsExportPreflight } from './exportCompatibility.js';
 import { categoryRenumberAvailable, categorySortAvailable, referencedIdLookupAvailable, textActionAvailable } from './actionAvailability.js';
@@ -451,11 +452,13 @@ function bindAppEvents() {
   bindClick('addCategory', () => { commitActiveField(); getCategories().push(defaultCategory()); selectedIndex = getCategories().length - 1; markDirty(); renderAll(); });
   bindClick('sortByOrder', () => {
     commitActiveField();
+    const positions = captureReorderMotion(el('categoryList'));
     const result = sortCategoriesPreservingSelection(getCategories(), selectedIndex, compareCategoriesForImport);
     selectedIndex = result.selectedIndex;
     if (result.changed) markDirty();
     else setStatus('Categories are already sorted. No changes were made.', 'ok');
     renderAll();
+    if (result.changed) animateReorderMotion(el('categoryList'), positions);
   });
   bindClick('renumber', () => {
     commitActiveField();
