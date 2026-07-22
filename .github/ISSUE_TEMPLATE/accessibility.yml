@@ -1,0 +1,83 @@
+name: Accessibility or usability problem
+description: Tell us about a keyboard, screen reader, focus, layout, or ease-of-use problem.
+title: ""
+labels:
+  - ui/ux
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping make the editor easier to use. Describe your experience in your own words; no accessibility expertise is required.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What is difficult to use?
+      description: Tell us which part of the editor creates a barrier or causes confusion.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can we experience the problem?
+      description: List the actions you take, including keyboard commands or zoom settings when relevant.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What would work better?
+      description: Describe the behavior or result that would make this easier.
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happens now?
+      description: Include any missing label, lost focus, hidden content, confusing message, or layout problem.
+    validations:
+      required: true
+
+  - type: input
+    id: assistive_technology
+    attributes:
+      label: Assistive technology or settings, if relevant
+      description: Optional. Include a screen reader, keyboard-only use, zoom level, contrast mode, or other setting that helps us reproduce the problem.
+      placeholder: NVDA, keyboard only, 200% zoom, or not applicable
+
+  - type: input
+    id: app_source
+    attributes:
+      label: Which editor did you use?
+      description: Tell us whether you used the published website or a local copy.
+      placeholder: Published website, or local commit
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and operating system
+      placeholder: Firefox 140 on Windows 11
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Anything else that may help
+      description: Add a screenshot, short recording, or cleaned-up example if useful. Remove private and unrelated information first.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for the same problem.
+          required: true
+        - label: I removed passwords, tokens, personal information, and unrelated configuration from anything shared here.
+          required: true

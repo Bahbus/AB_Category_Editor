@@ -1,0 +1,65 @@
+name: Suggest an improvement
+description: Share an idea for a new feature or a better way to use the editor.
+title: ""
+labels:
+  - enhancement
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for sharing an idea. Explain the result you want; you do not need to know how the editor is built.
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: What would you like to do?
+      description: Describe the task or result that would be easier with this change.
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_workflow
+    attributes:
+      label: How do you handle this now?
+      description: Tell us what you currently do and where it becomes slow, confusing, or impossible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_change
+    attributes:
+      label: What change would help?
+      description: Describe your preferred behavior. A rough idea is fine.
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefit
+    attributes:
+      label: Who would this help?
+      description: Explain when the change would be useful and who is likely to use it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Other ideas you considered
+      description: Optional. Share workarounds or different solutions if you have them.
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Examples or extra context
+      description: Optional. Add a cleaned-up example, sketch, screenshot, or link. Remove private and unrelated information first.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for the same idea.
+          required: true
+        - label: I removed passwords, tokens, personal information, and unrelated configuration from anything shared here.
+          required: true

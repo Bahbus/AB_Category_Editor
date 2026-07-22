@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 72.1 merged through PR #118 at `d140e21f2726eb892b52f56f1f36efde44d4f0ea`. Phase 73 is establishing the public [AB Category Editor Roadmap](https://github.com/users/Bahbus/projects/2) as the operational planning authority alongside committed code and these three durable documents. Repository issue #119 tracks the active Phase 73 work; Phase 55 is represented by on-hold issue #125 rather than relying only on local or conversational memory.
+> **Current state:** Phase 73 merged through PR #129 at `701b4cc34af1c1b7ecfead07e03767c186ba828c`, establishing the public [AB Category Editor Roadmap](https://github.com/users/Bahbus/projects/2) as the operational planning authority alongside committed code and these three durable documents. Repository issue #130 tracks active Phase 73.1 work to separate the public issue choices from the maintainer-only numbered-phase convention; Phase 55 remains represented by on-hold issue #125 rather than relying only on local or conversational memory.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -651,14 +651,17 @@ Enabled built-in workflows cover item-added defaults, closed items, merged pull 
 
 Current migrated issues:
 
-- #119 — active Phase 73 Project governance;
+- #119 — completed Phase 73 Project governance;
+- #130 — active Phase 73.1 issue-template audience refinement;
 - #122, #121, #120, and #126 — the ordered remaining localization stages;
 - #125 — Phase 55 community-preset stewardship, `On Hold`;
 - #123 and #124 — narrow empty-sidebar polish and broader pill/lookup design work;
 - #127 — possible lightweight real-browser regression harness;
 - #128 — eventual Wiki migration and README streamlining.
 
-Internal issue forms require review evidence, a bounded phase, preserved contracts, verification, durable-document updates, and Project synchronization. A separate triage form accepts public bugs, compatibility/data-loss concerns, accessibility problems, UI requests, features, documentation reports, and questions without requiring phase knowledge; it asks for reproducible workflow, environment, optional AetherBags version, sanitized evidence, and a privacy/duplicate check. The pull-request template requires a closing issue link, actual verification, all three durable-document updates, Project synchronization, and ready-for-review publication.
+Public issue forms now provide separate friendly choices for reproducible bugs/regressions, improvements/features, accessibility/usability problems, documentation problems, and questions or uncategorized problems. They apply focused labels, ask only for diagnostics relevant to that audience, retain simple privacy reminders, and route security concerns to GitHub's private security-advisory form. The public chooser no longer exposes internal review or numbered-phase language.
+
+Only repository maintainers create numbered phase issues. GitHub cannot restrict one public-repository issue form to selected users, so this is a documented workflow convention rather than technical access control. The reusable body lives outside the chooser at `.github/maintainer/numbered-phase-issue.md`; README records the direct `gh issue create` command and the required Project-field synchronization. The pull-request template continues to require a closing issue link, actual verification, all three durable-document updates, Project synchronization, and ready-for-review publication.
 
 ---
 
@@ -1176,3 +1179,16 @@ Validation actually run:
 - `npm run check` passed: 92 JavaScript files syntax-checked, all static relative imports resolved, and all 42 test files / 524 tests passed with zero failures, skips, cancellations, or todos.
 - All four issue-template YAML files plus the existing verification workflow parsed successfully. After adding the new files to intent-to-add visibility, final `git diff --check origin/main` passed with no output and complete diff inspection found no unrelated change.
 - Browser QA is not applicable to repository governance files. No runtime source, application behavior, schema, preset, style, CSP, dependency, build, import/export, lookup, dirty-state, focus, or responsive contract changed.
+
+Phase 73 merged through ready-for-review PR #129 at `701b4cc34af1c1b7ecfead07e03767c186ba828c`. Issue #119 and the linked PR are `Done` in the Project.
+
+## Phase 73.1 current implementation
+
+- Removed `.github/ISSUE_TEMPLATE/phase.yml` and `.github/ISSUE_TEMPLATE/review-finding.yml` from the public chooser.
+- Added focused public bug, improvement, accessibility/usability, and documentation forms while retaining a general question/other path. Public wording assumes no knowledge of phases, the Roadmap, internal architecture, or maintainer review terminology.
+- Kept useful `bug`, `enhancement`, `ui/ux`, `documentation`, `question`, and `triage` labels; bug and accessibility reports collect reproduction, app-source, and environment details, while improvement and documentation forms avoid irrelevant browser requirements.
+- Retained privacy guidance on every public form and added a chooser link to GitHub's private security-advisory flow.
+- Moved the reusable numbered-phase body to `.github/maintainer/numbered-phase-issue.md` and documented direct maintainer creation in README, including GitHub's lack of per-user issue-form visibility for public repositories.
+- Expanded governance coverage from five to nine tests for exact chooser inventory, focused form fields/labels, plain public language, private security routing, the off-chooser maintainer workflow, and the unchanged ready-for-review PR contract.
+- Issue #130 remains Phase `73.1`, `Next`, `Infrastructure`, and `In Progress` in the live Project. Application runtime behavior and dependencies remain unchanged.
+- Focused governance coverage passed all 9 tests. PyYAML 6.0.3 parsed all six public chooser/form YAML files as mappings. `npm run check` passed with 92 JavaScript files, all static relative imports, and 42 test files / 528 tests with zero failures, skips, cancellations, or todos. Browser QA of the application was not run because no runtime file changed; live chooser inspection is reserved for the published branch.

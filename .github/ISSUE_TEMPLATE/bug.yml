@@ -1,0 +1,87 @@
+name: Something is broken
+description: Tell us about a problem you can repeat or something that stopped working.
+title: ""
+labels:
+  - bug
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a problem. Share the smallest example that shows it, and remove any personal or unrelated information first.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: What went wrong?
+      description: Briefly describe the problem and how it affects you.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can we see the problem?
+      description: List the shortest reliable steps that make it happen.
+      placeholder: |
+        1. Open the editor
+        2. Import or create...
+        3. Change...
+        4. See...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead?
+      description: Include the exact message shown by the editor when it helps explain the problem.
+    validations:
+      required: true
+
+  - type: input
+    id: app_source
+    attributes:
+      label: Which editor did you use?
+      description: Tell us whether you used the published website or a local copy.
+      placeholder: Published website, or local commit
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and operating system
+      placeholder: Firefox 140 on Windows 11
+    validations:
+      required: true
+
+  - type: input
+    id: aetherbags_version
+    attributes:
+      label: AetherBags version, if relevant
+      description: Include this for import, export, or plugin compatibility problems.
+      placeholder: Version or unknown
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Anything else that may help
+      description: Add a small cleaned-up JSON example, screenshot, console message, or link. Remove private and unrelated information first.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues for the same problem.
+          required: true
+        - label: I removed passwords, tokens, personal information, and unrelated configuration from anything shared here.
+          required: true
