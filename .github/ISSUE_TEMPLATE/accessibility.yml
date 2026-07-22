@@ -1,6 +1,5 @@
 name: Accessibility or usability problem
 description: Tell us about a keyboard, screen reader, focus, layout, or ease-of-use problem.
-title: ""
 labels:
   - ui/ux
   - triage

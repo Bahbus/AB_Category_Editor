@@ -1,6 +1,5 @@
 name: Ask a question or report something else
 description: Use this when none of the other choices fit your question or problem.
-title: ""
 labels:
   - question
   - triage

@@ -1,6 +1,5 @@
 name: Suggest an improvement
 description: Share an idea for a new feature or a better way to use the editor.
-title: ""
 labels:
   - enhancement
   - triage
