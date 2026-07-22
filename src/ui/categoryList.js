@@ -2,6 +2,9 @@ import { el, escapeHtml } from '../dom.js';
 import { clamp01, rgbaCssWithMinimumAlpha } from '../color.js';
 import { getCategoryIssueCounts } from '../validation.js';
 import { applyCategoryReorder } from '../categoryChanges.js';
+import { animateReorderMotion, cancelReorderMotion, captureReorderMotion, createObjectMotionKeyFactory } from '../reorderMotion.js';
+
+const categoryMotionKey = createObjectMotionKeyFactory('category');
 
 function getCategorySearchText() {
   const search = el('search');
@@ -73,17 +76,22 @@ export function renderCategoryList({
   }
 
   function moveCategory(from, to, before) {
-    return applyCategoryReorder({
+    const list = el('categoryList');
+    const positions = captureReorderMotion(list);
+    const result = applyCategoryReorder({
       categories: getCategories(), sourceIndex: from, targetIndex: to, before,
       setSelectedIndex, autoRenumber: el('autoRenumberDrag').checked,
       renumber: renumberCategories, markDirty, render: renderAll
     });
+    if (result.changed) animateReorderMotion(el('categoryList'), positions);
+    return result;
   }
 
   const cats = getCategories();
   el('format').textContent = `${data.Format || 'Unknown format'} v${data.Version ?? '?' }`;
   el('count').textContent = cats.length;
   const list = el('categoryList');
+  cancelReorderMotion(list);
   list.innerHTML = '';
 
   const entries = filteredCategoryEntries();
@@ -106,6 +114,7 @@ export function renderCategoryList({
     item.setAttribute('aria-label', `Select category ${displayName}. ${subtitle}${issueCount ? `. ${issueLabel}` : ''}`);
     item.title = `Select ${displayName}`;
     item.dataset.index = String(idx);
+    item.dataset.reorderMotionKey = categoryMotionKey(cat);
     item.style.setProperty('--category-color', rgbaCssWithMinimumAlpha(cat.Color, 0.35));
     item.style.setProperty('--category-tint', rgbaCssWithMinimumAlpha({...cat.Color, W: Math.min(clamp01(cat.Color.W) * 0.16, 0.12)}, 0.035));
 
