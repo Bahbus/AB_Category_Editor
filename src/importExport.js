@@ -72,6 +72,7 @@ export async function copyTextToClipboard(text) {
     return true;
   } catch {
     let ta = null;
+    const restoreTarget = document.activeElement;
     try {
       ta = document.createElement('textarea');
       ta.value = text;
@@ -86,7 +87,16 @@ export async function copyTextToClipboard(text) {
     } catch {
       return false;
     } finally {
+      const fallbackOwnsFocus = document.activeElement === ta;
       ta?.remove();
+      try {
+        if (fallbackOwnsFocus
+          && restoreTarget
+          && typeof restoreTarget.focus === 'function'
+          && document.contains(restoreTarget)) {
+          restoreTarget.focus();
+        }
+      } catch {}
     }
   }
 }

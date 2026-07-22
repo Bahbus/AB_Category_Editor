@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 73.1 merged through PR #131 at `0892b97f8138f268e94f6359a208306ccb84fd14`, separating five friendly public issue forms from the maintainer-only numbered-phase convention. Issue #132 tracks Phase 73.2 because GitHub rejects all five merged forms when the optional `title` string is present but empty; source/schema correction and default-branch live chooser verification remain deliberately separate. Phase 55 remains represented by on-hold issue #125 rather than relying only on local or conversational memory.
+> **Current state:** Phase 73.2 merged through PR #133 at `60989edeb88aa83030f3bec889d556930d8c0506`, restoring the five public issue forms by removing their invalid optional empty `title` values. The user's live default-branch chooser observation confirmed that the five forms render successfully; `community/profile` still reports `issue_template: null`, so that endpoint is not a reliable YAML-form acceptance oracle. Phase 74 on issue #134 preserves meaningful focus through clipboard fallback and hardens modal Tab re-entry. Phase 55 remains represented by on-hold issue #125.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -1209,4 +1209,17 @@ Validation actually run:
 - focused `test/repositoryGovernance.test.mjs` passed all 10 tests;
 - `npm run check` passed: 92 JavaScript files syntax-checked, all static relative imports resolved, and all 42 test files / 529 tests passed with zero failures, skips, cancellations, or todos;
 - `git diff --check origin/main` passed on the final complete nine-file diff;
-- source/schema proof is complete on the Phase 73.2 branch, but the default-branch chooser and community-profile API are not fixed or verified before merge. After merge, inspect all five live chooser entries and direct form URLs and confirm `issue_template` is detected; reopen Issue #132 if GitHub still rejects the forms.
+- Phase 73.2 merged through ready-for-review PR #133 at `60989edeb88aa83030f3bec889d556930d8c0506`. The user's successful live chooser observation confirmed all five forms render on the default branch. The community-profile response still returns `issue_template: null`; because that conflicts with the working chooser, it is not a reliable YAML-form acceptance oracle.
+
+The post-merge review baseline passed `npm run check` with 92 JavaScript files, all static relative imports resolved, and 42 test files / 529 tests. Experimental Node coverage measured 84.61% lines, 89.61% branches, and 91.39% functions; all 47 runtime modules were reachable. No open CodeQL or Dependabot alert was present, the Project verification workflow remained SHA-pinned with read-only contents permission, and local 1280px/840px/390px smoke QA found no horizontal overflow.
+
+## Phase 74 current implementation
+
+- `copyTextToClipboard(...)` still uses `navigator.clipboard.writeText(...)` first and does not inspect or move document focus when that succeeds.
+- After primary rejection, the hidden-textarea fallback captures the current focus target, removes the textarea in `finally`, and restores only when the fallback still owns focus and the original target remains connected and focusable. A newer focused control or disconnected/rerendered target is never overridden, and restoration failure cannot change the copy boolean.
+- `trapModalFocus(...)` now sends Tab from outside an open modal to its first focusable control and Shift+Tab to its last, while retaining normal first/last cycling and native movement within the modal.
+- Direct coverage proves primary success/no focus access; fallback true, false, and exception cleanup/restoration; disconnected and superseded targets; restoration exceptions; and modal outside-focus re-entry in both directions. Static CSP and import/export trust guards remain in place.
+- Focused clipboard/modal/accessibility/import-export coverage passed all 185 tests. `npm run check` passed with 92 JavaScript files, all static relative imports resolved, and 42 test files / 543 tests with zero failures, skips, cancellations, or todos.
+- Final local in-app browser QA passed Raw JSON Copy, Export / Copy automatic success, modal first/last cycling and launcher return, background ARIA restoration, and zero application or Export-modal horizontal overflow at 1280px, 840px, and 390px. The browser used the primary Clipboard API and did not expose a supported way to force fallback, so direct fallback tests remain authoritative. No application error or CSP violation appeared; Electron's generic development CSP warning was the only warning.
+- Phase 74 is published ready for review through PR #135. Both verification runs, CodeQL JavaScript/TypeScript and Actions analyses, and the aggregate CodeQL check passed; the PR and Issue #134 remain `In Progress`, Priority `Next`, Area `UI/UX`, Phase `74` in the Roadmap.
+- No application data, serialization, dirty/save authority, modal lifecycle, caller interface, localization, preset, dependency, workflow, CSS, or unrelated behavior changed. Phase 55 remains on hold.
