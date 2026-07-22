@@ -1887,4 +1887,4 @@ Validation actually run:
 
 # Current next step
 
-Publish Phase 75 ready for review with `Closes #137`; do not merge it. Keep Issue #125 / Phase 55 on hold, and keep broader localization work under Issue #122.
+Phase 75 is published ready for review through PR #138 with `Closes #137`; it remains unmerged. Review and merge remain separate work. Keep Issue #125 / Phase 55 on hold, and keep broader localization work under Issue #122.
