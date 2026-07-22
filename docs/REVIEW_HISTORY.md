@@ -1814,7 +1814,7 @@ Validation actually run:
 - PyYAML 6.0.3 parsed all six public chooser/form YAML files as mappings;
 - focused `test/repositoryGovernance.test.mjs` passed all 10 tests;
 - `npm run check` passed: 92 JavaScript files syntax-checked, all static relative imports resolved, and all 42 test files / 529 tests passed with zero failures, skips, cancellations, or todos;
-- `git diff --check origin/main` passed before the durable-document update and is rerun on the final complete diff;
+- `git diff --check origin/main` passed on the final complete nine-file diff;
 - browser QA of the application is not applicable because no runtime surface changed.
 
 Source/schema proof is complete on the Phase 73.2 branch. This does not prove the live chooser is restored: GitHub reads issue forms from the default branch. After merge, inspect all five chooser entries and direct form URLs and confirm the community-profile API detects issue templates. If GitHub still rejects any form, reopen Issue #132 rather than declaring success.

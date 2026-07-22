@@ -1208,5 +1208,5 @@ Validation actually run:
 - PyYAML 6.0.3 parsed all six chooser/form YAML files as mappings;
 - focused `test/repositoryGovernance.test.mjs` passed all 10 tests;
 - `npm run check` passed: 92 JavaScript files syntax-checked, all static relative imports resolved, and all 42 test files / 529 tests passed with zero failures, skips, cancellations, or todos;
-- `git diff --check origin/main` passed before the durable-document update and must be rerun on the final complete diff;
+- `git diff --check origin/main` passed on the final complete nine-file diff;
 - source/schema proof is complete on the Phase 73.2 branch, but the default-branch chooser and community-profile API are not fixed or verified before merge. After merge, inspect all five live chooser entries and direct form URLs and confirm `issue_template` is detected; reopen Issue #132 if GitHub still rejects the forms.
