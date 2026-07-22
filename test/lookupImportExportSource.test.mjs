@@ -420,12 +420,13 @@ test('automatic lookup uses quiet success and unresolved statuses while manual l
   assert.doesNotMatch(lookupBody, /if \(quiet\) setStatus\([^)]*, ['"](?:ok|warn|err)['"]\)/);
 });
 
-test('clipboard fallback removes its hidden textarea in finally', () => {
+test('clipboard fallback removes its hidden textarea and restores only valid fallback-owned focus', () => {
   const source = read('src/importExport.js');
   const body = source.match(/export async function copyTextToClipboard\(text\) \{(?<body>[\s\S]*?)\n\}/)?.groups.body ?? '';
 
   assert.match(body, /let\s+ta\s*=\s*null;/);
-  assert.match(body, /finally\s*\{[\s\S]*ta\?\.remove\(\);[\s\S]*\}/);
+  assert.match(body, /const restoreTarget = document\.activeElement;/);
+  assert.match(body, /finally\s*\{[\s\S]*document\.activeElement === ta[\s\S]*ta\?\.remove\(\);[\s\S]*document\.contains\(restoreTarget\)[\s\S]*restoreTarget\.focus\(\)[\s\S]*\}/);
 });
 
 test('numeric ID list parsers use exact uint parsing', () => {

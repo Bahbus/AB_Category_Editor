@@ -92,12 +92,15 @@ test('clipboard fallback remains functional with CSP-compatible style properties
   const navigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
   const documentDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'document');
   const calls = [];
+  const original = {
+    focus() { calls.push(['restore']); document.activeElement = original; }
+  };
   const textarea = {
     style: {},
     setAttribute(name, value) { calls.push(['attribute', name, value]); },
-    focus() { calls.push(['focus']); },
+    focus() { calls.push(['focus']); document.activeElement = textarea; },
     select() { calls.push(['select']); },
-    remove() { calls.push(['remove']); }
+    remove() { calls.push(['remove']); document.activeElement = document.body; }
   };
   Object.defineProperty(globalThis, 'navigator', {
     configurable: true,
@@ -106,8 +109,10 @@ test('clipboard fallback remains functional with CSP-compatible style properties
   Object.defineProperty(globalThis, 'document', {
     configurable: true,
     value: {
+      activeElement: original,
       createElement(tag) { calls.push(['create', tag]); return textarea; },
       body: { appendChild(node) { assert.equal(node, textarea); calls.push(['append']); } },
+      contains(node) { return node === original; },
       execCommand(command) { calls.push(['exec', command]); return true; }
     }
   });
@@ -122,8 +127,116 @@ test('clipboard fallback remains functional with CSP-compatible style properties
       ['focus'],
       ['select'],
       ['exec', 'copy'],
-      ['remove']
+      ['remove'],
+      ['restore']
     ]);
+  } finally {
+    if (navigatorDescriptor) Object.defineProperty(globalThis, 'navigator', navigatorDescriptor);
+    else delete globalThis.navigator;
+    if (documentDescriptor) Object.defineProperty(globalThis, 'document', documentDescriptor);
+    else delete globalThis.document;
+  }
+});
+
+test('primary clipboard success does not inspect or move document focus', async () => {
+  const navigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  const documentDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  const writes = [];
+  Object.defineProperty(globalThis, 'navigator', {
+    configurable: true,
+    value: { clipboard: { async writeText(text) { writes.push(text); } } }
+  });
+  Object.defineProperty(globalThis, 'document', {
+    configurable: true,
+    get() { throw new Error('primary clipboard success must not touch document'); }
+  });
+  try {
+    assert.equal(await copyTextToClipboard('primary'), true);
+    assert.deepEqual(writes, ['primary']);
+  } finally {
+    if (navigatorDescriptor) Object.defineProperty(globalThis, 'navigator', navigatorDescriptor);
+    else delete globalThis.navigator;
+    if (documentDescriptor) Object.defineProperty(globalThis, 'document', documentDescriptor);
+    else delete globalThis.document;
+  }
+});
+
+test('clipboard fallback cleanup and focus restoration preserve copy results', async t => {
+  const navigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  const documentDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'document');
+  Object.defineProperty(globalThis, 'navigator', {
+    configurable: true,
+    value: { clipboard: { async writeText() { throw new Error('blocked'); } } }
+  });
+
+  async function runFallback({ execResult = true, execError = null, connected = true, newerFocus = false, restoreError = null } = {}) {
+    const calls = [];
+    const body = {};
+    const newer = {};
+    const original = {
+      focus() {
+        calls.push('restore');
+        if (restoreError) throw restoreError;
+        document.activeElement = original;
+      }
+    };
+    const textarea = {
+      style: {},
+      setAttribute() {},
+      focus() { calls.push('temporary-focus'); document.activeElement = textarea; },
+      select() { calls.push('select'); },
+      remove() { calls.push('remove'); document.activeElement = body; }
+    };
+    Object.defineProperty(globalThis, 'document', {
+      configurable: true,
+      value: {
+        activeElement: original,
+        body: { ...body, appendChild() { calls.push('append'); } },
+        createElement() { return textarea; },
+        contains(node) { return connected && node === original; },
+        execCommand() {
+          calls.push('exec');
+          if (newerFocus) document.activeElement = newer;
+          if (execError) throw execError;
+          return execResult;
+        }
+      }
+    });
+    const result = await copyTextToClipboard('fallback');
+    return { calls, result };
+  }
+
+  try {
+    await t.test('success removes the textarea and restores the connected target', async () => {
+      const { calls, result } = await runFallback();
+      assert.equal(result, true);
+      assert.deepEqual(calls, ['append', 'temporary-focus', 'select', 'exec', 'remove', 'restore']);
+    });
+    await t.test('reported failure removes the textarea and restores the connected target', async () => {
+      const { calls, result } = await runFallback({ execResult: false });
+      assert.equal(result, false);
+      assert.deepEqual(calls, ['append', 'temporary-focus', 'select', 'exec', 'remove', 'restore']);
+    });
+    await t.test('exception removes the textarea and restores the connected target', async () => {
+      const { calls, result } = await runFallback({ execError: new Error('copy failed') });
+      assert.equal(result, false);
+      assert.deepEqual(calls, ['append', 'temporary-focus', 'select', 'exec', 'remove', 'restore']);
+    });
+    await t.test('disconnected targets are not restored', async () => {
+      const { calls, result } = await runFallback({ connected: false });
+      assert.equal(result, true);
+      assert.deepEqual(calls, ['append', 'temporary-focus', 'select', 'exec', 'remove']);
+    });
+    await t.test('newer focus state is not replaced', async () => {
+      const { calls, result } = await runFallback({ newerFocus: true });
+      assert.equal(result, true);
+      assert.deepEqual(calls, ['append', 'temporary-focus', 'select', 'exec', 'remove']);
+    });
+    await t.test('restoration exceptions do not change a successful copy result', async () => {
+      const { calls, result } = await runFallback({ restoreError: new Error('cannot focus') });
+      assert.equal(result, true);
+      assert.deepEqual(calls, ['append', 'temporary-focus', 'select', 'exec', 'remove', 'restore']);
+    });
   } finally {
     if (navigatorDescriptor) Object.defineProperty(globalThis, 'navigator', navigatorDescriptor);
     else delete globalThis.navigator;

@@ -1817,8 +1817,46 @@ Validation actually run:
 - `git diff --check origin/main` passed on the final complete nine-file diff;
 - browser QA of the application is not applicable because no runtime surface changed.
 
-Source/schema proof is complete on the Phase 73.2 branch. This does not prove the live chooser is restored: GitHub reads issue forms from the default branch. After merge, inspect all five chooser entries and direct form URLs and confirm the community-profile API detects issue templates. If GitHub still rejects any form, reopen Issue #132 rather than declaring success.
+Phase 73.2 merged through ready-for-review PR #133 at `60989edeb88aa83030f3bec889d556930d8c0506`. The user's subsequent live chooser observation confirmed that all five public forms render successfully from the default branch. The community-profile endpoint still returns `issue_template: null`; because that signal now conflicts with the working chooser, it is not a reliable YAML-form acceptance oracle and must not override live chooser evidence.
+
+## Post-Phase-73.2 review
+
+The completed review recorded:
+
+- `npm run check` passed with 92 JavaScript files, all static relative imports resolved, and all 42 test files / 529 tests passing;
+- experimental Node coverage measured 84.61% lines, 89.61% branches, and 91.39% functions;
+- all 47 runtime modules were reachable;
+- no open CodeQL or Dependabot alert existed;
+- the Project verification workflow remained commit-SHA pinned and read-only;
+- local 1280px, 840px, and 390px smoke QA found no horizontal overflow;
+- the confirmed next defect was clipboard fallback focus loss: the hidden textarea removed itself after `execCommand('copy')` without restoring the prior control, leaving focus on `body` and weakening modal containment. Existing coverage proved cleanup and CSP compatibility but omitted restoration.
+
+That finding became Issue #134 and Phase 74.
+
+## Phase 74
+
+Resolution on `agent/phase-74-clipboard-fallback-focus` from freshly fetched Phase 73.2 `origin/main` at `60989edeb88aa83030f3bec889d556930d8c0506`:
+
+- preserved primary `navigator.clipboard.writeText(...)` behavior without reading, focusing, or selecting any DOM target on success;
+- captured the active element only after primary rejection, before the hidden textarea receives focus;
+- retained the exact fallback text, readonly attribute, CSP-compatible inline style properties, selection, `execCommand('copy')`, boolean result, and caller interface;
+- recorded whether the temporary textarea still owned focus, removed it in `finally`, and restored only a callable original target still contained by the current document;
+- skipped restoration when a newer control acquired focus or the target disconnected during a rerender, and isolated restoration exceptions so they cannot turn successful copying into failure;
+- hardened `trapModalFocus(...)` so Tab from outside a visible modal enters at its first focusable control and Shift+Tab enters at its last, while preserving normal boundary cycling and native interior movement;
+- preserved clipboard statuses, export snapshot/save authority, dirty state, modal open/close/Escape/return focus, stale RAF/version protection, inert/ARIA behavior, application data, serialization, import/export compatibility, dependencies, CSP, styles, localization, presets, and Phase 55's hold.
+
+Validation actually run:
+
+- focused clipboard, modal, accessibility, import/export, export-snapshot, and compatibility coverage passed all 185 tests;
+- direct tests cover primary success without document focus access; fallback true, false, and thrown-copy outcomes; textarea cleanup and connected-target restoration; disconnected and superseded targets; restoration exceptions; outside-focus Tab/Shift+Tab re-entry; normal first/last cycling; and native interior movement;
+- `npm run check` passed: 92 JavaScript files syntax-checked, all static relative imports resolved, and all 42 test files / 543 tests passed with zero failures, skips, cancellations, or todos;
+- local in-app browser QA loaded the 24-category basic preset, passed Raw JSON Copy with focus retained on Copy and returned to the Raw JSON launcher on close, and passed Export / Copy automatic success with `Exported` save state, modal containment, and return to the Export / Copy launcher;
+- forward Tab from the last Raw JSON modal action cycled to Close and Shift+Tab cycled back; background `aria-hidden` was applied only while the modal was open and removed on close;
+- body, document, app, and main widths had no horizontal overflow at 1280px, 840px, or 390px; the 390px Export modal and content also had no horizontal overflow;
+- the app browser used the primary Clipboard API and did not provide a supported way to force fallback, so live fallback was not claimed and the direct fallback tests remain authoritative;
+- no application warning, error, or CSP violation appeared. Electron's generic development CSP warning was the only warning. The temporary viewport override was reset and the QA tab was closed;
+- `git diff --check origin/main` passed on the final phase diff. CI, GitHub Pages, deployed QA, and merge were not run as part of implementation/publication.
 
 # Current next step
 
-Publish Phase 73.2 directly ready for review with `Closes #132`, add the PR to the Project with current fields, and do not merge it. After merge, perform the required live default-branch chooser, direct-URL, and community-profile API verification.
+Publish Phase 74 directly ready for review with `Closes #134`, add the PR to the Roadmap with current fields, and do not merge it. After merge, run the standard full review and Project reconciliation. Keep Issue #125 / Phase 55 on hold.
