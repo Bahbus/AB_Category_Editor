@@ -1855,8 +1855,9 @@ Validation actually run:
 - body, document, app, and main widths had no horizontal overflow at 1280px, 840px, or 390px; the 390px Export modal and content also had no horizontal overflow;
 - the app browser used the primary Clipboard API and did not provide a supported way to force fallback, so live fallback was not claimed and the direct fallback tests remain authoritative;
 - no application warning, error, or CSP violation appeared. Electron's generic development CSP warning was the only warning. The temporary viewport override was reset and the QA tab was closed;
-- `git diff --check origin/main` passed on the final phase diff. CI, GitHub Pages, deployed QA, and merge were not run as part of implementation/publication.
+- `git diff --check origin/main` passed on the final phase diff;
+- Phase 74 was published directly ready for review through PR #135 with `Closes #134`. Both verification runs, CodeQL JavaScript/TypeScript and Actions analyses, and the aggregate CodeQL check passed. Issue #134 and PR #135 remain `In Progress`, Priority `Next`, Area `UI/UX`, Phase `74` in the Roadmap. GitHub Pages, deployed QA, and merge were not run.
 
 # Current next step
 
-Publish Phase 74 directly ready for review with `Closes #134`, add the PR to the Roadmap with current fields, and do not merge it. After merge, run the standard full review and Project reconciliation. Keep Issue #125 / Phase 55 on hold.
+Review and merge ready-for-review PR #135 separately. After merge, run the standard full review and Project reconciliation. Keep Issue #125 / Phase 55 on hold.
