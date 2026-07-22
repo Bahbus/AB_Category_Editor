@@ -630,7 +630,7 @@ Future localization preferences should integrate here rather than inventing sepa
 
 ### Localization boundary
 
-`src/locales/en.js` is the explicit frozen English catalog. Catalog entries are plain strings, never HTML fragments. Phase 67 introduced the complete Preferences modal proof slice. Phase 68 added the complete About / Help and Lookup Cache modal surfaces. Phase 70 added persistent document/brand, sidebar, and topbar chrome. Phase 72 added the complete no-category card. Phase 75 adds the matching-rule grid plus reusable list-editor-owned visible text, accessible names, statuses, lookup/search progress, and busy copy while leaving broad validation/import/export families, remaining populated editor/sidebar prose, Regex converter internals, generated descriptions, and locale state untouched.
+`src/locales/en.js` is the explicit frozen English catalog. Catalog entries are plain strings, never HTML fragments. Phase 67 introduced the complete Preferences modal proof slice. Phase 68 added the complete About / Help and Lookup Cache modal surfaces. Phase 70 added persistent document/brand, sidebar, and topbar chrome. Phase 72 added the complete no-category card. Phase 75 added the matching-rule grid plus reusable list-editor-owned copy. Phase 77 adds Item Ordering editor-owned visible text, accessible names, summary badges, correction routes, and normalization display/status copy while leaving DOM-free ordering findings, broad validation/import/export families, remaining populated editor/sidebar prose, Regex converter internals, generated descriptions, and locale state untouched.
 
 Phase 68 merged through PR #110 at `d53fd23f161480e7fdbd139dfdd0f1e9b2583772`. PR checks, post-merge Project verification, and GitHub Pages deployment passed. A post-merge `npm run check` rerun syntax-checked 86 JavaScript files, resolved all static relative imports, and passed all 38 test files / 501 tests with zero failures, skips, cancellations, or todos. Fresh deployed QA passed exact Help and Lookup Cache English copy, Help semantic structure, nonempty locale-formatted cache counts, focus containment/return, background ARIA restoration, CSP behavior, and 840px/390px overflow checks. Cache clearing was deliberately not exercised against the browser profile's existing data.
 
@@ -846,11 +846,11 @@ Phase 56 established three responsibility-owned source suites plus a shared sour
 
 ### Localization
 
-Phase 75 completed the bounded matching-rule and reusable list-editor extraction after the Phase 67–72 English-only foundation, modal, rich-message, application-chrome, and empty-state phases.
+Phase 77 completed the bounded Item Ordering UI extraction after the Phase 67–75 English-only foundation, modal, rich-message, application-chrome, empty-state, matching-rule, and reusable list-editor phases.
 
 Remaining sequence:
 
-1. Extract broader validation/status and remaining populated editor/sidebar message families in bounded phases.
+1. Extract broader validation/status and remaining populated editor/sidebar message families in bounded phases; keep `src/itemOrdering.js` findings for a later validation-family phase.
 2. Add a persisted locale preference and fallback UI through application state/orchestration.
 3. Add locale key-parity tests when another catalog exists.
 4. Localize generated descriptions separately.
@@ -918,3 +918,13 @@ All addition, removal, duplication, filtering, validation refresh, disclosure/mo
 Phase 76 focused tests use fake connected and replacement nodes plus DOM-free identity helpers to cover occurrence safety, object-reference identity, setup and deltas, completion cleanup, interruption, explicit cancellation, failed or unsupported APIs, disconnection, no displacement, and reduced motion. The application-level source guard confirms all four integrations while the existing category reorder, drag/drop, dirty/no-op, focus, item-ordering, list-editor, accessibility, and localization suites retain behavioral coverage. Browser QA results and honest tooling limits are recorded in `docs/REVIEW_HISTORY.md`.
 
 Final Phase 76 validation syntax-checked 95 JavaScript files, resolved all static relative imports, and passed all 44 test files / 552 tests with zero failures, skips, cancellations, or todos. `git diff --check origin/main` passed with no output.
+
+### Item Ordering localization
+
+Phase 77 keeps `src/ui/itemOrderingEditor.js` as the Item Ordering UI owner and adds `createItemOrderingMessages(translate)` as its DOM-free message adapter. The adapter receives the one application translator already passed through `categoryEditor.js`; the leaf does not import `src/localization.js`, the English catalog, application state, or locale persistence.
+
+The adapter owns disclosure/summary copy, zero/one/many issue labels, criterion titles and guidance, field/direction UI labels and options, position-aware group/action names, structured-editing Raw JSON guidance, normalization preview/action/success, Custom Item Order active/inactive/correction copy, and the existing Custom Item Ranks caller values. Counts, positions, movement direction, and the translated normalized preview are named parameters. Catalog strings contain no markup.
+
+UI field and direction labels intentionally no longer come from `ITEM_SORT_FIELDS` or `ITEM_SORT_DIRECTIONS`; those exports remain exact English metadata for DOM-free ordering analysis and compatibility messages. `src/itemOrdering.js`, its validation/compatibility findings, normalized decisions, and `validateList` output are unchanged. Translated/dynamic UI values use `textContent`, explicit ARIA/title attributes, tooltip synchronization, or list-editor plain-text sinks; analyzer findings retain their existing escaped validation rendering.
+
+Phase 77 focused coverage passed 266 tests. Full verification syntax-checked 96 JavaScript files, resolved all static relative imports, and passed 45 test files / 555 tests. Browser QA covered the populated advanced preset, mutation/focus/correction routes, both densities, and 1280px/840px/390px without horizontal overflow. The current automation surface reported no `Element.animate` and offered no reduced-motion emulation; the separate post-Phase-76 user observation of visible category animation remains direct human evidence rather than automation evidence.

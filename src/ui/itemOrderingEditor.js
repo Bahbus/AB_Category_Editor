@@ -27,21 +27,91 @@ const UI_ITEM_SORT_FIELDS = Object.freeze([
   ITEM_SORT_FIELDS.find(option => option.value === 5)
 ]);
 
-function optionNodes(options, selected, excluded = new Set()) {
+const FIELD_MESSAGE_KEYS = new Map([
+  [0, 'itemOrdering.criteria.field.useGlobal'],
+  [1, 'itemOrdering.criteria.field.quantity'],
+  [2, 'itemOrdering.criteria.field.name'],
+  [3, 'itemOrdering.criteria.field.rarity'],
+  [4, 'itemOrdering.criteria.field.itemId'],
+  [5, 'itemOrdering.criteria.field.customOrder'],
+  [6, 'itemOrdering.criteria.field.gameCategory'],
+  [7, 'itemOrdering.criteria.field.itemLevel']
+]);
+
+const DIRECTION_MESSAGE_KEYS = new Map([
+  [0, 'itemOrdering.criteria.direction.ascending'],
+  [1, 'itemOrdering.criteria.direction.descending']
+]);
+
+export function createItemOrderingMessages(translate) {
+  const fieldLabel = value => translate(FIELD_MESSAGE_KEYS.get(value));
+  const directionLabel = value => translate(DIRECTION_MESSAGE_KEYS.get(value));
+  return Object.freeze({
+    title: translate('itemOrdering.title'),
+    summaryBadge: analysis => {
+      if (analysis.customOrderingApplied) return translate('itemOrdering.summary.customOrder');
+      const count = analysis.normalizedCriteria.length;
+      if (count > 1 || analysis.normalizedCriteria[0]?.Field !== 0) {
+        return translate(count === 1 ? 'itemOrdering.summary.criterion.one' : 'itemOrdering.summary.criterion.many', { count });
+      }
+      return translate('itemOrdering.summary.useGlobal');
+    },
+    issueCount: count => translate(count === 1 ? 'itemOrdering.summary.issue.one' : 'itemOrdering.summary.issue.many', { count }),
+    introduction: translate('itemOrdering.introduction'),
+    criteria: Object.freeze({
+      title: translate('itemOrdering.criteria.title'),
+      hint: translate('itemOrdering.criteria.hint'),
+      group: position => translate('itemOrdering.criteria.group', { position }),
+      field: translate('itemOrdering.criteria.field.label'),
+      fieldAccessible: position => translate('itemOrdering.criteria.field.accessible', { position }),
+      fieldLabel,
+      direction: translate('itemOrdering.criteria.direction.label'),
+      directionAccessible: position => translate('itemOrdering.criteria.direction.accessible', { position }),
+      directionLabel,
+      move: (position, offset) => translate('itemOrdering.criteria.move', {
+        position,
+        direction: translate(offset < 0 ? 'itemOrdering.criteria.movement.up' : 'itemOrdering.criteria.movement.down')
+      }),
+      remove: position => translate('itemOrdering.criteria.remove', { position }),
+      addLabel: translate('itemOrdering.criteria.add.label'),
+      addField: translate('itemOrdering.criteria.add.field'),
+      addAction: translate('itemOrdering.criteria.add.action'),
+      rawAdditionalProperties: translate('itemOrdering.criteria.raw.additionalProperties'),
+      rawUnsafe: translate('itemOrdering.criteria.raw.unsafe'),
+      rawAction: translate('itemOrdering.criteria.raw.action'),
+      normalizedPreview: preview => translate('itemOrdering.criteria.normalized.preview', { preview }),
+      normalizedAction: translate('itemOrdering.criteria.normalized.action'),
+      normalizedSuccess: translate('itemOrdering.criteria.normalized.success')
+    }),
+    customOrder: Object.freeze({
+      title: translate('itemOrdering.customOrder.title'),
+      active: translate('itemOrdering.customOrder.active'),
+      inactive: translate('itemOrdering.customOrder.inactive'),
+      rawDescription: translate('itemOrdering.customOrder.raw.description'),
+      rawAction: translate('itemOrdering.customOrder.raw.action'),
+      ranksTitle: translate('itemOrdering.customItemRanks.title'),
+      ranksHint: translate('itemOrdering.customItemRanks.hint'),
+      ranksPlaceholder: translate('itemOrdering.customItemRanks.placeholder'),
+      ranksError: translate('itemOrdering.customItemRanks.error')
+    })
+  });
+}
+
+function optionNodes(options, selected, labelForOption, excluded = new Set()) {
   return options.filter(option => !excluded.has(option.value) || option.value === selected).map(option => {
     const node = document.createElement('option');
     node.value = String(option.value);
-    node.textContent = option.label;
+    node.textContent = labelForOption(option.value);
     node.selected = option.value === selected;
     return node;
   });
 }
 
-function orderingSummary(analysis) {
+function orderingSummary(analysis, messages) {
   const issueCount = analysis.issues.length;
-  const badges = [{ label: analysis.badge, tone: analysis.customOrderingApplied ? 'success' : '' }];
-  if (issueCount) badges.push({ label: `${issueCount} ${issueCount === 1 ? 'issue' : 'issues'}`, tone: 'warning' });
-  return { title: 'Item Ordering', badges, issueCount };
+  const badges = [{ label: messages.summaryBadge(analysis), tone: analysis.customOrderingApplied ? 'success' : '' }];
+  if (issueCount) badges.push({ label: messages.issueCount(issueCount), tone: 'warning' });
+  return { title: messages.title, badges, issueCount };
 }
 
 export function renderItemOrderingEditor(category, deps = {}) {
@@ -54,6 +124,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
     listEditorDeps = {},
     translate
   } = deps;
+  const messages = createItemOrderingMessages(translate);
   const details = document.createElement('details');
   details.className = 'card item-ordering-card';
   details.innerHTML = '<summary></summary><div class="details-body item-ordering-body"></div>';
@@ -110,18 +181,23 @@ export function renderItemOrderingEditor(category, deps = {}) {
       issues.hidden = analysis.issues.length === 0;
       issues.innerHTML = analysis.issues.map(item => `<p class="field-${escapeHtml(item.severity)}">${escapeHtml(item.message)}</p>`).join('');
     }
-    setDetailsSummary(details, orderingSummary(analysis));
+    setDetailsSummary(details, orderingSummary(analysis, messages));
   }
 
   function renderCriteriaEditor(analysis, issueId) {
     const section = document.createElement('section');
     section.className = 'ordering-section';
-    section.innerHTML = '<h3>Item Sort Criteria</h3><p class="hint">The first criterion sorts matched items; each later criterion breaks ties.</p>';
+    const heading = document.createElement('h3');
+    heading.textContent = messages.criteria.title;
+    const hint = document.createElement('p');
+    hint.className = 'hint';
+    hint.textContent = messages.criteria.hint;
+    section.append(heading, hint);
     if (!analysis.criteriaStructuredEditable) {
       const description = analysis.criteriaHasAdditionalProperties
-        ? 'The stored ItemSortCriteria contains additional properties that these structured controls do not represent. Use selected-category Raw JSON to edit it without discarding those properties; the stored value has been preserved exactly.'
-        : 'The stored criteria cannot be represented safely by these controls. Open selected-category Raw JSON and correct ItemSortCriteria directly; the raw value has been preserved.';
-      section.appendChild(rawCorrectionAction('Edit selected category Raw JSON', description));
+        ? messages.criteria.rawAdditionalProperties
+        : messages.criteria.rawUnsafe;
+      section.appendChild(rawCorrectionAction(messages.criteria.rawAction, description));
       return section;
     }
 
@@ -134,39 +210,39 @@ export function renderItemOrderingEditor(category, deps = {}) {
       const row = document.createElement('div');
       row.className = 'ordering-criterion-row';
       row.setAttribute('role', 'group');
-      row.setAttribute('aria-label', `Sort criterion ${index + 1}`);
+      row.setAttribute('aria-label', messages.criteria.group(index + 1));
       row.dataset.reorderMotionKey = criteriaMotionKeys[index];
 
       const fieldLabel = document.createElement('label');
-      fieldLabel.textContent = 'Field';
+      fieldLabel.textContent = messages.criteria.field;
       const field = document.createElement('select');
-      field.setAttribute('aria-label', `Field for sort criterion ${index + 1}`);
+      field.setAttribute('aria-label', messages.criteria.fieldAccessible(index + 1));
       field.dataset.orderingFocus = `field-${index}`;
       if (analysis.criteriaIssues.length) field.setAttribute('aria-describedby', issueId);
-      field.append(...optionNodes(UI_ITEM_SORT_FIELDS, criterion.Field, new Set([...usedFields].filter(value => value !== criterion.Field))));
+      field.append(...optionNodes(UI_ITEM_SORT_FIELDS, criterion.Field, messages.criteria.fieldLabel, new Set([...usedFields].filter(value => value !== criterion.Field))));
       field.onchange = () => applyCriteriaDecision(decideCriterionChange(criteria, index, 'Field', Number(field.value)), '', `field-${index}`);
       fieldLabel.appendChild(field);
 
       const directionLabel = document.createElement('label');
-      directionLabel.textContent = 'Direction';
+      directionLabel.textContent = messages.criteria.direction;
       const direction = document.createElement('select');
-      direction.setAttribute('aria-label', `Direction for sort criterion ${index + 1}`);
+      direction.setAttribute('aria-label', messages.criteria.directionAccessible(index + 1));
       direction.dataset.orderingFocus = `direction-${index}`;
       if (analysis.criteriaIssues.length) direction.setAttribute('aria-describedby', issueId);
       direction.disabled = criterion.Field === 0;
-      direction.append(...optionNodes(ITEM_SORT_DIRECTIONS, criterion.Field === 0 ? 0 : criterion.Direction));
+      direction.append(...optionNodes(ITEM_SORT_DIRECTIONS, criterion.Field === 0 ? 0 : criterion.Direction, messages.criteria.directionLabel));
       direction.onchange = () => applyCriteriaDecision(decideCriterionChange(criteria, index, 'Direction', Number(direction.value)), '', `direction-${index}`);
       directionLabel.appendChild(direction);
 
       const actions = document.createElement('div');
       actions.className = 'ordering-row-actions';
-      for (const [glyph, directionName, offset] of [['↑', 'up', -1], ['↓', 'down', 1]]) {
+      for (const [glyph, offset] of [['↑', -1], ['↓', 1]]) {
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'icon-button movement-button';
         button.textContent = glyph;
         button.disabled = index + offset < 0 || index + offset >= criteria.length;
-        const movementLabel = `Move sort criterion ${index + 1} ${directionName}`;
+        const movementLabel = messages.criteria.move(index + 1, offset);
         button.setAttribute('aria-label', movementLabel);
         syncButtonTooltip(button, movementLabel);
         button.dataset.orderingFocus = `move-${offset}-${index}`;
@@ -191,7 +267,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
       remove.type = 'button';
       remove.className = 'icon-button danger';
       remove.textContent = '×';
-      const removeLabel = `Remove sort criterion ${index + 1}`;
+      const removeLabel = messages.criteria.remove(index + 1);
       remove.setAttribute('aria-label', removeLabel);
       remove.title = removeLabel;
       remove.dataset.orderingFocus = `remove-${index}`;
@@ -211,18 +287,18 @@ export function renderItemOrderingEditor(category, deps = {}) {
       const addRow = document.createElement('div');
       addRow.className = 'ordering-add-row';
       const label = document.createElement('label');
-      label.textContent = 'Add criterion';
+      label.textContent = messages.criteria.addLabel;
       const select = document.createElement('select');
-      select.setAttribute('aria-label', 'Field for new sort criterion');
+      select.setAttribute('aria-label', messages.criteria.addField);
       select.dataset.orderingFocus = 'add-field';
-      select.append(...optionNodes(available, available[0].value));
+      select.append(...optionNodes(available, available[0].value, messages.criteria.fieldLabel));
       label.appendChild(select);
       const add = document.createElement('button');
       add.type = 'button';
       add.className = 'icon-button add-icon-button ordering-contextual-icon';
       add.textContent = '+';
-      add.setAttribute('aria-label', 'Add sort criterion');
-      add.title = 'Add sort criterion';
+      add.setAttribute('aria-label', messages.criteria.addAction);
+      add.title = messages.criteria.addAction;
       add.dataset.orderingFocus = 'add-button';
       add.onclick = () => {
         const decision = decideCriterionAdd(criteria, Number(select.value), 0);
@@ -242,17 +318,20 @@ export function renderItemOrderingEditor(category, deps = {}) {
       const repair = document.createElement('div');
       repair.className = 'ordering-normalization-action';
       const preview = analysis.normalizedCriteria.map(criterion => {
-        const field = ITEM_SORT_FIELDS.find(option => option.value === criterion.Field)?.label;
-        const direction = ITEM_SORT_DIRECTIONS.find(option => option.value === criterion.Direction)?.label;
+        const field = messages.criteria.fieldLabel(criterion.Field);
+        const direction = messages.criteria.directionLabel(criterion.Direction);
         return `${field} / ${direction}`;
       }).join(', ');
-      repair.innerHTML = `<p class="hint">AetherBags-normalized criteria: ${escapeHtml(preview)}. This action rewrites the stored ItemSortCriteria list.</p>`;
+      const hint = document.createElement('p');
+      hint.className = 'hint';
+      hint.textContent = messages.criteria.normalizedPreview(preview);
+      repair.appendChild(hint);
       const button = document.createElement('button');
       button.type = 'button';
-      button.textContent = 'Replace with AetherBags-normalized criteria';
+      button.textContent = messages.criteria.normalizedAction;
       button.onclick = () => {
         const current = analyzeItemOrdering(category);
-        applyCriteriaDecision(decideCanonicalCriteriaRepair(category.ItemSortCriteria, current.normalizedCriteria), 'Stored Item Sort Criteria replaced with the shown AetherBags-normalized list.');
+        applyCriteriaDecision(decideCanonicalCriteriaRepair(category.ItemSortCriteria, current.normalizedCriteria), messages.criteria.normalizedSuccess);
       };
       repair.appendChild(button);
       section.appendChild(repair);
@@ -263,31 +342,33 @@ export function renderItemOrderingEditor(category, deps = {}) {
   function renderCustomOrderEditor(analysis) {
     const section = document.createElement('section');
     section.className = 'ordering-section custom-order-section';
-    section.innerHTML = '<h3>Custom Item Order</h3>';
+    const heading = document.createElement('h3');
+    heading.textContent = messages.customOrder.title;
+    section.appendChild(heading);
     if (!analysis.customRepresentable || (analysis.customPresent && !analysis.validCustomOrder)) {
-      section.appendChild(rawCorrectionAction('Edit in Raw JSON', 'The stored CustomItemOrder value cannot be edited safely as a ranked list. Open Advanced to correct it without losing the raw value.'));
+      section.appendChild(rawCorrectionAction(messages.customOrder.rawAction, messages.customOrder.rawDescription));
       return section;
     }
     const state = document.createElement('p');
     state.className = analysis.retainedInactiveCustomOrder ? 'field-warning' : 'hint';
     state.textContent = analysis.retainedInactiveCustomOrder
-      ? 'This ranked list is retained and editable, but inactive because Custom Item Order is not a current criterion.'
-      : 'Earlier IDs rank first. Ranked items stay ahead of unranked items; Descending reverses only the ranked order.';
+      ? messages.customOrder.inactive
+      : messages.customOrder.active;
     section.appendChild(state);
     const values = analysis.customOrder;
-    const customItemRanksError = translate('itemOrdering.customItemRanks.error');
-    const editor = listEditor(translate('itemOrdering.customItemRanks.title'), values, text => {
+    const customItemRanksError = messages.customOrder.ranksError;
+    const editor = listEditor(messages.customOrder.ranksTitle, values, text => {
       const value = parseTypedRowIdValue(text);
       if (value === null) throw new Error(customItemRanksError);
       return value;
     }, value => `#${value}`, {
-      hint: translate('itemOrdering.customItemRanks.hint'),
+      hint: messages.customOrder.ranksHint,
       lookupSheet: 'Item',
       dedupeValues: true,
       dedupeKey: normalizeRowIdValue,
       ordered: true,
       preserveInputOnNoop: true,
-      inputPlaceholder: translate('itemOrdering.customItemRanks.placeholder'),
+      inputPlaceholder: messages.customOrder.ranksPlaceholder,
       validateValue: text => parseTypedRowIdValue(text) === null
         ? [{ severity: 'error', field: 'CustomItemOrder', message: customItemRanksError }]
         : [],
@@ -320,7 +401,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
     body.replaceChildren();
     const intro = document.createElement('p');
     intro.className = 'hint ordering-intro';
-    intro.textContent = 'Ordering changes how items already matched into this category are displayed; it does not change category membership.';
+    intro.textContent = messages.introduction;
     const issues = document.createElement('div');
     issues.id = issueId;
     issues.className = 'validation-list ordering-validation';
@@ -328,7 +409,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
     issues.innerHTML = analysis.issues.map(item => `<p class="field-${escapeHtml(item.severity)}">${escapeHtml(item.message)}</p>`).join('');
     body.append(intro, issues, renderCriteriaEditor(analysis, issueId));
     if (analysis.customOrderRelevant) body.appendChild(renderCustomOrderEditor(analysis));
-    setDetailsSummary(details, orderingSummary(analysis));
+    setDetailsSummary(details, orderingSummary(analysis, messages));
   }
 
   renderBody();

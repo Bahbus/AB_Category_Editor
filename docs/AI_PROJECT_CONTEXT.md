@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 74 merged through PR #135 at `aa81abd8dadafadb24805087ece3f7a9fe7bcc88`, preserving meaningful focus through clipboard fallback and hardening modal Tab re-entry. Phase 75 on Issue #137 localizes the matching-rule grid and reusable list-editor-owned copy through the existing single injected translator. Phase 76 on Issue #136 adds progressive, occurrence-safe reorder motion to the four reviewed reorder surfaces without changing synchronous behavior authority. Phase 55 remains represented by on-hold Issue #125.
+> **Current state:** Phase 76 is merged on `main` at `a3effb1218fd67adc6b28f7db66f094c317ed162`, including the Phase 75 matching/list localization slice and progressive occurrence-safe reorder motion. Phase 77 on Issue #140 localizes Item Ordering editor-owned UI copy and accessible names through the same injected translator while leaving DOM-free ordering findings exact and unchanged. Phase 55 remains represented by on-hold Issue #125.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -1255,3 +1255,19 @@ Validation actually run:
 - Local in-app browser QA used the 55-category advanced preset plus two criteria and three Custom Item Ranks. Comfortable and Compact passed category header movement, Sort by Order, criterion movement, rank movement, rapid repeats, selection identity, moved-control focus, and zero horizontal overflow at 1280px, 840px, and 390px. The original Comfortable density, auto-renumber preference, and viewport were restored.
 - The available in-app browser exposes no `Element.animate(...)`, no reduced-motion emulation, and its coordinate drag facility did not synthesize HTML drag/drop despite two handle-based attempts. Browser QA therefore proves progressive fallback and the immediate click/keyboard behavior, but does not claim visible animation, reduced-motion emulation, or a committed drag. Direct helper tests and retained category drag/drop suites remain authoritative for those paths. Agent Workspace browser tools were unavailable in this session, so no second animation-capable browser was claimed.
 - No application error or CSP violation appeared. Electron's generic development CSP warning and the advanced preset's expected three-warning import summary were the only warnings.
+
+## Phase 77 current implementation
+
+- `createItemOrderingMessages(translate)` is the directly testable DOM-free UI-copy adapter for the Item Ordering disclosure title, summary badges, issue-count badge, introduction, criterion labels/options/groups/actions, both criterion Raw JSON routes, AetherBags normalization preview/action/success, Custom Item Order guidance/correction, and the existing Custom Item Ranks caller copy.
+- The populated renderer consumes only the already injected application translator. `itemOrderingEditor.js` imports no catalog/localization mechanics and creates no locale state. Field and direction labels are translated display data; normalized preview text, positions, counts, and movement directions remain named interpolation values.
+- Translated values reach `textContent`, explicit accessible attributes, tooltip synchronization, or the existing list-editor plain-text boundary. The catalog remains plain text. Existing `analyzeItemOrdering(...)` findings continue through the established escaped validation sink, and `src/itemOrdering.js` is unchanged.
+- Criterion occurrence keys, capture/render/animation sequencing, progressive/reduced-motion fallback, focus plans, dirty/no-op decisions, canonical repair, Custom Item Order relevance, list-editor lookup/cache behavior, import/export fidelity, CSP, dependencies, and responsive CSS remain unchanged.
+
+Validation actually run:
+
+- focused ordering, localization, list-editor, motion, category-change, compatibility, lookup/request/cache, accessibility, summary, and application/source coverage passed 266 tests;
+- `npm run check` passed: 96 JavaScript files syntax-checked, all static relative imports resolved, and all 45 test files / 555 tests passed with zero failures, skips, cancellations, or todos;
+- local in-app browser QA used the 55-category advanced preset and exercised criterion add/change/move/remove, active and retained-inactive Custom Item Order, three-rank addition and rank movement, moved-control focus, disabled actions, additional-property Raw JSON routing and focus, and AetherBags normalization preview/action/success;
+- Comfortable and Compact each retained equal client/scroll widths for the document, body, main editor, and populated Item Ordering card at 1280px, 840px, and 390px. The original Comfortable density and viewport were restored and the QA tab/server were closed;
+- the available browser still reported `Element.animate` as unavailable and exposed no reduced-motion emulation, so this Phase 77 automation does not claim visible criterion/rank animation or reduced-motion QA. Separately, the post-Phase-76 review retains the user's direct observation of visible category reorder animation in the in-app browser even though browser-control feature inspection could not expose `Element.animate`; that observation is not recast as automation evidence;
+- no application error or CSP violation appeared. Electron's generic development CSP warning and the advanced preset's expected three-warning import summary were the only warnings.
