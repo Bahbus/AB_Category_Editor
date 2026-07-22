@@ -45,8 +45,8 @@ test('custom ordering reuses strict Item lookup and opt-in ordered list behavior
   assert.match(list, /ordered = false/);
   assert.match(list, /preserveInputOnNoop = false/);
   assert.match(ordering, /preserveInputOnNoop: true/);
-  assert.match(list, /Move .* from rank .* up in/);
-  assert.match(list, /Move .* from rank .* down in/);
+  assert.match(list, /messages\.moveUpLabel\(valueLabel, rank\)/);
+  assert.match(list, /messages\.moveDownLabel\(valueLabel, rank\)/);
 });
 
 test('Custom Item Order is appended only when the shared relevance decision requires it', () => {
@@ -444,8 +444,8 @@ test('visible button labels retain clarity with intentional sentence case', () =
 test('list add and lookup icon controls track useful input and unresolved IDs', () => {
   const list = read('src/ui/listEditor.js');
   const styles = read('styles.css');
-  assert.match(list, /add\.setAttribute\('aria-label', `Add value to \$\{title\}`\)/);
-  assert.match(list, /const addLabel = `Add value to \$\{title\}`/);
+  assert.match(list, /add\.setAttribute\('aria-label', messages\.addLabel\)/);
+  assert.match(list, /const addLabel = messages\.addLabel/);
   assert.match(list, /function syncAddButtonState\(\)\s*{\s*add\.disabled = input\.value\.trim\(\)\.length === 0;\s*syncButtonTooltip\(add, addLabel\)/);
   assert.match(list, /input\.addEventListener\('input', syncAddButtonState\)/);
   assert.match(list, /lookupButton\.className = 'icon-button pill-lookup-button'/);
@@ -489,7 +489,7 @@ test('manual lookup search result Add buttons have contextual accessible labels'
   assert.match(lookupRowBody, /addButton\.setAttribute\('aria-label'/);
   assert.match(lookupRowBody, /syncButtonTooltip\(addButton, addLabel\)/);
   assert.match(lookupRowBody, /addButton\.disabled = !lookupResultAddAvailable\(id, arr\)/);
-  for (const token of ['displayName', 'id', 'title']) {
+  for (const token of ['displayName', 'id']) {
     assert.match(lookupRowBody, new RegExp(String.raw`\b${token}\b`));
   }
   assert.doesNotMatch(lookupRowBody, /r\.querySelector\('button'\)\.onclick/);
@@ -499,13 +499,13 @@ test('regex converter action is composed into the name-pattern list row', () => 
   const matchingRulesEditor = read('src/ui/matchingRulesEditor.js');
   const styles = read('styles.css');
 
-  assert.match(matchingRulesEditor, /const patternsCard = listEditor\('Allowed Item Name Patterns'/);
+  assert.match(matchingRulesEditor, /const patternsCard = listEditor\(messages\.allowedItemNamePatterns\.title/);
   assert.match(matchingRulesEditor, /converterButton\.type = 'button'/);
-  assert.match(matchingRulesEditor, /converterButton\.textContent = 'Convert patterns to Item IDs'/);
+  assert.match(matchingRulesEditor, /converterButton\.textContent = messages\.allowedItemNamePatterns\.convert/);
   assert.match(matchingRulesEditor, /converterButton\.className = 'pattern-converter-action'/);
   assert.match(matchingRulesEditor, /converterButton\.onclick = openRegexToItemIdsTool/);
   assert.match(matchingRulesEditor, /requireScopedEl\(patternsCard, '\.list-editor-row', 'name patterns'\)\.appendChild\(converterButton\)/);
-  assert.match(matchingRulesEditor, /ruleGrid\.append\([\s\S]*?Allowed UI Category IDs[\s\S]*?Allowed Item IDs[\s\S]*?patternsCard,[\s\S]*?renderAllowedRaritiesEditor/);
+  assert.match(matchingRulesEditor, /ruleGrid\.append\([\s\S]*?messages\.allowedUiCategoryIds\.title[\s\S]*?messages\.allowedItemIds\.title[\s\S]*?patternsCard,[\s\S]*?renderAllowedRaritiesEditor/);
   assert.doesNotMatch(matchingRulesEditor, /<h3>Regex → Item IDs<\/h3>/);
   assert.doesNotMatch(matchingRulesEditor, /id="openRegexToItemIds"/);
   assert.match(styles, /\.pattern-converter-action\s*\{[\s\S]*?margin-left:\s*auto;[\s\S]*?max-width:\s*100%;[\s\S]*?white-space:\s*normal;/);

@@ -1860,4 +1860,31 @@ Validation actually run:
 
 # Current next step
 
-Review and merge ready-for-review PR #135 separately. After merge, run the standard full review and Project reconciliation. Keep Issue #125 / Phase 55 on hold.
+Phase 74 merged through PR #135 at `aa81abd8dadafadb24805087ece3f7a9fe7bcc88`.
+
+## Phase 75
+
+Issue #137 scopes the next localization step to the populated matching-rule grid and reusable list editor, including the Custom Item Ranks caller, without widening into Regex converter internals, broad validation/import/export messages, remaining populated editor/sidebar prose, generated descriptions, locale persistence, or a second locale.
+
+Resolution on `agent/phase-75-list-editor-localization` from freshly fetched Phase 74 `origin/main` at `aa81abd8dadafadb24805087ece3f7a9fe7bcc88`:
+
+- threaded the existing single application translator through `categoryEditor.js` into `matchingRulesEditor.js`, `itemOrderingEditor.js`, and every affected `listEditor(...)` call; no UI leaf imports localization mechanics/catalogs or creates locale state;
+- added focused English keys for matching-rule titles/hints, converter launch text, rarity labels/guidance, pattern input, and typed Item/UI Category ID structural errors;
+- added focused English keys for reusable empty/unresolved text, add/move/remove names, default input, duplicate statuses, lookup labels/progress/busy/completion/failure summaries, search controls/progress/results/statuses, and result Add names;
+- kept caller titles, sheet labels, row names/IDs, counts, failure IDs/details, and parser/network errors as plain dynamic data with named interpolation rather than catalog markup;
+- localized the relevant-only Custom Item Ranks title, hint, placeholder, and structural error while preserving its ordered focus plan, dedupe, lookup/search/cache leases, and no-op behavior;
+- retained strict uint parsing, atomic list validation, comma splitting for numeric IDs, comma-preserving patterns, converter placement/wiring and return focus, rarity normalization, action availability, dirty behavior, list rerender focus, lookup caching/XIVAPI behavior, responsive layout, and import/export behavior;
+- added directly tested DOM-free matching-rule and list-editor message adapters plus updated focused source guards for translator flow, localization isolation, safe sinks, and the existing behavioral contracts.
+
+Validation actually run:
+
+- focused localization, list/matching-rule, row-ID, pattern, ordering, action-availability, lookup/request/cache, accessibility, and application/data-flow coverage passed 175 tests;
+- `npm run check` passed: 93 JavaScript files syntax-checked, all static relative imports resolved, and all 43 test files / 545 tests passed with zero failures, skips, cancellations, or todos;
+- local in-app browser QA loaded the 55-category advanced preset and verified exact matching/list text and accessible names, Add/Search disabled transitions, duplicate status interpolation, comma-bearing pattern entry, converter launch/return focus, relevant Custom Item Ranks rendering, and ordered move/remove names;
+- Comfortable and Compact both produced zero body/document/editor horizontal overflow at 1280px, 840px, and 390px. The matching grid retained two columns at 1280px and stacked at 840px/390px; unresolved lookup buttons stayed centered on the first pill;
+- no application error or CSP violation appeared. Electron's generic development CSP warning and the advanced preset's expected three-warning import summary were the only warnings. The original Comfortable density and viewport were restored and the QA tab was closed;
+- live XIVAPI success was not exercised or required; the existing direct injected lookup/request tests remain authoritative. Complete diff inspection found no dependency, schema, preset, import/export, dirty/save, converter-internal, generated-description, locale-state, CSS, CSP, workflow, or unrelated UI change.
+
+# Current next step
+
+Publish Phase 75 ready for review with `Closes #137`; do not merge it. Keep Issue #125 / Phase 55 on hold, and keep broader localization work under Issue #122.

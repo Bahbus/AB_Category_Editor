@@ -88,9 +88,9 @@ test('typed list add reports partial duplicate skips without changing all-duplic
 
   assert.match(addHandler, /let\s+skippedDuplicates\s*=\s*0/);
   assert.match(addHandler, /skippedDuplicates\+\+/);
-  assert.match(addHandler, /No new values added; all were already present\./);
+  assert.match(addHandler, /setStatus\(messages\.duplicateAll\)/);
   assert.match(addHandler, /if\s*\(skippedDuplicates\)/);
-  assert.match(addHandler, /Added \$\{added\} value\(s\); skipped \$\{skippedDuplicates\} duplicate\(s\)\./);
+  assert.match(addHandler, /setStatus\(messages\.duplicatePartial\(added, skippedDuplicates\)\)/);
 });
 
 test('raw category JSON delegates atomic normalization and replacement to the change helper', () => {
@@ -131,7 +131,7 @@ test('manual lookup search normalizes row IDs and avoids unnamed cache placehold
   assert.match(source, /const\s+id\s*=\s*normalizeRowIdValue\(rowId\(result\)\)/);
   assert.match(source, /if \(id === null\) continue;/);
   assert.match(source, /const\s+name\s*=\s*rowName\(result\)/);
-  assert.match(source, /const\s+displayName\s*=\s*isUsefulLookupName\(name\) \? name : '\(name unavailable\)'/);
+  assert.match(source, /const\s+displayName\s*=\s*isUsefulLookupName\(name\) \? name : messages\.nameUnavailable/);
   assert.match(source, /if \(isUsefulLookupName\(name\)\) \{[\s\S]*cache\[String\(id\)\] = name;[\s\S]*saveLookupCache\(\);[\s\S]*\}/);
   assert.match(source, /lookupResultAddAvailable\(id, arr\)/);
   assert.match(source, /arr\.push\(id\)/);
@@ -144,9 +144,9 @@ test('manual lookup search reports no usable rendered results separately', () =>
 
   assert.match(source, /let\s+rendered\s*=\s*0;/);
   assert.match(source, /resultsBox\.appendChild\(r\);\s*rendered\+\+;/);
-  assert.match(source, /if \(!rendered\) \{[\s\S]*No usable results with valid row IDs\.[\s\S]*setStatus\('No usable search results with valid row IDs\.'\);[\s\S]*return;[\s\S]*\}/);
-  assert.match(source, /if \(!results\.length\) \{[\s\S]*No results\.[\s\S]*return;[\s\S]*\}/);
-  assert.match(source, /if \(!rendered\)[\s\S]*setStatus\(`Search complete`, 'ok'\)/);
+  assert.match(source, /if \(!rendered\) \{[\s\S]*messages\.noUsableResults[\s\S]*setStatus\(messages\.noUsableStatus\);[\s\S]*return;[\s\S]*\}/);
+  assert.match(source, /if \(!results\.length\) \{[\s\S]*messages\.noResults[\s\S]*return;[\s\S]*\}/);
+  assert.match(source, /if \(!rendered\)[\s\S]*setStatus\(messages\.searchComplete, 'ok'\)/);
 });
 
 test('numeric list editors use strict row-ID dedupe without deduping name patterns', () => {
@@ -157,10 +157,10 @@ test('numeric list editors use strict row-ID dedupe without deduping name patter
   assert.match(listEditor, /dedupeKey\s*=\s*value\s*=>\s*value/);
   assert.match(listEditor, /if \(dedupeValues\)/);
 
-  const uiStart = matchingRulesEditor.indexOf("listEditor('Allowed UI Category IDs'");
-  const itemStart = matchingRulesEditor.indexOf("listEditor('Allowed Item IDs'", uiStart);
+  const uiStart = matchingRulesEditor.indexOf('listEditor(messages.allowedUiCategoryIds.title');
+  const itemStart = matchingRulesEditor.indexOf('listEditor(messages.allowedItemIds.title', uiStart);
   const patternsAppend = matchingRulesEditor.indexOf('patternsCard,', itemStart);
-  const patternStart = matchingRulesEditor.indexOf("const patternsCard = listEditor('Allowed Item Name Patterns'");
+  const patternStart = matchingRulesEditor.indexOf('const patternsCard = listEditor(messages.allowedItemNamePatterns.title');
   const converterStart = matchingRulesEditor.indexOf('const converterButton', patternStart);
   const uiCall = matchingRulesEditor.slice(uiStart, itemStart);
   const itemCall = matchingRulesEditor.slice(itemStart, patternsAppend);
@@ -181,13 +181,14 @@ test('name-pattern entry preserves commas while numeric ID editors retain comma-
   const addHandler = listEditor.match(/add\.onclick = \(\) => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
 
   assert.match(listEditor, /splitInputOnCommas\s*=\s*true/);
-  assert.match(listEditor, /inputPlaceholder\s*=\s*'Add one value, or comma-separated values'/);
+  assert.match(listEditor, /inputPlaceholder\s*=\s*null/);
+  assert.match(listEditor, /input\.placeholder = inputPlaceholder \?\? messages\.defaultPlaceholder/);
   assert.match(listEditor, /tokenizeListInput\(raw, splitInputOnCommas\)/);
 
-  const uiStart = matchingRulesEditor.indexOf("listEditor('Allowed UI Category IDs'");
-  const itemStart = matchingRulesEditor.indexOf("listEditor('Allowed Item IDs'", uiStart);
+  const uiStart = matchingRulesEditor.indexOf('listEditor(messages.allowedUiCategoryIds.title');
+  const itemStart = matchingRulesEditor.indexOf('listEditor(messages.allowedItemIds.title', uiStart);
   const patternsAppend = matchingRulesEditor.indexOf('patternsCard,', itemStart);
-  const patternStart = matchingRulesEditor.indexOf("const patternsCard = listEditor('Allowed Item Name Patterns'");
+  const patternStart = matchingRulesEditor.indexOf('const patternsCard = listEditor(messages.allowedItemNamePatterns.title');
   const converterStart = matchingRulesEditor.indexOf('const converterButton', patternStart);
   const uiCall = matchingRulesEditor.slice(uiStart, itemStart);
   const itemCall = matchingRulesEditor.slice(itemStart, patternsAppend);
@@ -198,7 +199,7 @@ test('name-pattern entry preserves commas while numeric ID editors retain comma-
   assert.doesNotMatch(uiCall, /inputPlaceholder:/);
   assert.doesNotMatch(itemCall, /inputPlaceholder:/);
   assert.match(patternCall, /splitInputOnCommas:\s*false/);
-  assert.match(patternCall, /inputPlaceholder:\s*'Add one regex\/name pattern'/);
+  assert.match(patternCall, /inputPlaceholder:\s*messages\.allowedItemNamePatterns\.placeholder/);
   assert.match(patternCall, /validateValue:\s*validateRegexPattern/);
   assert.match(addHandler, /if \(findingList\.some\(item => item\.severity === 'error'\)\) \{\s*renderValidation\(findingList\);\s*return;/);
   assert.ok(addHandler.indexOf('renderValidation(findingList)') < addHandler.indexOf('arr.push(part)'));
@@ -431,16 +432,16 @@ test('clipboard fallback removes its hidden textarea and restores only valid fal
 
 test('numeric ID list parsers use exact uint parsing', () => {
   const source = read('src/ui/matchingRulesEditor.js');
-  const uiStart = source.indexOf("listEditor('Allowed UI Category IDs'");
-  const itemStart = source.indexOf("listEditor('Allowed Item IDs'", uiStart);
+  const uiStart = source.indexOf('listEditor(messages.allowedUiCategoryIds.title');
+  const itemStart = source.indexOf('listEditor(messages.allowedItemIds.title', uiStart);
   const patternsAppend = source.indexOf('patternsCard,', itemStart);
   const uiBlock = source.slice(uiStart, itemStart);
   const itemBlock = source.slice(itemStart, patternsAppend);
 
   assert.match(uiBlock, /parseTypedRowIdValue\(x\)/);
   assert.match(itemBlock, /parseTypedRowIdValue\(x\)/);
-  assert.match(uiBlock, /0 through 4294967295/);
-  assert.match(itemBlock, /0 through 4294967295/);
+  assert.match(uiBlock, /messages\.allowedUiCategoryIds\.error/);
+  assert.match(itemBlock, /messages\.allowedItemIds\.error/);
 });
 
 test('list lookup busy overlay only appears after missing ID check', () => {
@@ -457,7 +458,7 @@ test('list lookup busy overlay only appears after missing ID check', () => {
   assert.notEqual(hideBusyIndex, -1);
   assert.ok(noMissingIndex > missingIndex, 'cached-ID branch should run after missing IDs are computed');
   assert.ok(showBusyIndex > noMissingIndex, 'busy overlay should be shown only after all-cached branch returns');
-  assert.match(handler, /if \(!missing\.length\) \{[\s\S]*?already cached[\s\S]*?renderPills\(\);[\s\S]*?return;/);
+  assert.match(handler, /if \(!missing\.length\) \{[\s\S]*?messages\.allCached\(ids\.length\)[\s\S]*?renderPills\(\);[\s\S]*?return;/);
 });
 
 test('regex scanner uses shared strict row ID normalization', () => {

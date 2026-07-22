@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`  
 > **Purpose:** Static JavaScript editor for AetherBags category configuration files used with Final Fantasy XIV.  
-> **Current state:** Phase 73.2 merged through PR #133 at `60989edeb88aa83030f3bec889d556930d8c0506`, restoring the five public issue forms by removing their invalid optional empty `title` values. The user's live default-branch chooser observation confirmed that the five forms render successfully; `community/profile` still reports `issue_template: null`, so that endpoint is not a reliable YAML-form acceptance oracle. Phase 74 on issue #134 preserves meaningful focus through clipboard fallback and hardens modal Tab re-entry. Phase 55 remains represented by on-hold issue #125.
+> **Current state:** Phase 74 merged through PR #135 at `aa81abd8dadafadb24805087ece3f7a9fe7bcc88`, preserving meaningful focus through clipboard fallback and hardening modal Tab re-entry. Phase 75 on Issue #137 localizes the matching-rule grid and reusable list-editor-owned copy through the existing single injected translator while preserving all list, lookup, focus, converter, and responsive contracts. Phase 55 remains represented by on-hold Issue #125.
 > **Historical planning thread:** https://chatgpt.com/c/6a34e61a-51b4-83e8-8afb-ff833b85aafe  
 > **Primary verification command:** `npm run check`  
 
@@ -618,19 +618,19 @@ Source checks are useful for DOM-heavy static code, but regex-based checks can b
 
 ### Localization
 
-Phase 67 established the English-only foundation, and Phase 68 extended the migrated surface:
+Phase 67 established the English-only foundation, and later bounded phases extended the migrated surface:
 
 - `src/locales/en.js` is the explicit plain-text English catalog.
 - `src/localization.js` owns DOM-free locale resolution, stable keyed lookup, and named interpolation.
 - Unsupported locales deterministically use English; unknown keys and missing named parameters throw rather than rendering missing data or unresolved placeholders.
-- `src/app.js` owns one explicit fixed-English translator and injects it into the persistent application chrome plus the Preferences, About / Help, and Lookup Cache modal entrypoints. There is no mutable global locale or user-visible language control.
+- `src/app.js` owns one explicit fixed-English translator and injects it into the persistent application chrome plus the Preferences, About / Help, Lookup Cache, empty-state, matching-rule, and reusable list-editor paths. There is no mutable global locale or user-visible language control.
 - Phase 67 migrated the complete Preferences modal. Phase 68 additionally migrated the complete About / Help and Lookup Cache modal surfaces.
 - Phase 69 completed the safe reorderable rich-message prerequisite for semantically marked-up Help prose. Phase 70 migrated the persistent document/brand, sidebar, and topbar application chrome.
 - Catalogs remain frozen plain strings with no HTML. Translated template values are escaped, while modal titles and runtime statuses continue through plain-text sinks.
 
 Still deferred:
 
-- Extract broader validation/status messages, lookup/search list-editor text, category editing, and other remaining UI text in bounded message-family phases.
+- Extract broader validation/status messages and the remaining populated category-editor/sidebar text in bounded message-family phases.
 - Add a persisted locale preference and user-visible fallback behavior through the established state/orchestration boundary.
 - Add locale key-parity checks once a second locale exists.
 - Keep JSON schema keys untouched.
@@ -1221,5 +1221,23 @@ The post-merge review baseline passed `npm run check` with 92 JavaScript files, 
 - Direct coverage proves primary success/no focus access; fallback true, false, and exception cleanup/restoration; disconnected and superseded targets; restoration exceptions; and modal outside-focus re-entry in both directions. Static CSP and import/export trust guards remain in place.
 - Focused clipboard/modal/accessibility/import-export coverage passed all 185 tests. `npm run check` passed with 92 JavaScript files, all static relative imports resolved, and 42 test files / 543 tests with zero failures, skips, cancellations, or todos.
 - Final local in-app browser QA passed Raw JSON Copy, Export / Copy automatic success, modal first/last cycling and launcher return, background ARIA restoration, and zero application or Export-modal horizontal overflow at 1280px, 840px, and 390px. The browser used the primary Clipboard API and did not expose a supported way to force fallback, so direct fallback tests remain authoritative. No application error or CSP violation appeared; Electron's generic development CSP warning was the only warning.
-- Phase 74 is published ready for review through PR #135. Both verification runs, CodeQL JavaScript/TypeScript and Actions analyses, and the aggregate CodeQL check passed; the PR and Issue #134 remain `In Progress`, Priority `Next`, Area `UI/UX`, Phase `74` in the Roadmap.
+- Phase 74 merged through PR #135 at `aa81abd8dadafadb24805087ece3f7a9fe7bcc88`. Both verification runs, CodeQL JavaScript/TypeScript and Actions analyses, and the aggregate CodeQL check passed.
 - No application data, serialization, dirty/save authority, modal lifecycle, caller interface, localization, preset, dependency, workflow, CSS, or unrelated behavior changed. Phase 55 remains on hold.
+
+## Phase 75 current implementation
+
+- The existing application translator now flows explicitly through `renderCategoryEditor(...)` into `renderMatchingRulesEditor(...)`, `renderItemOrderingEditor(...)`, and every matching-rule or Custom Item Ranks `listEditor(...)` call. These UI modules neither import localization mechanics/catalogs nor create locale state.
+- `src/ui/matchingRulesEditor.js` localizes the four matching-rule titles/hints, pattern-converter action, five rarity labels, pattern placeholder, and the two typed row-ID structural errors. `createMatchingRuleMessages(...)` is the directly tested DOM-free copy adapter.
+- `src/ui/listEditor.js` localizes its default placeholder, empty/unresolved text, add/move/remove accessible names, duplicate statuses, lookup labels/progress/busy/completion/failure messages, search UI/results/statuses, and result Add names. Caller titles, sheet names, row values/names/IDs, counts, and failure details remain named plain-text parameters; `createListEditorMessages(...)` provides direct exact-output coverage.
+- Custom Item Ranks supplies localized title, hint, placeholder, and structural error while retaining the existing relevant-only rendering, rank formatting, lookup stack, ordered focus plans, and strict no-op behavior.
+- Catalog values remain plain strings. Translated markup-template values pass through `escapeHtml(...)`; dynamic names/IDs and translated status text continue through existing escaped or plain-text sinks. No catalog value can create a tag, event handler, or URL attribute.
+- Regex converter internals, broad validation/import/export messages, remaining populated editor/sidebar prose, generated descriptions, locale persistence, and second-locale work remain outside Phase 75 and tracked under Issue #122.
+
+Validation actually run:
+
+- focused localization, list/matching-rule, row-ID, pattern, ordering, action-availability, lookup/request/cache, accessibility, and application/data-flow coverage passed 175 tests;
+- `npm run check` passed: 93 JavaScript files syntax-checked, all static relative imports resolved, and all 43 test files / 545 tests passed with zero failures, skips, cancellations, or todos;
+- local in-app browser QA used the populated 55-category advanced preset and verified exact matching/list copy and accessible names, Add/Search transitions, comma-preserving pattern entry, converter launch/return focus, relevant Custom Item Ranks and ordered names, and zero body/document/editor horizontal overflow in Comfortable and Compact at 1280px, 840px, and 390px;
+- the matching-rule grid remained two columns at 1280px and stacked at 840px/390px; unresolved lookup actions stayed centered on the first pill. No application error or CSP violation appeared. Electron's generic development CSP warning and the preset's established three-warning import summary were the only warnings;
+- the original Comfortable density and viewport were restored and the QA tab was closed. Live XIVAPI success was not required or exercised because direct injected lookup tests remain authoritative;
+- Phase 55 remains on hold, and no dependency, schema, preset, import/export, dirty/save, lookup-cache, converter-internal, generated-description, locale-state, CSS, CSP, workflow, or unrelated UI change was introduced.

@@ -15,6 +15,11 @@ test('English lookup returns established localized modal copy', () => {
   assert.equal(translate('help.privacy.repository'), 'The app does not upload the full category config to this repository.');
   assert.equal(translate('action.lookupCache'), 'Lookup Cache');
   assert.equal(translate('lookupCache.unavailable.race'), 'The cache was not cleared because a lookup or scan is still running.');
+  assert.equal(translate('matchingRules.allowedUiCategoryIds.title'), 'Allowed UI Category IDs');
+  assert.equal(translate('matchingRules.allowedItemNamePatterns.convert'), 'Convert patterns to Item IDs');
+  assert.equal(translate('matchingRules.rarity.aetherial'), 'Aetherial');
+  assert.equal(translate('itemOrdering.customItemRanks.title'), 'Custom Item Ranks');
+  assert.equal(translate('listEditor.search.addResult', { name: '<Potion>', id: 42, title: 'Allowed Item IDs' }), 'Add <Potion> #42 to Allowed Item IDs');
 });
 
 test('Lookup Cache statistics interpolate established formatted counts', () => {

@@ -137,7 +137,8 @@ export function renderEditor(deps) {
       advanced.open = true;
       raw.focus();
       raw.scrollIntoView({ block: 'nearest' });
-    }
+    },
+    translate
   });
   root.appendChild(itemOrdering);
 
@@ -151,7 +152,8 @@ export function renderEditor(deps) {
       renderList();
     },
     openRegexToItemIdsTool,
-    listEditorDeps
+    listEditorDeps,
+    translate
   }));
 
   const { ranges, states } = renderRangeStateFiltersEditor(rules, {

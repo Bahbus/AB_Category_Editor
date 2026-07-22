@@ -12,6 +12,39 @@ export function tokenizeListInput(rawInput, splitOnCommas = true) {
   return trimmedInput.split(',').map(value => value.trim()).filter(Boolean);
 }
 
+export function createListEditorMessages(translate, { title, sheet = '' }) {
+  return Object.freeze({
+    empty: translate('listEditor.empty'),
+    defaultPlaceholder: translate('listEditor.input.placeholder'),
+    addLabel: translate('listEditor.add.label', { title }),
+    moveUpLabel: (value, rank) => translate('listEditor.moveUp.label', { value, rank, title }),
+    moveDownLabel: (value, rank) => translate('listEditor.moveDown.label', { value, rank, title }),
+    removeLabel: value => translate('listEditor.remove.label', { value, title }),
+    unresolvedName: translate('listEditor.lookup.unresolved'),
+    duplicateAll: translate('listEditor.duplicate.all'),
+    duplicatePartial: (added, duplicates) => translate('listEditor.duplicate.partial', { added, duplicates }),
+    lookupLabel: translate('listEditor.lookup.names.label', { sheet }),
+    allCached: total => translate('listEditor.lookup.allCached', { total, sheet }),
+    lookupBusyTitle: translate('listEditor.lookup.busy.title', { sheet }),
+    lookupProgress: (done, total) => translate('listEditor.lookup.busy.progress', { done, total }),
+    lookupStatus: (done, total) => translate('listEditor.lookup.status.progress', { done, total, sheet }),
+    failureMore: count => translate('listEditor.lookup.failure.more', { count }),
+    lookupFailure: (count, details) => translate('listEditor.lookup.failure', { sheet, count, details }),
+    lookupComplete: translate('listEditor.lookup.complete', { sheet }),
+    searchLabel: translate('listEditor.search.label', { sheet }),
+    searchPlaceholder: translate('listEditor.search.placeholder'),
+    searchAction: translate('listEditor.search.action'),
+    searchProgress: translate('listEditor.search.progress'),
+    noResults: translate('listEditor.search.noResults'),
+    nameUnavailable: translate('listEditor.search.nameUnavailable'),
+    addResultLabel: (name, id) => translate('listEditor.search.addResult', { name, id, title }),
+    addResultFallback: translate('listEditor.search.addResultFallback'),
+    noUsableResults: translate('listEditor.search.noUsableResults'),
+    noUsableStatus: translate('listEditor.search.noUsableStatus'),
+    searchComplete: translate('listEditor.search.complete')
+  });
+}
+
 export function listEditor(title, arr, parser, formatter, options = {}) {
   const {
     hint = '',
@@ -29,11 +62,14 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     dedupeValues = false,
     dedupeKey = value => value,
     splitInputOnCommas = true,
-    inputPlaceholder = 'Add one value, or comma-separated values',
+    inputPlaceholder = null,
     ordered = false,
     preserveInputOnNoop = false,
-    onAvailabilityChanged = null
+    onAvailabilityChanged = null,
+    translate
   } = options;
+  const sheet = lookupSheet ? sheetLabel(lookupSheet) : '';
+  const messages = createListEditorMessages(translate, { title, sheet });
 
   const card = document.createElement('div');
   card.className = 'card';
@@ -103,7 +139,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
 
       if (lookupSheet) {
         const name = lookupName(lookupSheet, v);
-        extra = isUsefulLookupName(name) ? ` <span class="pill-name">— ${escapeHtml(name)}</span>` : ' <span class="pill-name">— not looked up</span>';
+        extra = isUsefulLookupName(name) ? ` <span class="pill-name">— ${escapeHtml(name)}</span>` : ` <span class="pill-name">— ${escapeHtml(messages.unresolvedName)}</span>`;
       }
 
       const valueLabel = formatter(v);
@@ -115,7 +151,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         moveUp.className = 'pill-icon-button pill-move';
         moveUp.textContent = '↑';
         moveUp.disabled = i === 0;
-        const moveUpLabel = `Move ${valueLabel} from rank ${rank} up in ${title}`;
+        const moveUpLabel = messages.moveUpLabel(valueLabel, rank);
         syncButtonTooltip(moveUp, moveUpLabel);
         moveUp.setAttribute('aria-label', moveUpLabel);
         moveUp.dataset.listFocus = `move-up-${i}`;
@@ -133,7 +169,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         moveDown.className = 'pill-icon-button pill-move';
         moveDown.textContent = '↓';
         moveDown.disabled = i === arr.length - 1;
-        const moveDownLabel = `Move ${valueLabel} from rank ${rank} down in ${title}`;
+        const moveDownLabel = messages.moveDownLabel(valueLabel, rank);
         syncButtonTooltip(moveDown, moveDownLabel);
         moveDown.setAttribute('aria-label', moveDownLabel);
         moveDown.dataset.listFocus = `move-down-${i}`;
@@ -151,7 +187,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       const removeButton = document.createElement('button');
       removeButton.type = 'button';
       removeButton.className = 'pill-icon-button pill-remove';
-      const removeLabel = `Remove ${valueLabel} from ${title}`;
+      const removeLabel = messages.removeLabel(valueLabel);
       removeButton.title = removeLabel;
       removeButton.setAttribute('aria-label', removeLabel);
       removeButton.textContent = '×';
@@ -173,7 +209,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     if (!arr.length) {
       const empty = document.createElement('span');
       empty.className = 'hint';
-      empty.textContent = 'Empty';
+      empty.textContent = messages.empty;
       pills.appendChild(empty);
     }
     updateLookupButtonVisibility();
@@ -186,20 +222,20 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
   const inputLabel = document.createElement('label');
   inputLabel.className = 'sr-only';
   inputLabel.htmlFor = inputId;
-  inputLabel.textContent = `Add value to ${title}`;
+  inputLabel.textContent = messages.addLabel;
 
   const input = document.createElement('input');
   input.id = inputId;
   input.className = 'inline-input';
-  input.placeholder = inputPlaceholder;
+  input.placeholder = inputPlaceholder ?? messages.defaultPlaceholder;
   if (ordered) input.dataset.listFocus = 'input';
 
   const add = document.createElement('button');
   add.type = 'button';
   add.className = 'icon-button add-icon-button input-paired-icon';
   add.textContent = '+';
-  add.setAttribute('aria-label', `Add value to ${title}`);
-  const addLabel = `Add value to ${title}`;
+  add.setAttribute('aria-label', messages.addLabel);
+  const addLabel = messages.addLabel;
   function syncAddButtonState() {
     add.disabled = input.value.trim().length === 0;
     syncButtonTooltip(add, addLabel);
@@ -239,7 +275,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
           input.value = '';
           syncAddButtonState();
         }
-        setStatus('No new values added; all were already present.');
+        setStatus(messages.duplicateAll);
         renderValidation();
         return;
       }
@@ -250,7 +286,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       focusOrderedControl(['input']);
       notifyItemsChanged();
       if (skippedDuplicates) {
-        setStatus(`Added ${added} value(s); skipped ${skippedDuplicates} duplicate(s).`);
+        setStatus(messages.duplicatePartial(added, skippedDuplicates));
       }
     } catch (err) {
       setStatus(err.message, 'err');
@@ -272,7 +308,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     lookupButton.type = 'button';
     lookupButton.className = 'icon-button pill-lookup-button';
     lookupButton.textContent = '🔍';
-    const lookupLabel = `Lookup ${sheetLabel(lookupSheet)} names`;
+    const lookupLabel = messages.lookupLabel;
     lookupButton.setAttribute('aria-label', lookupLabel);
     syncButtonTooltip(lookupButton, lookupLabel);
     lookupButton.onclick = async () => {
@@ -285,30 +321,30 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         const missing = ids.filter(id => !isUsefulLookupName(lookupName(lookupSheet, id)));
 
         if (!missing.length) {
-          setStatus(`All ${ids.length} ${sheetLabel(lookupSheet)} name(s) already cached.`, 'ok');
+          setStatus(messages.allCached(ids.length), 'ok');
           renderPills();
           return;
         }
 
         releaseLookupCacheProducer = acquireLookupCacheProducer();
-        showBusy(`Looking up ${sheetLabel(lookupSheet)} names`, `0/${missing.length} uncached checked`, 0);
+        showBusy(messages.lookupBusyTitle, messages.lookupProgress(0, missing.length), 0);
         busyShown = true;
 
         {
           const failures = await fetchLookupBatch(lookupSheet, missing, {
             onProgress(done, total) {
               const percent = total ? (done / total) * 100 : 100;
-              setStatus(`Looked up ${done}/${total} uncached ${sheetLabel(lookupSheet)} ID(s)...`);
-              updateBusy(`${done}/${total} uncached checked`, percent);
+              setStatus(messages.lookupStatus(done, total));
+              updateBusy(messages.lookupProgress(done, total), percent);
             }
           });
 
           if (failures.length) {
             const shown = failures.slice(0, 5).map(failure => `#${failure.id}`).join(', ');
-            const more = failures.length > 5 ? `, +${failures.length - 5} more` : '';
-            setStatus(`${sheetLabel(lookupSheet)} lookup finished with ${failures.length} failure(s): ${shown}${more}`, 'warn');
+            const more = failures.length > 5 ? messages.failureMore(failures.length - 5) : '';
+            setStatus(messages.lookupFailure(failures.length, `${shown}${more}`), 'warn');
           } else {
-            setStatus(`${sheetLabel(lookupSheet)} lookup complete`, 'ok');
+            setStatus(messages.lookupComplete, 'ok');
           }
         }
 
@@ -329,7 +365,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     const searchWrap = document.createElement('div');
     searchWrap.className = 'lookup-search-block';
     const searchId = `lookup-search-${Math.random().toString(36).slice(2)}`;
-    searchWrap.innerHTML = `<label for="${searchId}">Search ${escapeHtml(sheetLabel(lookupSheet))} by English name</label><div class="row lookup-search-row"><input id="${searchId}" class="lookupSearchInput inline-input" placeholder="Example: potion, materia, weapon"><button class="lookupSearchButton">Search</button></div><div class="lookup-results"></div>`;
+    searchWrap.innerHTML = `<label for="${searchId}">${escapeHtml(messages.searchLabel)}</label><div class="row lookup-search-row"><input id="${searchId}" class="lookupSearchInput inline-input" placeholder="${escapeHtml(messages.searchPlaceholder)}"><button class="lookupSearchButton">${escapeHtml(messages.searchAction)}</button></div><div class="lookup-results"></div>`;
 
     const searchInput = searchWrap.querySelector('.lookupSearchInput');
     const searchButton = searchWrap.querySelector('.lookupSearchButton');
@@ -344,7 +380,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       for (const button of resultsBox.querySelectorAll('button[data-lookup-row-id]')) {
         const id = normalizeRowIdValue(button.dataset.lookupRowId);
         button.disabled = !lookupResultAddAvailable(id, arr);
-        syncButtonTooltip(button, button.dataset.enabledTitle || 'Add lookup result');
+        syncButtonTooltip(button, button.dataset.enabledTitle || messages.addResultFallback);
       }
     }
 
@@ -364,13 +400,13 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
       const releaseLookupCacheProducer = acquireLookupCacheProducer();
 
       try {
-        resultsBox.innerHTML = '<span class="hint">Searching...</span>';
+        resultsBox.innerHTML = `<span class="hint">${escapeHtml(messages.searchProgress)}</span>`;
 
         const results = await searchXivapi(lookupSheet, query);
         resultsBox.innerHTML = '';
 
         if (!results.length) {
-          resultsBox.innerHTML = '<span class="hint">No results.</span>';
+          resultsBox.innerHTML = `<span class="hint">${escapeHtml(messages.noResults)}</span>`;
           return;
         }
 
@@ -380,7 +416,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
           if (id === null) continue;
 
           const name = rowName(result);
-          const displayName = isUsefulLookupName(name) ? name : '(name unavailable)';
+          const displayName = isUsefulLookupName(name) ? name : messages.nameUnavailable;
           if (isUsefulLookupName(name)) {
             const cache = lookupCache[lookupSheet] || (lookupCache[lookupSheet] = {});
             cache[String(id)] = name;
@@ -392,7 +428,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
           r.className = 'lookup-row';
           r.innerHTML = `<span>#${escapeHtml(id)}</span><span>${escapeHtml(displayName)}</span><button class="icon-button add-icon-button">+</button>`;
           const addButton = r.querySelector('button');
-          const addLabel = `Add ${displayName} #${id} to ${title}`;
+          const addLabel = messages.addResultLabel(displayName, id);
           addButton.setAttribute('aria-label', addLabel);
           addButton.dataset.lookupRowId = String(id);
           addButton.dataset.enabledTitle = addLabel;
@@ -411,12 +447,12 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
         }
 
         if (!rendered) {
-          resultsBox.innerHTML = '<span class="hint">No usable results with valid row IDs.</span>';
-          setStatus('No usable search results with valid row IDs.');
+          resultsBox.innerHTML = `<span class="hint">${escapeHtml(messages.noUsableResults)}</span>`;
+          setStatus(messages.noUsableStatus);
           return;
         }
 
-        setStatus(`Search complete`, 'ok');
+        setStatus(messages.searchComplete, 'ok');
       } catch (err) {
         resultsBox.innerHTML = '';
         setStatus(err.message, 'err');
