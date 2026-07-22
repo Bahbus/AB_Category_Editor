@@ -1767,3 +1767,33 @@ Validation actually run:
 # Current next step
 
 Phase 73 implementation and validation are complete; publication remains separate. After merge, run the standard deep review, reconcile the Roadmap, and select the next numbered phase from verified `Soon` candidates. Keep issue #125 / Phase 55 on hold.
+
+Phase 73 merged through ready-for-review PR #129 at `701b4cc34af1c1b7ecfead07e03767c186ba828c`. Project Issue #119 and PR #129 are `Done`.
+
+## Phase 73.1
+
+Issue #130 identified an audience mismatch in the merged governance forms: GitHub cannot make a public-repository issue form visible only to selected maintainers, while the broad review/roadmap and general forms exposed internal workflow language or combined reporters with very different needs.
+
+Resolution on `agent/phase-73-1-issue-template-audience` from freshly fetched Phase 73 `origin/main` at `701b4cc34af1c1b7ecfead07e03767c186ba828c`:
+
+- removed the numbered-phase and review-finding forms from `.github/ISSUE_TEMPLATE/` so they are absent from the public chooser;
+- added separate public forms for reproducible bugs, possible improvements/features, accessibility/usability problems, and documentation problems, plus a general question/other route;
+- rewrote all public names, descriptions, prompts, examples, checks, and chooser links in simple language without phase, roadmap-candidate, Project-synchronization, architecture, validation, or maintainer-review assumptions;
+- kept diagnostic questions where useful: bug and accessibility forms collect steps, expected/actual behavior, app source, and environment; AetherBags version is requested only for relevant compatibility problems;
+- retained focused labels and privacy reminders, and added a direct chooser link to GitHub private security advisories so sensitive details are not invited into public issues;
+- preserved a complete reusable numbered-phase body at `.github/maintainer/numbered-phase-issue.md`, with README instructions for direct `gh issue create`, required labels, and Project fields;
+- documented precisely that maintainer-only creation is a workflow convention because GitHub provides no per-user visibility control for an issue form in a public repository;
+- retained the Phase 73 ready-for-review pull-request policy without changing application runtime, dependencies, data, import/export, accessibility, layout, or security behavior.
+
+Validation actually run:
+
+- focused `test/repositoryGovernance.test.mjs` passed all 9 tests;
+- PyYAML 6.0.3 parsed all six public chooser/form YAML files as mappings;
+- `npm run check` passed: 92 JavaScript files syntax-checked, all static relative imports resolved, and all 42 test files / 528 tests passed with zero failures, skips, cancellations, or todos;
+- `git diff --check origin/main` and `git diff --cached --check` passed after staging the complete explicit 14-file phase scope;
+- live Project inspection confirmed Issue #130 at Phase `73.1`, Priority `Next`, Area `Infrastructure`, and Status `In Progress` before publication;
+- browser QA of the application was not run because no runtime file changed. Live GitHub chooser verification remains a separate post-publication check.
+
+# Current next step
+
+Complete full repository verification, publish Phase 73.1 directly ready for review with `Closes #130`, add the PR to the Project with current fields, and inspect the rendered GitHub issue chooser without merging the PR.

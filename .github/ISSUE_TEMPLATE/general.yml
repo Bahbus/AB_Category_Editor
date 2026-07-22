@@ -1,102 +1,56 @@
-name: Bug, request, or question
-description: Report a problem, suggest an improvement, or ask a project question.
+name: Ask a question or report something else
+description: Use this when none of the other choices fit your question or problem.
 title: ""
 labels:
+  - question
   - triage
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping improve AB Category Editor. Please do not post a full category export if it contains information you do not want public. A small, sanitized example is usually more useful.
-
-  - type: dropdown
-    id: kind
-    attributes:
-      label: What kind of issue is this?
-      options:
-        - Bug or regression
-        - Import, export, validation, or data-loss concern
-        - Accessibility or keyboard/focus problem
-        - UI or responsive-layout improvement
-        - Feature request
-        - Documentation problem
-        - Question or support request
-    validations:
-      required: true
+        Thanks for getting in touch. Do not post passwords, tokens, personal information, private category data, or security details in a public issue. Use the private security link in the issue chooser for a security problem.
 
   - type: textarea
     id: summary
     attributes:
-      label: Summary
-      description: Briefly explain the problem, request, or question and why it matters.
+      label: How can we help?
+      description: Describe your question or problem and the result you want.
     validations:
       required: true
 
   - type: textarea
-    id: steps
+    id: details
     attributes:
-      label: Steps to reproduce or proposed workflow
-      description: For bugs, give the smallest reliable sequence. For requests, describe the workflow you want to improve.
-      placeholder: |
-        1. Open the published editor
-        2. Import or create...
-        3. Change...
-        4. Observe...
-    validations:
-      required: true
-
-  - type: textarea
-    id: expected
-    attributes:
-      label: Expected behavior
-      description: What should happen instead?
-    validations:
-      required: true
-
-  - type: textarea
-    id: actual
-    attributes:
-      label: Actual behavior
-      description: What happened? Include exact visible messages when relevant.
+      label: What happened or what have you tried?
+      description: Share the steps, current behavior, or documentation you already checked when relevant.
     validations:
       required: true
 
   - type: input
-    id: app_version
+    id: app_source
     attributes:
-      label: App source
-      description: State whether you used the published GitHub Pages app or a local checkout/commit.
-      placeholder: Published app, or local commit SHA
-    validations:
-      required: true
+      label: Which editor did you use, if relevant?
+      description: Tell us whether you used the published website or a local copy.
+      placeholder: Published website, local commit, or not applicable
 
   - type: input
     id: environment
     attributes:
-      label: Browser and operating system
-      placeholder: Firefox 140 on Windows 11
-    validations:
-      required: true
-
-  - type: input
-    id: aetherbags_version
-    attributes:
-      label: AetherBags version
-      description: Include this when the report concerns import/export behavior or plugin compatibility.
-      placeholder: Version or unknown
+      label: Browser and operating system, if relevant
+      placeholder: Firefox 140 on Windows 11, or not applicable
 
   - type: textarea
     id: evidence
     attributes:
-      label: Additional evidence
-      description: Add sanitized minimal JSON, screenshots, console messages, or links. Remove private or unrelated configuration data first.
+      label: Anything else that may help
+      description: Add a cleaned-up example, screenshot, console message, or link. Remove private and unrelated information first.
 
   - type: checkboxes
     id: checks
     attributes:
       label: Before submitting
       options:
-        - label: I searched existing issues and the Roadmap for the same report or request.
+        - label: I searched existing issues for the same question or problem.
           required: true
-        - label: I removed secrets, private data, and unrelated configuration from anything attached here.
+        - label: I removed passwords, tokens, personal information, private category data, and security details from anything shared here.
           required: true

@@ -1,5 +1,8 @@
 blank_issues_enabled: false
 contact_links:
-  - name: AB Category Editor Roadmap
+  - name: Planned work
     url: https://github.com/users/Bahbus/projects/2
-    about: Review active, deferred, and completed planning work before opening a duplicate issue.
+    about: See what is planned or already being worked on before opening a new issue.
+  - name: Report a security problem privately
+    url: https://github.com/Bahbus/AB_Category_Editor/security/advisories/new
+    about: Please do not share passwords, tokens, private data, or security details in a public issue.

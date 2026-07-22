@@ -6,6 +6,8 @@ Published page: <https://bahbus.github.io/AB_Category_Editor/>
 
 Roadmap: <https://github.com/users/Bahbus/projects/2>
 
+Problems, ideas, accessibility concerns, documentation corrections, and questions can be reported through the [friendly issue chooser](https://github.com/Bahbus/AB_Category_Editor/issues/new/choose). Use its private security-reporting link instead of a public issue when details could put users or data at risk.
+
 ## Features
 
 - Import/paste AetherBags gzip+Base64 category data, or upload text/Base64/JSON exports.
@@ -38,7 +40,9 @@ Roadmap: <https://github.com/users/Bahbus/projects/2>
 
 - Keep the app dependency-free and GitHub Pages-compatible.
 - Any user/config-provided values inserted into `innerHTML` must be escaped with `escapeHtml()` first. Prefer `textContent` when markup is not needed.
-- Check the linked Roadmap before planning work. Numbered phases and review findings use repository issues so they can carry evidence, link to ready-for-review pull requests, and remain synchronized with Project status.
+- Check the linked Roadmap before planning work. Public reports use focused forms for bugs, improvements, accessibility/usability, and documentation, with a general form for questions or anything else.
+- Only repository maintainers create numbered phase issues. GitHub does not provide per-user visibility for an issue form in a public repository, so this is a documented workflow convention rather than technical access control. The reusable body is deliberately kept outside the public chooser at `.github/maintainer/numbered-phase-issue.md`.
+- From a clean checkout, a maintainer can copy the reusable body into a new issue with `gh issue create --repo Bahbus/AB_Category_Editor --title "Phase X: Short title" --label roadmap --label phase --body-file .github/maintainer/numbered-phase-issue.md`, then add the issue to the Project and set its Status, Priority, Area, and Phase fields.
 
 ## Development checks
 

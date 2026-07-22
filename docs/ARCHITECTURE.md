@@ -875,11 +875,16 @@ No repository Actions workflow stores a personal Projects token. GitHub's reposi
 
 Repository governance surfaces:
 
-- `.github/ISSUE_TEMPLATE/phase.yml` — numbered phase evidence, scope, contracts, verification, docs, Project, and PR-link requirements;
-- `.github/ISSUE_TEMPLATE/review-finding.yml` — skeptical review classification and candidate-phase boundary;
-- `.github/ISSUE_TEMPLATE/general.yml` — public and maintainer triage for bugs, data compatibility, accessibility, UI, features, documentation, and questions, with sanitized evidence and environment guidance;
-- `.github/ISSUE_TEMPLATE/config.yml` — disables unstructured blank issues and links the canonical Roadmap;
+- `.github/ISSUE_TEMPLATE/bug.yml` — reproducible problems, expected/actual behavior, app source, environment, optional AetherBags version, and sanitized evidence;
+- `.github/ISSUE_TEMPLATE/improvement.yml` — desired workflow, current limitation, proposed behavior, benefit, and optional alternatives/examples without requiring implementation knowledge;
+- `.github/ISSUE_TEMPLATE/accessibility.yml` — keyboard, focus, screen-reader, zoom, contrast, responsive, and general usability barriers with relevant reproduction context;
+- `.github/ISSUE_TEMPLATE/documentation.yml` — affected guide location, unclear or incorrect content, and a useful suggested correction;
+- `.github/ISSUE_TEMPLATE/general.yml` — questions and uncategorized problems so focused choices do not remove a general support path;
+- `.github/ISSUE_TEMPLATE/config.yml` — disables blank issues, links planned work in plain language, and routes security reports to a private advisory instead of public disclosure;
+- `.github/maintainer/numbered-phase-issue.md` — reusable evidence, scope, contracts, verification, documentation, Project, and PR-link body kept outside the public chooser;
 - `.github/pull_request_template.md` — closing issue link, actual verification, durable synchronization, and ready-for-review contract;
 - `test/repositoryGovernance.test.mjs` — direct source coverage for those repository workflow contracts.
 
-Phase 73 validation includes focused governance coverage for internal task/review contracts, the public triage form, canonical Project links, and ready-for-review PR behavior. The issue/workflow YAML is parsed separately. Live Project inspection confirms the public linked Project, ten repository-issue items, intended field values, and all six enabled built-in workflows. Browser QA is not applicable because Phase 73 changes repository planning/delivery metadata and documentation, not application runtime behavior.
+GitHub cannot make one issue form in a public repository visible only to selected users. Numbered-phase creation is therefore a maintainer convention, not an access-control boundary: maintainers create the issue directly from the off-chooser body, apply `roadmap` and `phase`, add it to the Project, and set Status, Priority, Area, and Phase. Ordinary reporters see only the focused public forms and plain-language chooser links.
+
+Phase 73.1 governance coverage verifies the exact public chooser inventory, intended labels and required fields for all five public forms, absence of the former phase/review forms and internal jargon, private security routing, the documented off-chooser maintainer workflow, and the unchanged ready-for-review PR behavior. All six chooser/form YAML files parse as mappings with PyYAML 6.0.3; focused governance coverage passes 9 tests; and the full repository contract passes 92 JavaScript files, all static relative imports, and 42 test files / 528 tests. Live Project inspection confirms Issue #130 at Phase `73.1`, Priority `Next`, Area `Infrastructure`, and Status `In Progress`. Browser QA of the application remains not applicable because the phase changes repository templates, tests, and documentation rather than runtime behavior; the rendered chooser is verified only after the branch is published.
