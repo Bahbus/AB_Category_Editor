@@ -75,7 +75,8 @@ the three primary entry points into current context, current architecture, and
 historical evidence. The former detailed Phase 27-77 review journal is
 preserved intact in the indexed archive. Governance coverage checks document
 roles, routing, internal links, archive coverage, relevance-based update
-policy, and a primary-set size budget.
+policy, and a primary-set size budget. Phase 78 merged through ready-for-review
+PR #144.
 
 Before Phase 78, the primary set was 4,141 lines and 410,198 bytes:
 
@@ -95,16 +96,44 @@ Final Phase 78 verification:
   focused governance test only. Browser QA is not applicable because no
   application runtime file changed.
 
+### Phase 78.1: merge-neutral review contracts
+
+Durable current context and governance templates describe delivered
+capabilities and verified evidence without predicting merge state or copying
+live Project fields. Project #2 remains authoritative for operational status.
+Review guidance classifies changed-file relevance, runs the complete check
+contract once per exact tree, permits the verified compact reporter for routine
+success, preserves ordinary or targeted reruns for diagnostics, and narrows
+history and Project queries to relevant records. Focused governance coverage
+protects these contracts without fixing the repository to a particular current
+phase number.
+
+Verification on the exact implementation tree:
+
+- focused `test/repositoryGovernance.test.mjs` passed all 17 tests;
+- ordinary `npm run check` and
+  `npm run check -- --test-reporter=dot` each passed the same 96-file syntax
+  check, static relative-import check, and complete 562-test suite;
+- `git diff --check origin/main` passed with no output;
+- changed-file inspection found only current-context/history documentation, two
+  governance templates, and focused governance coverage.
+  `docs/ARCHITECTURE.md` and application runtime files are unchanged, so
+  architecture updates and browser QA are not applicable.
+
 ## Recording future work
 
-For each completed numbered phase:
+For each numbered phase implementation tree:
 
-1. Update the current-state summary in `AI_PROJECT_CONTEXT.md`.
-2. Add a concise verified result here, including honest QA boundaries.
+1. Update `AI_PROJECT_CONTEXT.md` only for capabilities or durable contracts
+   changed by the implementation; do not copy live Project fields.
+2. Add a concise, merge-neutral verified result here, including honest QA
+   boundaries and no prediction that the pull request has merged.
 3. Update `ARCHITECTURE.md` only when current architecture actually changed;
    otherwise record Architecture as not applicable in the issue and pull
    request.
 4. Put extended evidence in a new indexed history archive when it would make
    this entry point a journal again.
-5. Update the linked issue and Project item. Create a separate issue only for a
-   newly verified deferred finding.
+5. Keep live workflow status in the linked issue and Project item. Require a
+   post-merge documentation correction only when merged code or verified
+   behavior actually disagrees with the durable record. Create a separate issue
+   only for a newly verified deferred finding.

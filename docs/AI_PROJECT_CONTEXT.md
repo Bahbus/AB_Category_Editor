@@ -2,7 +2,7 @@
 
 > **Repository:** `Bahbus/AB_Category_Editor`
 > **Purpose:** Dependency-free static JavaScript editor for AetherBags category configuration files.
-> **Current baseline:** Phase 77 is merged on `main` through PR #141. Phase 78 is tracked by [Issue #143](https://github.com/Bahbus/AB_Category_Editor/issues/143).
+> **Current baseline:** The inspected repository provides the capability and durable contracts summarized below. GitHub Project #2 is authoritative for live phase status.
 > **Primary verification:** `npm run check`
 
 ## Required entry order and document roles
@@ -42,19 +42,20 @@ The project intentionally has:
 
 ## Current state
 
-- Phase 77 localized populated Item Ordering editor-owned text and accessible
-  names through the existing injected translator. DOM-free ordering decisions
-  and compatibility findings remain exact English.
+- Populated Item Ordering editor-owned text and accessible names use the
+  existing injected translator. DOM-free ordering decisions and compatibility
+  findings remain exact English.
 - The broader remaining English message families stay tracked by
   [Issue #122](https://github.com/Bahbus/AB_Category_Editor/issues/122).
-- Phase 55 remains on hold in Project #2 because community-authored advanced
-  preset ordering lacks a confirmed stewardship decision.
-- Phase 78 changes documentation, governance templates, and focused repository
-  checks only. Application runtime behavior is unchanged.
+- The three primary documents separate current contracts, current
+  architecture, and concise verified history. Older detailed evidence is
+  preserved in the indexed history archive.
+- Governance templates keep durable records capability-based and merge-neutral
+  while Project #2 owns live workflow fields.
 
 Do not copy the Project backlog into these files. Consult the live Project
-before selecting work, and link only the issue needed to explain current
-context.
+before selecting work, and link only an issue needed to explain a durable
+capability or decision.
 
 ## Standard workflow
 
@@ -63,18 +64,25 @@ context.
 2. Fetch `origin/main`; fast-forward only a clean local `main`; confirm local
    `HEAD` equals fetched `origin/main`.
 3. Read the three primary documents in the required order.
-4. Inspect the linked issue and reconcile its Project `Status`, `Priority`,
-   `Area`, and `Phase` fields with verified repository state.
+4. Inspect the linked issue and its current Project item; do not repeatedly
+   load the entire completed board. Reconcile live `Status`, `Priority`, `Area`,
+   and `Phase` fields with verified repository state in Project #2 rather than
+   duplicating those values in durable documents.
 5. Use one unique `agent/...` branch unless the task explicitly requires
    another strategy. Do not invent a worktree requirement.
 6. Implement only the written scope. Put newly verified deferred work in a
    separate repository issue instead of widening the phase.
-7. Run focused checks, `npm run check`, and the requested diff checks. Run
-   browser QA only when runtime scope makes it relevant, and state tooling
-   limits honestly.
-8. Update current context and review history with actual results.
-   Update architecture or another document only when its content changed;
-   explicitly record not applicable otherwise.
+7. Classify the changed-file scope before selecting runtime, browser, security,
+   or deployment reruns. Run focused checks, the complete check contract once
+   per exact tree, and the requested diff checks. Use compact output for routine
+   success when helpful, and rerun the ordinary command or a targeted test for
+   failure diagnostics. State QA relevance and tooling limits honestly.
+8. Record delivered capabilities and verified evidence in merge-neutral terms,
+   without predicting a merge or copying live Project fields. Update
+   architecture or another document only when its current content changed;
+   explicitly record not applicable otherwise. Require a post-merge
+   documentation correction only when merged code or verified behavior
+   actually disagrees with the durable record.
 9. Synchronize the linked issue and Project item, publish the requested pull
    request state, and never imply that an unrun check passed.
 
@@ -196,6 +204,8 @@ context.
   bug. File size alone is not proof that a source or test module should split.
 - Require a `.1` follow-up for incorrect behavior or a material acceptance miss,
   not for speculative or aesthetic cleanup.
+- Read indexed history archives only when older evidence is relevant to the
+  current question.
 - Prefer direct behavior tests. Use source checks for DOM-heavy wiring,
   architectural ownership, trust boundaries, and repository governance without
   replacing precise behavior coverage.
@@ -224,6 +234,18 @@ Primary contract:
 ```bash
 npm run check
 ```
+
+This ordinary command remains the canonical CI invocation and the direct route
+to full failure diagnostics. For output-compact routine agent verification of
+the same syntax checker, static-import checker, complete Node test suite, and
+exit semantics, use:
+
+```bash
+npm run check -- --test-reporter=dot
+```
+
+If the compact invocation fails, rerun ordinary `npm run check` or the relevant
+targeted test to expose detailed diagnostics.
 
 Focused components:
 

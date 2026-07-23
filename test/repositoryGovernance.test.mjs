@@ -238,7 +238,8 @@ test('pull requests link their issue, record real verification, synchronize dura
   for (const path of ['docs/AI_PROJECT_CONTEXT.md', 'docs/ARCHITECTURE.md', 'docs/REVIEW_HISTORY.md']) {
     assert.match(pullRequestTemplate, new RegExp(path.replaceAll('.', '\\.')));
   }
-  assert.match(pullRequestTemplate, /Updated the linked AB Category Editor Roadmap item/);
+  assert.match(pullRequestTemplate, /current linked item/);
+  assert.match(pullRequestTemplate, /Project #2/);
   assert.match(pullRequestTemplate, /ready for review, not a draft/i);
 });
 
@@ -351,4 +352,49 @@ test('phase and pull-request templates require relevant documentation updates wi
     assert.match(template, /not applicable/i);
     assert.match(template, /repetitive|affected documents/i);
   }
+});
+
+test('durable status wording stays merge-neutral and routes live state to Project #2', () => {
+  const currentContext = primaryDocuments.get('docs/AI_PROJECT_CONTEXT.md');
+  const reviewHistory = primaryDocuments.get('docs/REVIEW_HISTORY.md');
+
+  assert.doesNotMatch(currentContext, /Current baseline:.*Phase \d/i);
+  assert.doesNotMatch(currentContext, /current merged baseline|tracked by (?:Issue|#)/i);
+  assert.match(currentContext, /Project #2 is authoritative for live phase status/i);
+  assert.match(reviewHistory, /merge-neutral/i);
+
+  for (const source of [
+    currentContext,
+    reviewHistory,
+    maintainerPhaseTemplate,
+    pullRequestTemplate,
+  ]) {
+    assert.match(source, /capabilit(?:y|ies)/i);
+    assert.match(source, /Project #2/i);
+  }
+
+  for (const template of [maintainerPhaseTemplate, pullRequestTemplate]) {
+    assert.match(template, /before and after merge/i);
+    assert.match(template, /do not predict|without predicting/i);
+    assert.match(template, /post-merge documentation correction/i);
+    assert.match(template, /merged code or verified behavior actually disagrees/i);
+  }
+});
+
+test('review guidance preserves the complete contract with compact routine output', () => {
+  const guidance = [
+    primaryDocuments.get('docs/AI_PROJECT_CONTEXT.md'),
+    maintainerPhaseTemplate,
+    pullRequestTemplate,
+  ].join('\n');
+
+  assert.match(guidance, /npm run check -- --test-reporter=dot/);
+  assert.match(guidance, /canonical/i);
+  assert.match(guidance, /same syntax checker, static-import checker, complete Node test suite/i);
+  assert.match(guidance, /once per exact tree|once for this exact tree/i);
+  assert.match(guidance, /ordinary `npm run check` or (?:the relevant |a )?targeted test/i);
+  assert.match(guidance, /classif(?:y|ied) the changed-file scope/i);
+  assert.match(guidance, /history archives only when older evidence (?:is|was) relevant/i);
+  assert.match(guidance, /current (?:linked )?issue(?:\/| and its current )Project item/i);
+  assert.match(guidance, /entire completed board/i);
 });
