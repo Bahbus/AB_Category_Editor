@@ -22,6 +22,7 @@
 
 ## Completion synchronization
 
-- [ ] Update `docs/AI_PROJECT_CONTEXT.md`, `docs/ARCHITECTURE.md`, and `docs/REVIEW_HISTORY.md` with actual implementation and validation results.
+- [ ] Update concise current state in `docs/AI_PROJECT_CONTEXT.md` and the verified phase record in `docs/REVIEW_HISTORY.md`.
+- [ ] Update `docs/ARCHITECTURE.md` and any other affected document when its current content changed; otherwise record that document as not applicable instead of adding repetitive phase boilerplate.
 - [ ] Update the Project item fields and add newly verified deferred work as a separate repository issue.
 - [ ] Link the pull request to this issue with a closing keyword so Project workflows can complete both items after merge.
