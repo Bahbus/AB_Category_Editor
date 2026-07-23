@@ -1,930 +1,285 @@
 # Architecture
 
-> **Repository:** `Bahbus/AB_Category_Editor`  
-> **Scope:** Runtime structure, data flow, validation, lookup, editor UI, state, tests, and known architectural pressure points.
+> **Role:** Current runtime, data, security, testing, and repository-governance architecture.
+> **History:** Phase chronology and old validation evidence live in [`REVIEW_HISTORY.md`](REVIEW_HISTORY.md) and the [history index](history/README.md).
 
----
+## System shape
 
-## 1. High-level architecture
-
-The application is a static, browser-native JavaScript app with no build step.
-
-Primary layers:
-
-1. **Application orchestration**
-   - `src/app.js`
-
-2. **Configuration shape/defaults/import repair**
-   - `src/config.js`
-
-3. **Category change decisions**
-   - `src/categoryChanges.js`
-
-4. **Validation**
-   - `src/validation.js`
-   - `src/importValidationSummary.js`
-
-5. **Shared row-ID semantics**
-   - `src/rowIds.js`
-
-6. **Shared optional-number semantics**
-   - `src/optionalNumbers.js`
-
-7. **Shared pattern semantics**
-   - `src/patternSemantics.js`
-
-8. **Shared range/state scalar semantics**
-   - `src/filterScalars.js`
-
-9. **AetherBags export compatibility**
-   - `src/exportCompatibility.js`
-
-10. **Shared item-ordering semantics**
-   - `src/itemOrdering.js`
-
-11. **Shared action-availability decisions**
-   - `src/actionAvailability.js`
-
-12. **Import/export and clipboard/download**
-   - `src/importExport.js`
-   - `src/exportSnapshots.js`
-
-13. **XIVAPI and lookup**
-   - `src/xivapi.js`
-   - `src/xivapiRequest.js`
-   - `src/lookupNames.js`
-
-14. **UI rendering**
-   - `src/ui/categoryList.js`
-   - `src/ui/categoryEditor.js`
-   - `src/ui/colorEditor.js`
-   - `src/ui/matchingRulesEditor.js`
-   - `src/ui/rangeStateFiltersEditor.js`
-   - `src/ui/listEditor.js`
-   - `src/ui/formControls.js`
-   - modal-specific UI modules
-
-15. **Modal infrastructure**
-   - `src/modals.js`
-
-16. **Persistent state**
-   - `src/state.js`
-
-17. **Tools**
-   - `src/tools/regexToItemIds.js`
-
-18. **Description generation**
-   - `src/descriptionGenerator.js`
-
-19. **Static assets and layout**
-   - `index.html`
-   - `src/startupPreferences.js`
-   - `styles.css`
-
-20. **Tests and guardrails**
-   - `test/*.test.mjs`
-   - `test/applicationDataFlowSource.test.mjs`
-   - `test/uiAccessibilitySource.test.mjs`
-   - `test/lookupImportExportSource.test.mjs`
-   - `testSupport/sourceFiles.mjs`
-   - `scripts/check-javascript-syntax.mjs`
-   - `scripts/check-imports.mjs`
-
----
-
-## 2. Application state and orchestration
-
-`src/app.js` owns the top-level mutable state:
-
-- current config data,
-- selected category index,
-- dirty state,
-- monotonic data revision for asynchronous snapshot authority,
-- dragged category index,
-- lookup cache,
-- active lookup-cache producer coordination,
-- editor preferences.
-
-Important responsibilities:
-
-- apply editor preferences,
-- render list/editor/export controls,
-- import and Raw JSON flows,
-- export/copy/download,
-- lookup all referenced IDs,
-- preset loading,
-- modal launch/binding,
-- dirty/save-state transitions,
-- before-unload protection.
-
-### Rendering contract
-
-Use `renderAll()` only for structural changes.
-
-Local field edits should prefer:
-
-- local control updates,
-- local validation refresh,
-- `renderList()` when list metadata changes.
-
-This avoids unnecessary rerenders and focus disruption.
-
-### Category change decisions
-
-`src/categoryChanges.js` contains DOM-free behavior used by the application and direct tests:
-
-- JSON-semantic equality ignores object key order while preserving array order, primitive types, and the distinction between negative and ordinary zero.
-- manual renumbering writes one-based numeric `Order`/`Priority` values and reports whether category data changed.
-- sorting detects array-order changes by object identity and resolves the selected object's new index.
-- selected and full Raw JSON helpers keep normalization, confirmation, and live-state mutation boundaries directly testable.
-- category reorder helpers validate indices, compute candidate order without live mutation, compare object identity order, preserve moved-object selection, and apply side effects only after a real change.
-
-Full Raw JSON compares the final validated, repaired, normalized, and sorted candidate before destructive confirmation. An identical result closes the editor and reports validation/repair context without replacing data, resetting selection, changing dirty state, or launching automatic lookup.
-
-Phase 40 was merged at `478545235debae9a1dc064b972acc2181cd5a0e1`. Phase 40.1 was merged at `beda975e087bd012f33270b7f1574c6822340bda`; it routes the finalized candidate through `configValidationSummaryText(...)`, so both changed and no-op paths report `validation.config.Categories.length` while replacement remains after confirmation. The Phase 40 change-decision and no-op boundaries are otherwise unchanged. Phase 41 was merged at `2926dc35dbda24fa07beb5b92477feeea47ea23f`. Phase 42 was merged at `ab8997ae53b1136fab56b445fa3c811cf0bd25a9`. Phase 43 was merged at `1790f13b9ed26b23de4cabea3fe9387a11990936`. Phase 44 was merged at `888a5838a062ea34ec279d7a423edbd88d45e66e`.
-
-Post-Phase-44 acceptance confirmed that validated config replacement did not advance snapshot identity, accepted numeric strings could be hidden by native number-input sanitization, and a late Export/Copy result could overwrite a newer modal and its close handler. Phase 44.1 centralizes revision advancement across dirty edits and real whole-config replacement, normalizes only number-input display text, and guards Export/Copy completion with shared modal visibility before any result presentation, save transition, or clipboard work. Phase 44.1 was merged at `80c1e2e8f0194420a06cbde1b3feeb19bbbceaee`; its post-merge review found no application-runtime follow-up and instead confirmed local/hosted verification drift that became Phase 45.
-
-Category drag/drop uses only application-owned source state established by `dragstart`. `text/plain` remains optional browser metadata and is never authoritative. `dragover` does not enable a target or alter indicators until the active source is a finite in-range integer. Drop decisions delegate to the identity-aware helper, so adjacent and same-target no-ops have no structural side effects; real changes select the moved object and then apply optional renumbering, one dirty transition, and one structural render.
-
-### Lookup-cache operation coordination
-
-`src/lookupCacheOperations.js` owns a private active-producer count and issues idempotent release leases. `src/app.js` passes only the narrow acquire function into list-editor and regex-tool dependencies rather than exposing application globals.
-
-Long-lived leases cover referenced-ID batch lookup, per-list batch lookup, manual XIVAPI search, and Regex → Item IDs sheet scanning. Each asynchronous producer releases its lease in `finally`, including success, empty or unusable results, failure, and scan cancellation. Overlapping leases are independent and coexist with the busy overlay's own nested counting.
-
-The Lookup Cache modal observes active state, disables clearing with visible explanatory text, and the application re-checks the same state at the clear boundary. This prevents replacement of the cache object while asynchronous producers still hold it.
-
----
-
-## 3. Configuration and repair flow
-
-`src/config.js` owns:
-
-- default rules/category creation,
-- shape normalization,
-- import repair,
-- category sorting helpers.
-
-Typical import flow:
-
-1. Parse raw input.
-2. Analyze pre-repair config.
-3. Validate/repair config shape.
-4. Analyze repaired config.
-5. Merge findings.
-6. Ask for replacement confirmation if dirty.
-7. Apply the validated config through the live replacement boundary only when the finalized candidate is JSON-semantically different; a real replacement advances the centralized data revision.
-8. Reset selection.
-9. Mark saved for normal import or dirty for editable Raw JSON replacement as appropriate.
-10. Render.
-11. Show validation/repair summary when meaningful.
-12. Optionally auto-lookup referenced IDs.
-
-Important rule:
-
-- Invalid individual numeric IDs inside valid arrays are preserved and warned, not silently removed.
-- Category entries themselves must be JSON objects; `null`, arrays, and scalar entries fail validation rather than being repaired into categories.
-- Plain Color objects are snapshotted by value before normalization. Missing, non-number, non-finite, or single-overflow components are repaired to defaults with one material, reviewable Color warning before JSON cloning/stringification can convert them to `null`; valid finite single-representable components, including higher-precision values, remain exact. Malformed whole Color values retain separate repair messaging.
-- Allowed Rarities normalization compares original JSON types strictly: type-changing coercions are material repairs, while a genuine reorder of unique supported numeric values remains a non-material note.
-- Range/state scalar repair delegates to `src/filterScalars.js`: Range Enabled accepts only booleans; Level/Item Level accept signed Int32 values; Vendor Price accepts exact uint-compatible integers; State accepts only numeric 0/1/2; and Filter accepts signed Int32 values. Invalid plain-object components fall back independently while exact boundary values remain unchanged.
-
----
-
-## 4. Validation architecture
-
-`src/validation.js` provides:
-
-- category-name checks,
-- Order/Priority finite-number checks,
-- grouped duplicate sort-position detection,
-- structural Allowed Item Name Pattern validation,
-- range validation,
-- state-filter validation,
-- rarity validation,
-- duplicate-list detection,
-- invalid row-ID detection,
-- issue counts.
-
-Order/Priority decisions use `src/optionalNumbers.js`. They accept finite numbers and non-empty finite numeric strings, while rejecting nullish, blank, boolean, array, object, non-numeric, and non-finite values. Validation, duplicate grouping, import sorting, next-sort calculation, and category duplication share this interpretation; accepted imported strings are preserved until explicit Renumber.
-
-### Grouped duplicate sort positions
-
-Duplicate Order/Priority warnings are grouped across categories.
-
-Stability requirements:
-
-- category names are stably sorted,
-- grouped findings carry a `sortPositionKey`,
-- import merge dedupes grouped findings by severity, field, and stable sort-position key.
-
-### List issue grouping
-
-For each affected list field:
-
-- duplicate warning counts once,
-- invalid numeric-ID warning counts once,
-- both can count separately.
-
-### Stored pattern semantics
-
-The pinned AetherBags implementation is authoritative: `AllowedItemNamePatterns` is `List<string>`; the matcher skips null/empty/whitespace entries; and `RegexCache` uses case-insensitive, culture-invariant .NET regex and returns `null` when .NET compilation fails.
-
-The dependency-free browser cannot execute or fully validate .NET syntax. `src/patternSemantics.js` therefore classifies only the structural facts the browser knows: a stored element is usable when it is a nonblank string. `src/validation.js` reports every non-string or blank element at its original position and preserves imported data. Duplicate-pattern warnings consider only structurally usable entries, preventing duplicate findings for repeated invalid elements. The legacy `validateRegexPattern` export remains as a compatibility alias to the structural validator.
-
-### Range and state scalar semantics
-
-`src/filterScalars.js` is shared by import repair and validation so JSON numeric strings, blanks, booleans-as-numbers, nullish values, arrays, objects, fractions, non-finite values, and width-incompatible integers cannot pass through JavaScript coercion. Level, Item Level, and State Filter use `-2147483648..2147483647`; Vendor Price uses `0..4294967295`; State remains restricted to 0/1/2. Validation messages identify Enabled, Min, Max, State, or Filter while keeping stable filter fields for category summaries.
-
-The pre/post import merge helper is DOM-free. Category-scoped findings receive a private symbol-backed reference to their source category object; merge-local tokens derived from that reference distinguish category instances even when IDs are duplicated, blank, or missing. Repeated findings for the same object still dedupe across analyses, separate component messages remain distinct, and grouped SortPosition findings keep their stable key. The private identity is not enumerable, serialized, exported, or displayed.
-
-### AetherBags compatibility analysis
-
-`src/exportCompatibility.js` is the central, DOM-free description of the current AetherBags category-import envelope. It checks the root, every category scalar, `Vector4` components, sort criteria, `CustomItemOrder`, rule lists, range/state fields, and `ForkedFromKey` without mutating configuration data. Findings carry stable fields, category labels/indices, severity counts, and an explicit `blocksExport` decision. `src/validation.js` reuses category/root compatibility findings for import review and category issue badges rather than maintaining a second schema.
-
-Deserialization/use failures are blocking. Predictable post-deserialization behavior such as upstream property defaults, ignored Format/Version values, unsupported/duplicate/defaulted Item Sort Criteria, or unsupported numeric State values is a warning and remains exportable. Blank string patterns retain Phase 48's review finding but do not become an AetherBags deserialization blocker; non-string pattern elements do block. Unknown properties remain preserved and are not schema errors merely because the editor does not interpret them.
-
-Item Sort Criteria sorts items already matched into a category; it does not affect category membership. Its upstream normalization treats an omitted or empty list as a single Use Global / Ascending criterion, so those shapes are compatible and intentionally produce no finding. Supplied unsupported criteria, duplicate fields, missing criterion members, or Use Global mixed with other criteria remain reviewable when normalization discards or rewrites them. Malformed containers/entries and incompatible Field/Direction scalar types remain blocking.
-
-Export representability and safe structured editability are separate decisions. Compatible unknown criterion properties remain silent and exportable, but any criterion with own enumerable members beyond `Field` and `Direction` makes the stored list unsafe for structured mutation because the controls cannot round-trip those members. The Item Ordering UI therefore preserves the stored list exactly and routes that category to selected-category Raw JSON; analysis, render, disclosure, and routing do not normalize or dirty it.
-
-Custom Item Order is a list of item-ID ranks used only when the normalized criteria contains Custom Order. Omitted or empty lists are silent when Custom Order is not selected. When it is selected, an omitted or empty list produces one category-scoped warning because custom ranks cannot contribute; a sole Custom Order criterion falls back to AetherBags' non-global default, while mixed criteria continue through the remaining ordering rules. Cross-field analysis follows upstream order: a valid Use Global criterion anywhere replaces the full normalized criteria list before the Custom Order decision. Duplicate custom item IDs are reviewable only when Custom Order is active because only the first position is used; malformed lists and incompatible uint item IDs remain blocking regardless. Analysis never inserts, removes, or rewrites either ordering property.
-
-The same analysis exposes `customOrderRelevant` as the single DOM-free visibility authority. It is false only for inactive omitted or valid empty Custom Item Order data. It is true for active Custom Order criteria, valid nonempty retained inactive ranks, malformed containers, and incompatible rank values. The renderer consumes this result by conditionally appending the complete existing section; it does not reserve an empty element, hide controls with CSS, or create a nested disclosure.
-
-Phase 50.1 adds a serialization-fidelity pass ahead of the envelope analysis. Its iterative, cycle-safe traversal inspects every enumerable value and reports stable JSON paths without mutation. Finite plain JSON values pass unchanged; non-finite numbers, cycles, BigInt, undefined/function/symbol values, array holes or extra properties, accessors/custom serialization, non-plain objects, and controlled final serialization failures block before export callbacks. This makes unknown-property preservation include the value that will actually survive JSON serialization rather than only the in-memory property name/shape.
-
-Phase 50.2 makes that traversal reject negative zero at its exact JSON path before `JSON.stringify` can normalize it to `0`. It also inspects every own `toJSON` descriptor before enumerability filtering: function-valued data properties and accessor descriptors block, while accessor values are never read and no getter, setter, serializer, or export callback is invoked. Other non-enumerable members remain ignored when they cannot influence JSON output.
-
-The pinned `CategoryExportData` defaults missing Format to `AetherBags_Category` and Version to `1`, while its current import path only tests that Categories is non-null and non-empty. Correctly assignable but unexpected Format/Version values are ignored. `UserCategoryDefinition`, `CategoryRuleSet`, nested filters, `Vector4`, and sort criteria likewise supply initializers or CLR value defaults for omitted members. The analyzer reports those effects as reviewable defaulting/semantic warnings; explicit null, malformed, or incompatible JSON types remain blocking unless the complete import/use path is demonstrably safe.
-
----
-
-## 5. Shared row-ID architecture
-
-`src/rowIds.js` is authoritative for strict numeric row-ID semantics.
-
-Expected helpers:
-
-- `isValidRowIdValue(value)`
-- `normalizeRowIdValue(value)`
-- `invalidRowIds(values)`
-
-Valid values:
-
-- unsigned 32-bit integer numbers,
-- exact digit-only strings within uint range for legacy lookup/display normalization.
-
-Normalization:
-
-- returns numeric row ID for valid input,
-- returns `null` for invalid input,
-- never rounds unsafe or oversized digit strings,
-- does not mutate source values.
-
-Typed list entry uses `parseTypedRowIdValue(...)` and accepts only exact `0..4294967295` values. Stored numeric strings remain available to tolerant lookup normalization but are export-incompatible until explicitly corrected to JSON numbers.
-
-Consumers include:
-
-- validation,
-- lookup normalization,
-- referenced-ID collection,
-- manual lookup search,
-- regex scanner,
-- strict row extraction fallback logic.
-
-Avoid reintroducing loose coercion such as:
-
-```js
-Number.isInteger(Number(value))
-```
-
-for row-ID validity decisions.
-
----
-
-## 6. XIVAPI and lookup flow
-
-`src/xivapi.js` owns:
-
-- sheet labels,
-- lookup-ID normalization,
-- row extraction,
-- single and batch lookup,
-- referenced-ID collection,
-- uncached-ID counting,
-- manual XIVAPI search,
-- Item sheet pagination for regex scans.
-
-`src/xivapiRequest.js` owns the one dependency-free, DOM-free HTTP lifetime boundary used by all four XIVAPI network paths: multi-row lookup, single-row fallback, manual search, and paginated Item-sheet scanning. Production requests expire after 15,000 ms. The helper accepts an optional caller `AbortSignal`, injected fetch/timer seams, and a test deadline override; an internal `AbortController` combines the caller and deadline without polling. First settlement wins, late fetch settlement is ignored, and the deadline plus caller listener are removed on success, HTTP failure, JSON failure, timeout, or cancellation. Caller cancellation retains its original reason, while `XivapiRequestTimeoutError` identifies the automatic deadline.
-
-### Lookup sentinels
-
-A cached string may exist but still be unresolved or unusable.
-
-Historically unusable variants include:
-
-- `(name unavailable)`
-- `not looked up`
-- `(unnamed)`
-- `unnamed`
-
-Use `isUsefulLookupName(...)` rather than simple truthiness.
-
-### Batch lookup strategy
-
-`fetchLookupBatch(...)`:
-
-1. normalize and dedupe IDs,
-2. skip useful cached names,
-3. process chunks,
-4. cache only rows from the current chunk,
-5. recursively bisect failed batches,
-6. retry unresolved IDs individually,
-7. record unresolved failures,
-8. persist progress/cache.
-
-Ordinary batch and row failures retain recursive bisection and individual fallback. A request timeout is chunk-wide: every ID in that timed-out chunk crosses the existing failure-reporting boundary once, and the chunk is not bisected or retried into additional deadline waits. Earlier completed chunks remain cached and useful cached names are never replaced with timeout sentinels.
-
-### Referenced-ID lookup
-
-`collectReferencedIds(...)`:
-
-- shape-normalizes categories,
-- collects only strictly valid numeric IDs,
-- separates Item and ItemUICategory sets.
-
-Invalid preserved imported values must not become lookup targets.
-
----
-
-## 7. List editor architecture
-
-`src/ui/listEditor.js` is a reusable list-editing component.
-
-Features:
-
-- typed add,
-- comma-separated input by default with a per-editor opt-out,
-- reusable input placeholders,
-- parser/formatter hooks,
-- validation hooks,
-- optional dedupe,
-- remove pills,
-- lookup-name display,
-- batch lookup button,
-- manual search,
-- accessible contextual labels.
-- one required injected translator for list-editor-owned visible text, statuses, busy copy, placeholders, and accessible names.
-
-Important options include:
-
-- `splitInputOnCommas`
-- `inputPlaceholder`
-- `dedupeValues`
-- `dedupeKey`
-- `validateValue`
-- `validateList`
-- lookup dependencies
-- `onItemsChanged`
-- `translate`
-
-### Numeric list behavior
-
-Numeric ID editors:
-
-- retain default comma-separated batch entry and the default numeric-oriented placeholder,
-- reject invalid typed values,
-- dedupe numerically,
-- normalize lookup result IDs,
-- report all-duplicate no-op,
-- report partial duplicate skips calmly.
-
-### Name-pattern entry
-
-Allowed Item Name Patterns opts out of comma splitting and uses the placeholder `Add one regex/name pattern`. The DOM-free `tokenizeListInput(...)` helper trims only surrounding input whitespace in this mode and returns the complete value as one token, preserving regex quantifiers and literal commas. The existing add handler validates and parses that one token before mutation or input clearing. Nonblank strings, including .NET-only syntax such as `(?>a)`, are accepted; blank input remains atomic and correctable.
-
-### Lookup busy behavior
-
-The list lookup handler tracks whether busy UI was actually shown before calling `hideBusy()`.
-
-Do not decrement shared busy state for an operation that returned before `showBusy()`.
-
-### Ordered-list focus recovery
-
-The ordered-list option uses the shared DOM-free list-mutation focus plan after add, move, and removal. Move actions first try the corresponding action on the moved pill and then another enabled action on that pill. Removal prefers the next surviving Remove control, then the previous one, and finally the persistent input. Focus helpers explicitly skip disabled and hidden targets. Non-ordered list editors retain their established behavior.
-
-### Button roles in lists
-
-List pills deliberately do not use the standalone square icon-button target. Their ordered movement and removal controls use an 18px borderless `.pill-icon-button` target so the pill itself stays compact. Enabled movement glyphs gain an accent-colored text glow on hover/focus; destructive `×` glyphs use the danger color/glow; disabled glyphs remain muted without a glow. The complete value/list meaning is carried by matching `aria-label` and `title` attributes. Non-ordered pills receive only the destructive removal control; movement remains opt-in with ordered behavior.
-
-Lookup-enabled lists wrap the pill list in `.pill-list-shell`. The contextual search icon is positioned inside that shell and hidden unless the list has an unresolved valid ID. The pill list reserves icon space only when lookup is supported. Its vertical position is derived from `--pill-list-border-width`, `--pill-list-padding`, `--pill-row-height`, and the density-aware `--button-icon-target`, so the 30px Comfortable and 26px Compact button boxes share the first 28px pill's center while later pill rows do not affect placement. List-entry `+` buttons are disabled from the trimmed value of the adjacent text input and resynchronize after input and successful/no-op clears.
-
----
-
-## 8. Form controls
-
-`src/ui/formControls.js` owns reusable controls such as:
-
-- number input,
-- text input,
-- switch input,
-- segmented state control,
-- range slider with numeric Min/Max inputs.
-
-### Number input contract
-
-- finite values commit,
-- unchanged blur does not dirty,
-- blank blur restores last committed value,
-- min/max clamping remains functional,
-- validation refreshes even on restore,
-- committed state keeps the original JSON value separate from its strict finite-number interpretation,
-- accepted numeric strings remain unchanged in the model on numeric no-ops,
-- the browser-accepted number-input display is retained when nonblank; if native sanitization blanks an accepted numeric string, its canonical finite interpretation is displayed instead,
-- display normalization runs at control creation and committed-value restoration without rewriting the original JSON value,
-- invalid imported nullish, blank, boolean, array, object, and nonnumeric values remain untouched and visibly invalid on blank or non-committing blur,
-- one deliberate finite edit replaces an invalid committed value once and refreshes validation from the corrected model value.
-- Order/Priority opt into signed Int32-only commits, exact display of incompatible imported JSON, and explicit JSON-number correction. Invalid transient fractions/overflow remain visible and accessible without model, callback, or dirty-state changes; blank blur and Enter-to-blur behavior remain unchanged.
-
-### Range input contract
-
-- live finite input updates range and UI,
-- blank blur restores previous underlying value,
-- invalid non-finite blur restores previous value,
-- unchanged blur does not call `onChange()`,
-- reversed range is preserved but warned,
-- sliders and numeric inputs remain synchronized,
-- same-value live number, blur, and slider events do not mutate or notify; a real change mutates once and notifies once,
-- typed Level/Item Level input commits only signed Int32 values; Vendor Price enforces `0..uint.MaxValue`,
-- invalid live text does not mutate, notify, move the paired slider, or dirty; it exposes a component- and bound-specific error and restores the committed value and slider state on blur,
-- component-specific parse, width, or stored-value errors mark and describe only the affected numeric input,
-- reversed valid ranges expose their warning to both numeric inputs through `aria-describedby`; valid ranges remove that association.
-
----
-
-## 9. Category list
-
-`src/ui/categoryList.js` renders:
-
-- category name,
-- order/description subtitle,
-- validation issue badge,
-- enabled state,
-- pinned state,
-- color accents,
-- drag/drop state.
-
-Important behavior:
-
-- keyboard selection via Enter/Space,
-- `aria-current` for selected category,
-- contextual `aria-label`,
-- search disables drag reorder,
-- issue counts come from validation.
-
-Phase 71 keeps pointer, Enter, and Space activation in the existing shared selection handler. After that handler commits the active field, updates the selected index, and completes the existing synchronous `renderAll()`, it queries `.cat-item[aria-current="true"]` and focuses that newly rendered entry only when `document.contains(...)` confirms it is connected. This unique rendered-state contract deliberately avoids category names and IDs, which may be duplicated, blank, or changed, and avoids retaining the destroyed activated node.
-
-The recovery is selection-local. Search filtering, validation refreshes, name edits, drag/drop, and unrelated list renders do not call it and cannot steal focus. No selection, rendering, editor, dirty-state, data, list-semantic, accessible-name, or styling decision moved into the focus step.
-
----
-
-## 10. Category editor
-
-`src/ui/categoryEditor.js` is the primary editor composition module.
-
-It currently owns:
-
-- raw category JSON,
-- the selected-category header and category-wide validation UI,
-- actions such as duplicate/delete/move.
-
-`src/ui/emptyState.js` is the focused owner of the no-category guidance card. `categoryEditor.js` resets selection to `-1` and delegates only when the category array is empty; populated rendering never invokes the builder. The leaf receives the application translator, active-field commit callback, and the two existing preset callbacks. It owns no preset data or import parsing.
-
-`src/ui/basicEditor.js` is the focused leaf owner for the complete Basics card. It owns Enabled/Pinned switches and their local warning area, Name/Description fields, the Generate action and review modal, generated-description copy/replace/identical/blank application paths, signed-Int32 Order/Priority controls, its debounced sidebar-text helper, and description-input synchronization. It exports `getBasicSwitchWarnings(...)` and returns a narrow `{ card, maybeAutoGenerateDescription, refreshValidation }` controller.
-
-`categoryEditor.js` passes only the selected category, category list, dirty/list callbacks, Name/header and category-validation callbacks, active-field commit, lookup, preference, and clipboard services. The shell consumes the controller for category-wide Item Ordering, matching-rule, Range, and State coordination while retaining the exact validation-before-generation-before-render/schedule order. `categoryEditor.js` re-exports `getBasicSwitchWarnings(...)` to preserve its public import contract. The leaf does not import application state, `categoryEditor.js`, application orchestration, or sibling editor leaves.
-
-`src/ui/colorEditor.js` is the focused leaf owner for the complete Color card. It returns the existing `card color-card` composition containing the native RGB picker, Hex RGBA field, R/G/B byte controls, and alpha slider/output. It owns color conversion/decision imports, validity presentation, linked-control synchronization, committed display snapshots, and `normalizeRgbInputValue(...)`. Each RGB control registers a private synchronization hook that refreshes both its displayed byte and its closure-owned committed byte from `category.Color`; `updateColorVisuals()` invokes all three hooks with the picker, Hex RGBA, alpha, preview, and shared snapshot refreshes.
-
-`categoryEditor.js` passes only the selected category, dirty callbacks, and a fresh scheduled sidebar callback to the Color leaf. The shared `createScheduledRenderList(...)` implementation remains in `categoryEditor.js`: one instance is retained for Range/State filters and a distinct instance is passed to Color, preserving independent pending flags. The leaf does not import `categoryEditor.js`, application state, or application orchestration.
-
-`src/ui/matchingRulesEditor.js` is the focused leaf owner for the matching-rule grid. It returns the existing two-column grid containing, in order, Allowed UI Category IDs, Allowed Item IDs, Allowed Item Name Patterns with its converter action, and Allowed Rarities. It owns the strict typed row-ID parsers and normalized dedupe wiring, Item and ItemUICategory list lookup composition, structural pattern validation and comma-preserving input configuration, converter placement, and the private rarity checkbox renderer.
-
-`categoryEditor.js` passes the category list, dirty callback, converter launcher, existing list-editor lookup dependencies, the one application translator, and one rule-change callback. That callback retains category-level validation refresh, optional generated-description updates, and sidebar rendering in the established order. The matching-rules module does not depend on `categoryEditor.js`, so the ownership boundary introduces no circular dependency.
-
-`src/ui/rangeStateFiltersEditor.js` is the focused leaf owner for the Range Filters and State Filters disclosure cards. It owns the private range/state display-name maps and fallback formatting, Range defaults and signed-Int32/uint bounds, Range Enabled switches and number/slider composition, State segmented controls, three-column grid markup, and local summary refreshes. It returns the two existing cards to `categoryEditor.js` without changing their disclosure state or markup/classes.
-
-`categoryEditor.js` passes only the selected rules plus dirty, narrow filter-change, and scheduled-render callbacks. The filter-change callback retains category-level validation and optional generated-description orchestration; the existing Range/State scheduler instance is shared by both cards, while Color receives its own separately created instance. The leaf does not import application state, `categoryEditor.js`, or application orchestration.
-
-`src/ui/itemOrderingEditor.js` owns the Item Ordering disclosure body and consumes the shared `analyzeItemOrdering(...)` result without mutating category data during render. The Item Sort Criteria section is always present. The complete Custom Item Order section is appended only when `customOrderRelevant` is true. Active, retained-inactive, and Raw JSON correction implementations are otherwise unchanged. Criterion changes use the existing local body rerender with explicit field/direction focus keys; when removal of the final retained inactive rank makes the section irrelevant, the body rerenders once and focuses the surviving Add criterion select.
-
-Selected-category Raw JSON is parsed and shape-normalized as a local candidate before it replaces the live selected category. JSON-semantically identical candidates retain the existing object identity, selection, and dirty state. Parse or shape failures leave the current category and dirty state unchanged.
-
-The color editor treats its 8-bit controls as displayed representations rather than lossless model values. Hex RGBA, native RGB, and alpha commits compare canonical input against refreshed displayed snapshots before parsing; same-display events therefore preserve higher-precision imported components. Phase 58 initially refreshed only picker/Hex/alpha snapshots, leaving each R/G/B input and its private baseline stale after external commits. Phase 58.1 makes every real color change synchronize all linked controls and snapshots before later `change`/`blur` events can fire.
-
-RGB byte controls reject blank and non-finite live input without mutation, restore the last committed byte on blur, and round/clamp deliberate finite input to `0..255`. Displayed no-ops do not dirty or schedule. Native RGB and alpha real changes mark dirty and use the Color-specific scheduled callback; Hex RGBA real changes retain the established immediate dirty-and-render path. Invalid Hex remains visible and reported, equivalent canonical input is restored as a no-op, and Enter/change/blur sequencing cannot commit one edit twice.
-
-Further splits should remain behavior-preserving ownership extractions driven by demonstrated friction.
-
----
-
-## 11. Regex → Item IDs tool
-
-`src/tools/regexToItemIds.js`:
-
-- selects a structurally usable saved pattern or custom regex,
-- explains that AetherBags uses case-insensitive, culture-invariant .NET regex while browser scanning is a JavaScript approximation,
-- compiles browser-compatible input with a fixed case-insensitive JavaScript flag,
-- scans paginated Item rows,
-- supports cancellation,
-- normalizes row IDs strictly,
-- caches useful names,
-- dedupes matches,
-- adds matched IDs,
-- optionally removes the selected regex.
-
-Phase 64 isolates evaluation behind two focused modules:
-
-- `src/tools/regexBatchWorker.js` is a dedicated module-worker entrypoint and the only runtime module that calls `regex.test(name)`. It compiles with fixed `i`, evaluates candidates in stable order, stops at the supplied remaining-match limit, and returns an explicit serializable result or error message.
-- `src/tools/regexBatchEvaluator.js` owns worker construction through `new URL('./regexBatchWorker.js', import.meta.url)`, scan/batch identity, one pending request, injected timer/worker seams, stale-reply rejection, and idempotent termination. Production requests contain at most 50 candidates and expire after 1,000 ms. The batch size bounds cloning/evaluation work; the deadline is conservative for slower phones while still stopping pathological JavaScript promptly without blocking the UI thread.
-- `evaluateCandidateBatches(...)` merges completed replies into stable unique numeric matches and handles duplicate matches without exceeding or stopping short of the configured unique maximum. A timed-out or canceled in-flight batch contributes no partial result; earlier completed batches remain intact.
-
-Important behavior:
-
-- the launch action is composed by `src/ui/matchingRulesEditor.js` into the existing Allowed Item Name Patterns list input/Add row after `categoryEditor.js` supplies the launcher callback; `listEditor(...)` has no converter-specific API,
-- `.pattern-converter-action` right-aligns the launch control when row space permits and allows wrapping within the card,
-- the action remains present when the saved pattern list is empty because the modal accepts a custom regex,
-- no editable regex-flags control exists,
-- blank or JavaScript-incompatible input returns before match state, lookup-cache lease acquisition, busy UI, network access, or configuration mutation,
-- incompatibility is described as a browser-converter limitation rather than an invalid AetherBags regex,
-- non-string and blank saved elements are omitted from choices with correction guidance, and each usable choice retains its original array index for safe optional removal,
-- no-op add must not mark dirty,
-- status must distinguish:
-  - IDs added,
-  - regex removed,
-  - both,
-  - no changes.
-- matched IDs are numeric.
-- worker construction, post, runtime, message, timeout, and cancellation failures never fall back to main-thread matching,
-- Cancel and modal Close abort fetch work and terminate the worker immediately; timeout does the same and reports that slow JavaScript evaluation is not an AetherBags/.NET validity decision,
-- XIVAPI request timeout is reported separately from both caller cancellation and Phase 64 worker evaluation timeout; completed worker batches, matches, and useful cache writes remain intact,
-- the converter commits useful matched names only after a complete batch reply and flushes completed cache changes at page or terminal boundaries,
-- the existing lookup-cache producer lease, busy overlay, action-state synchronization, result rendering, Add/removal/no-op behavior, and focus return still release through the converter's outer `finally`.
-
----
-
-## 12. Description generation
-
-`src/descriptionGenerator.js`:
-
-- infers category intent from:
-  - category name,
-  - regex patterns,
-  - cached lookup names,
-  - range/state filters.
-- generates human-readable English descriptions.
-- filters unusable lookup names.
-- falls back when confidence is low or generated text contains known bad artifacts.
-
-Localization note:
-
-Generated-description application is strict-value change-aware. Identical generated text is not assigned and does not invoke dirty/render callbacks; both the initial Generate action and the later Replace callback enforce this independently. Automatic blank generation still requires a useful result, while manual blank generation retains the generator's deliberate fallback output.
-
-Generated descriptions should eventually use language-aware templates. They should not be treated as ordinary UI-string translation.
-
----
-
-## 13. Modal system
-
-`src/modals.js` owns shared modal behavior.
-
-Key guarantees:
-
-- focus target chosen before app root becomes inert,
-- app root becomes inert and `aria-hidden`,
-- focus trap is active,
-- stale delayed focus is guarded,
-- close restores background state,
-- previous focus is restored when appropriate.
-- `isModalOpen()` exposes read-only backdrop visibility for callers that must not replace an active dialog.
-
-Export/Copy completion checks `isModalOpen()` after releasing only its own busy state and before creating result content, opening the result modal, saving the snapshot, or attempting automatic clipboard work. If another modal is active, the generated presentation attempt is discarded and a retry warning is reported without changing the active close handler, focus, inert state, or save state.
-
-Avoid bypassing the shared modal infrastructure.
-
----
-
-## 14. Persistent state
-
-`src/state.js` handles browser-persistent state such as:
-
-- lookup cache,
-- editor preferences.
-
-Persisted lookup-cache JSON is shape-normalized before application use. The runtime cache always has independent plain-object `Item` and `ItemUICategory` buckets, preserves only string cache names (including unresolved sentinel strings), and drops malformed data.
-
-Preferences include appearance/behavior settings such as theme and density, plus lookup/description behavior where applicable.
-
-Future localization preferences should integrate here rather than inventing separate persistence.
-
-### Localization boundary
-
-`src/locales/en.js` is the explicit frozen English catalog. Catalog entries are plain strings, never HTML fragments. Phase 67 introduced the complete Preferences modal proof slice. Phase 68 added the complete About / Help and Lookup Cache modal surfaces. Phase 70 added persistent document/brand, sidebar, and topbar chrome. Phase 72 added the complete no-category card. Phase 75 added the matching-rule grid plus reusable list-editor-owned copy. Phase 77 adds Item Ordering editor-owned visible text, accessible names, summary badges, correction routes, and normalization display/status copy while leaving DOM-free ordering findings, broad validation/import/export families, remaining populated editor/sidebar prose, Regex converter internals, generated descriptions, and locale state untouched.
-
-Phase 68 merged through PR #110 at `d53fd23f161480e7fdbd139dfdd0f1e9b2583772`. PR checks, post-merge Project verification, and GitHub Pages deployment passed. A post-merge `npm run check` rerun syntax-checked 86 JavaScript files, resolved all static relative imports, and passed all 38 test files / 501 tests with zero failures, skips, cancellations, or todos. Fresh deployed QA passed exact Help and Lookup Cache English copy, Help semantic structure, nonempty locale-formatted cache counts, focus containment/return, background ARIA restoration, CSP behavior, and 840px/390px overflow checks. Cache clearing was deliberately not exercised against the browser profile's existing data.
-
-`src/localization.js` is DOM-free and keeps mechanics separate from locale data. `createTranslator(locale)` resolves the requested locale once, deterministically falls back to English for unsupported locales, and returns a stable keyed lookup function. `formatMessage(...)` retains simple named interpolation. Phase 69 adds `formatRichMessage(...)`, which parses the same named placeholders into ordered text and opaque placeholder parts without inspecting or stringifying placeholder values. It supports translator-controlled order and repetition. The callable translator remains the ordinary API and exposes one additional `translate.rich(...)` operation. Both paths share explicit unknown-key and missing-parameter failures.
-
-Phase 69 merged through PR #112 at `831c6d7271cd146fda9a306904c7de9372340448`. Both PR verification checks succeeded, as did post-merge Project verification run `29844811387` and Pages deployment run `29844808768`. The post-merge review reran `npm run check`: 87 JavaScript files passed syntax checking, all static relative imports resolved, and all 39 test files / 506 tests passed with zero failures, skips, cancellations, or todos.
-
-Application orchestration creates the fixed-English translator explicitly and injects it into `applyApplicationChromeLocalization(...)`, `renderCategoryEditor(...)`, `showPreferencesModal(...)`, `showHelpModal(...)`, and `showLookupCacheModal(...)`. The category-editor path forwards that same callable translator to `buildEmptyState(...)`, matching rules, Item Ordering's Custom Item Ranks caller, and every reusable list editor; no UI module imports localization mechanics or creates another translator. No mutable global locale or implicit locale state exists. A later persisted locale preference can replace the translator at the existing state/orchestration boundary without rewriting UI key usage. Translation values entering HTML templates and accessibility attributes pass through `escapeHtml(...)`; modal titles and runtime statuses use existing plain-text sinks.
-
-`src/ui/applicationChrome.js` owns the Phase 70 shell application boundary. It does not import localization mechanics or application orchestration. Startup calls it once with the existing translator before event binding and normal rendering. The helper targets the established DOM identity without replacing elements and assigns only `textContent`, `document.title`, and explicit plain-text `placeholder`, `aria-label`, and `title` attributes. `index.html` retains identical immediate English fallback, `lang="en"`, CSP placement/text, synchronous startup-preference ordering, stylesheet/module ordering, roles, types, disabled states, grouping, and action order.
-
-Neutral `action.*` keys are the shared authority for Import/Paste, Upload, Export/Copy, Download, Resolve IDs, Lookup Cache, Preferences, and About / Help across chrome and existing modal content/titles. Phase 70 removes the superseded Help-owned action-label keys and duplicate Help/Lookup Cache title keys rather than adding parallel English values. Help still owns complete rich templates and its UI-local `strong`/`code` semantic allowlist.
-
-The empty-state builder uses shared Import/Paste, Upload, and Preferences action keys where those exact labels participate. Focused `emptyState.*` keys own only card-specific title, framing, preset labels/descriptions, manual-add text, and guidance. Its complete workflow sentence uses `translate.rich(...)`; formatter text becomes text nodes and opaque UI descriptors create exactly two `strong` elements through a local strong-only allowlist. Button text and `title`/`aria-label` values use `textContent` and explicit attributes. No HTML parser, sanitizer, catalog markup, tag name, attribute, URL, or handler crosses the localization boundary.
-
-Help keeps all structure in `src/ui/helpModal.js`: paragraph and section order, headings, lists, emphasized action names, and code-formatted `.txt`/`localStorage` tokens. Phase 69 replaces the fixed grammatical fragments with twelve complete plain-text templates containing named semantic placeholders. Genuine standalone action labels remain separate catalog values, while duplicate Help-only labels and before/after/conjunction fragments are removed.
-
-The Help renderer builds the surface with DOM node operations rather than `innerHTML`. Rich text parts become text nodes. Placeholder descriptors are created only by UI code and resolved through a local allowlist containing exactly `strong` and `code`; their contents are assigned through `textContent`. Catalogs cannot supply tag names, attributes, event handlers, URLs, or HTML, and no parser or sanitizer boundary exists. The directly testable content builder preserves exact English copy and the `4/4/16/11/3` heading/list/item/strong/code structure while a synthetic reordered template proves UI composition does not encode placeholder order.
-
-Lookup Cache keeps count formatting and behavior in `src/ui/lookupCacheModal.js`. Useful and unresolved numbers call `toLocaleString()` before becoming named `lookupCache.stats` parameters; the translated result is escaped at the template sink. Active, empty, and late-race refusal messages continue through `textContent`. The modal still subscribes to application-owned producer state, uses shared `lookupCacheClearAvailable(...)`, defensively re-checks clear availability, and unsubscribes through the shared modal close callback.
-
-No locale preference, second locale, pluralization layer, broad validation/status extraction, remaining populated editor/sidebar migration, or generated-description localization exists yet. Phase 55 remains on hold.
-
-### Startup appearance and browser trust boundary
-
-`src/startupPreferences.js` is a deliberately small classic script loaded synchronously before `styles.css`. It reads only the established appearance preference key and applies only the six Theme and two Density values accepted by `src/state.js`. Keeping it outside the module graph preserves pre-styled-render appearance; focused tests execute the classic script against `EDITOR_PREFERENCES_KEY` and `EDITOR_PREFERENCE_OPTIONS` so its unavoidable startup literals remain parity-checked. Missing, malformed, blocked, or throwing storage leaves the HTML defaults intact.
-
-`index.html` delivers this exact CSP before every governed resource:
+`AB_Category_Editor` is a no-build static application:
 
 ```text
-default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self'; script-src-attr 'none'; style-src 'self'; style-src-attr 'unsafe-inline'; img-src 'self'; connect-src 'self' https://v2.xivapi.com; worker-src 'self'; frame-src 'none'; form-action 'none'
+index.html
+  -> startupPreferences.js (classic, synchronous appearance bootstrap)
+  -> styles.css
+  -> src/app.js (module composition and orchestration)
+       -> DOM-free data/decision modules
+       -> focused UI owners under src/ui/
+       -> browser service boundaries
 ```
 
-The only inline allowance is `style-src-attr 'unsafe-inline'`, required by the established dynamic category colors/tints, Color preview, range geometry, busy progress, toast transitions, and clipboard fallback. Inline/evaluated scripts remain blocked; the favicon needs only same-origin image access; local/controlled QA remains available through same-origin `connect-src`; and `worker-src 'self'` covers the module worker. Blob export downloads do not require a fetched-resource `blob:` allowance. This meta policy is a static-app compatibility boundary, not a response-header substitute: it cannot provide `frame-ancestors`, Report-Only delivery, or protection for resources parsed before the meta element.
+There is no framework, package runtime, build artifact, server-side component,
+analytics layer, or mutable global locale. State is in browser memory plus
+bounded `localStorage` preferences and lookup cache. GitHub Pages serves the
+same static source.
 
----
+## Application composition and state
 
-## 15. Import/export
+`src/app.js` owns live configuration, selection, dirty/saved state, monotonic
+data revision, lookup-cache coordination, modal/tool launchers, translator
+creation, and top-level rendering. It injects narrow callbacks and services
+into UI owners; leaf modules do not import application orchestration.
 
-`src/importExport.js` owns:
+Important rendering boundaries:
 
-- clipboard copy with fallback,
-- text download,
-- gzip compression,
-- gzip decompression,
-- base64 conversion,
-- raw import parsing.
+- full render replaces category list and selected editor;
+- category-list rendering preserves selection by object identity;
+- focused editor leaves refresh local sections when a full replacement is not
+  required;
+- structural rerenders query connected replacement controls before focus;
+- no-op decisions return before mutation, revision, dirty state, callback, or
+  render work.
 
-`src/exportSnapshots.js` owns DOM-free revision capture and snapshot-current save decisions.
+`src/categoryChanges.js` holds shared DOM-free change and focus plans for
+identity-aware sorting, strict renumbering, Raw JSON apply decisions, category
+reorder, and post-render structural focus.
 
-Clipboard fallback captures the active element only after the primary Clipboard API rejects. Its temporary textarea is removed in `finally`; the original target is restored only when the textarea still owned focus and the target remains callable and connected to the current document. This prevents fallback cleanup from overriding newer modal/UI focus or resurrecting a disconnected rerender target, and restoration errors never change the copy boolean.
+## Configuration, validation, and compatibility
 
-Centralized revision advancement is used by every real `markDirty(...)` call and every JSON-semantically changed validated-config replacement. Normal import and preset replacement can therefore remain saved documents while still invalidating snapshots created from an earlier live config. Cancelled, failed, or semantic no-op replacements do not advance the revision. Changed full Raw JSON still advances through replacement and dirty paths; callers must rely only on monotonic invalidation, not an exact increment count.
+`src/config.js` owns default creation, shape normalization, import repair, and
+category sorting helpers. Import follows parse, pre-repair analysis,
+validation/repair, post-repair analysis, stable finding merge, confirmation,
+semantic change decision, live replacement, selection/render, summary, and
+optional lookup.
 
-Export/Copy and Download capture the current revision immediately before `makeBase64Export(...)` snapshots the data. After compression, only a matching revision may call the saved-state transition. Every stale completion reports whether newer dirty edits remain unexported or whether a later saved import/preset made the snapshot represent earlier editor data. A stale Export/Copy modal uses the revision decision before presentation and never labels its content `Current`.
+`src/validation.js` owns editor validation and category issue counts.
+Supporting authorities include:
 
-A current generated export shown in the modal counts as exported before automatic clipboard work begins. Clipboard success or failure never decides save state, preserving the Phase 43 ordering while the revision guard covers edits made during compression.
+- `src/rowIds.js` — strict row-ID interpretation and normalization;
+- `src/optionalNumbers.js` — optional finite-number interpretation;
+- `src/filterScalars.js` — Int32/uint/range/state classification and repair;
+- `src/patternSemantics.js` — stored-pattern structural validity and browser
+  converter compatibility;
+- `src/itemOrdering.js` — Item Sort Criteria and Custom Item Order decisions,
+  summaries, normalization, relevance, and focus-safe mutations;
+- `src/exportCompatibility.js` — serialization fidelity and complete
+  AetherBags export-envelope analysis.
 
-Both Export / Copy and Download call the same compatibility-preflight wrapper after committing the active control and before showing busy UI or starting gzip work. A blocked decision opens an accessible, category/field-specific summary and returns without compression, clipboard/download side effects, snapshot-state advancement, or saved-state transitions. A passing decision enters the unchanged Phase 43/44/44.1 async snapshot path.
+Pre/post repair finding merge carries private category-object identity so
+duplicate or absent public IDs do not collapse distinct findings. Grouped sort
+findings retain stable keys. None of the private identity metadata is
+enumerable, displayed, persisted, or exported.
 
-The shared preflight now runs serialization-fidelity analysis first. Blocking paths therefore include unknown nested values such as `$.Categories[0].UnknownNested.overflow`, and `JSON.stringify` cannot silently turn an imported overflow into `null` before the user sees the problem. Modal copy separates unsafe serialization/read failures from upstream defaults and ignored values. Modal title and validation-path wrapping keep the summary inside desktop, 840px, and 390px viewports.
+Export compatibility separates:
 
-Negative zero uses the same boundary: Raw JSON change decisions do not collapse it into ordinary zero, and export preflight blocks it with a readable path before snapshot generation. An own `toJSON` accessor is classified entirely from its descriptor, so blocked analysis cannot execute user serialization code.
+- JSON serialization fidelity;
+- AetherBags deserialization/width/type compatibility;
+- review-only defaulting or normalization;
+- safe structured editability.
 
-Browser support errors should be explicit for missing `CompressionStream`/`DecompressionStream`.
+Both Export / Copy and Download commit the active control and run the same
+preflight before compression or output callbacks.
 
-Phase 63 makes `src/importExport.js` the DOM-free resource-policy authority for configuration ingestion. Shared constants cap selected files and UTF-8 JSON text at 32 MiB, decoded gzip bytes at 8 MiB, and decompressed output at 32 MiB. `utf8TextExceedsLimit(...)` counts UTF-8 bytes without allocating an encoded copy; `parseJsonText(...)` applies that decision before parsing. `base64ToBytes(...)` counts non-whitespace Base64 characters before constructing the bounded clean string, rejects an oversized decoded estimate before `atob`, and rechecks the actual returned binary length. `gunzipBytes(...)` reads the decompression stream incrementally, counts bytes before decoding each accepted chunk, cancels immediately on overflow, releases the reader in `finally`, and uses streaming `TextDecoder` state across chunk boundaries.
+## UI ownership
 
-`readImportFileText(...)` rejects by `file.size` before `File.text()`. `src/app.js` uses the shared parser for Import/Paste and full Raw JSON, applies the file helper to upload, and checks full Raw JSON before Copy. `src/ui/categoryEditor.js` uses the same parser for selected-category Raw JSON. These guards sit before validation, destructive confirmation, live replacement, selection changes, lookup, dirty/save transitions, compression, clipboard/download, and structural rendering. The export path has no new size cap.
+`src/ui/categoryEditor.js` is the selected-category shell. It owns the header,
+category-wide validation presentation, Raw JSON route, structural actions, card
+order, and cross-card orchestration.
 
-### Static button taxonomy
+Focused leaves own cohesive surfaces:
 
-`styles.css` keeps the dependency-free button taxonomy close to the established element/class rules:
+- `basicEditor.js` — Basics, generated-description workflow, and its local
+  validation refresh;
+- `colorEditor.js` — linked RGBA controls and display snapshots;
+- `itemOrderingEditor.js` — criteria/custom-rank composition and local
+  ordering refresh;
+- `matchingRulesEditor.js` — the four matching-rule cards and converter entry;
+- `rangeStateFiltersEditor.js` — Range and State disclosure cards;
+- `listEditor.js` — reusable typed list, ordered pill, lookup, and manual-search
+  behavior;
+- modal-specific files — Preferences, Help, Lookup Cache, and empty-state
+  composition.
 
-- unclassified `button` is the standard text action,
-- `.small` and `.button-compact` are compact text actions,
-- `.icon-button` is the reusable square icon target,
-- `.primary` marks the main forward action,
-- `.danger` marks destructive actions,
-- `.link-button` remains the inline link-style action,
-- `.movement-button` is a neutral semantic refinement for reordering icons.
+Leaves accept model data and narrow callbacks. They do not own global revision,
+selection, persistence, locale state, or modal infrastructure.
 
-The shared standalone icon target is 30px in comfortable density and 26px in compact density, while `--button-icon-glyph-size` controls the visible glyph independently. The Help control intentionally retains its existing 32px topbar target. Category and criterion movement share `↑`/`↓` plus precise context-specific names/titles; native `disabled` remains the availability authority. Pill actions use the deliberate compact exception described above.
+## Lookup, cache, and tools
 
-`--input-control-height` is 38px in Comfortable density and 34px in Compact density. Reusable list-entry Add actions opt into `.input-paired-icon`, making their square target match the adjacent text input without changing lookup-result or standalone icons. `--ordering-control-height` is 35px / 31px and governs criterion selects plus the `.ordering-contextual-icon` Add criterion action. Criterion move/remove buttons retain the 30px / 26px standalone icon target inside an ordering-control-height action rail with centered alignment. Category-header actions likewise share the standalone 30px / 26px height, so descriptive Duplicate aligns with the arrow and trash icons.
+`src/xivapiRequest.js` is the shared deadline/cancellation boundary.
+`src/xivapi.js` owns sheet URLs, response extraction, useful-name
+classification, batch chunking, fallback, caching, and referenced-ID lookup.
 
-High Contrast and Aetherial retain their established focus-visible overrides. The generic button focus-visible rule supplies the accent outline for all other themes. Pill controls add a 2px outline and 2px offset without changing their 18px box or hover glow; the more specific High Contrast and Aetherial theme rules remain visually distinct. Topbar, category-action, criterion-action, pill, and modal rows continue to wrap through their existing flex/grid rules.
+Application-owned cache-producer leases prevent cache-object replacement while
+async search, list lookup, global Resolve IDs, or regex scanning is active.
+Lease release is idempotent and belongs in `finally`.
 
-Selected-category structural rerenders use `selectedCategoryStructuralFocusPlan(...)` from `src/categoryChanges.js`. Move actions prefer the same direction after rerender and the opposite direction when the preferred action becomes disabled. Duplicate prefers the newly rendered Duplicate action. Confirmed Delete prefers the newly selected `.cat-item[aria-current="true"]`, then live category-header actions; deleting the final category falls back to Add category. The plan changes only post-render focus and does not participate in category mutation, selection, renumbering, modal, dirty-state, or no-op decisions.
+The Regex-to-Item-ID tool separates concerns:
 
-The visible-label audit changes `Sort by Order` to `Sort by order`, exact Add actions to `+`, criterion removal to `×`, category deletion to `🗑`, and batch lookup to `🔍`. Each symbol-only control has a contextual accessible name and title. Duplicate remains descriptive text; manual lookup search remains `Search`; acronyms such as JSON and IDs and product actions such as `Import/Paste` and `Export/Copy` remain unchanged.
+- `src/tools/regexToItemIds.js` owns modal state, XIVAPI pagination, candidate
+  extraction, progress, result caps, cancellation, cache writes, Add/no-op
+  behavior, and saved-pattern removal;
+- `src/tools/regexBatchEvaluator.js` owns module-worker lifecycle, batch
+  identity, per-request deadline, stale-result rejection, and termination;
+- `src/tools/regexBatchWorker.js` is the only runtime owner of
+  `regex.test(name)`.
 
----
+There is no main-thread evaluation fallback.
 
-## 16. Testing architecture
+## Import, export, and resource bounds
 
-Primary command:
+`src/importExport.js` owns JSON/gzip+Base64 parsing, compression, download, and
+clipboard boundaries. Production limits are:
+
+- selected file: 32 MiB;
+- UTF-8 JSON text: 32 MiB;
+- decoded compressed input: 8 MiB;
+- decompressed output: 32 MiB.
+
+Base64 sizing is checked before decoding allocation. Decompression counts
+streamed bytes before accepting/decoding a chunk and cancels on overflow.
+Clipboard fallback cleans up its hidden textarea and restores focus only while
+it still owns focus.
+
+Export snapshot currency is governed by the application data revision, not by
+async completion order.
+
+## Modal, focus, and accessibility
+
+`src/modals.js` owns the shared modal shell, focus trap, focus return,
+background inert/ARIA state, and versioned deferred focus. Opening requests
+modal focus before background inerting; closing restores paired state.
+
+Category selection, category structural actions, criteria, and ordered list
+actions have explicit focus-recovery plans. Accessible names are contextual and
+native disabled state remains authoritative. Range validation uses associated
+messages; icon and pill controls retain visible theme-aware focus.
+
+## Localization
+
+`src/localization.js` owns locale resolution, named interpolation, and DOM-free
+rich-message part parsing. `src/locales/en.js` is the frozen flat plain-text
+catalog. `src/app.js` creates one fixed-English translator and injects it into
+application chrome and UI owners.
+
+UI modules own semantic node construction and safe sinks. Rich messages allow
+only caller-defined semantic parts; catalog content does not supply HTML.
+Localization ownership is intentionally incremental. The remaining message
+families are tracked by
+[Issue #122](https://github.com/Bahbus/AB_Category_Editor/issues/122);
+locale persistence and a second locale are separate later decisions.
+
+## Reorder motion
+
+`src/reorderMotion.js` is a dependency-free progressive FLIP-style presentation
+boundary. It captures keyed rectangles around an already-authorized successful
+reorder and requests a 180 ms transform animation for connected replacement
+nodes.
+
+Category identity uses object-reference keys. Criteria and ordered primitive
+lists use per-occurrence tokens. Missing/throwing animation APIs, reduced
+motion, unchanged geometry, disconnection, and stale renders suppress or cancel
+motion without affecting mutation, focus, announcements, dirty state, or final
+DOM.
+
+## Startup, CSP, and trust boundaries
+
+`src/startupPreferences.js` is an external same-origin classic script placed
+before CSS and module startup so theme/density apply synchronously. Its small
+literal option set is directly tested against state metadata.
+
+`index.html` places CSP immediately after charset and before fetched resources.
+The policy limits scripts, workers, images, connections, frames, forms, base
+URLs, and objects to the established static-app needs. Inline style attributes
+remain allowed because runtime code sets bounded visual custom properties and
+geometry; inline script and inline style elements remain disallowed.
+
+`.github/workflows/project-verification.yml` uses read-only contents permission,
+Node 22, immutable official Action SHAs, and one `npm run check` invocation.
+No personal Projects token is stored in Actions.
+
+## Testing architecture
+
+Primary contract:
 
 ```bash
 npm run check
 ```
 
-Typical lower-level checks:
-
-```bash
-node scripts/check-javascript-syntax.mjs
-node scripts/check-imports.mjs
-node --test
-```
-
-`scripts/check-javascript-syntax.mjs` resolves the repository root from the script location rather than the caller's working directory. It recursively discovers regular `.js` and `.mjs` files in deterministic relative-path order, including untracked files, while skipping `.git`, `node_modules`, non-JavaScript files, and symlink traversal. Each discovered file is passed to the current Node executable with `--check`; the script reports the checked count only on success and exits nonzero after any failure.
-
-The single GitHub Actions workflow is `.github/workflows/project-verification.yml`. Pushes and pull requests run the same `npm run check` contract once with read-only repository contents and Node 22. Official checkout v4.3.1 is pinned at `34e114876b0b11c390a56381ad16ebd13914f8d5`; official setup-node v4.4.0 is pinned at `49933ea5288caeca8642d1e84afbd3f7d6820020`. Readable version comments remain beside both immutable SHAs. The workflow does not duplicate the syntax, import, or test commands.
-
-Phase 45 adds temporary-fixture behavior tests for nested discovery, ordering, exclusions, directory symlinks, valid files, and an invalid-file failure. Its local `npm run check` run syntax-checked 56 files, resolved all static relative imports, and passed all 25 test files / 319 tests. `git diff --check` also passed. CI and browser QA were not run.
-
-Phase 46 adds focused source coverage for composing the converter action into the patterns list row, its explicit button type and label, direct dependency wiring, right-alignment/wrapping class, standalone-card removal, and stable independent extraction of the three list-editor calls for dedupe assertions. Its local `npm run check` run syntax-checked 56 files, resolved all static relative imports, and passed all 25 test files / 320 tests. `git diff --check origin/main` passed. In-app browser QA was attempted but unavailable because the browser transport closed; CI was not run.
-
-Phase 46 was merged at `26dd5564830ec7d5f6209d7a37077e4836a25a47`. Its post-merge review confirmed that unconditional comma splitting corrupted valid name patterns. Phase 47 adds direct tests for default numeric-style comma tokenization, preserved comma-bearing pattern tokens, blank input, and surrounding-whitespace trimming, plus focused source coverage for the pattern-only options and unchanged numeric defaults. Its local `npm run check` run syntax-checked 57 files, resolved all static relative imports, and passed all 26 test files / 325 tests. `git diff --check origin/main` passed. In-app browser QA was attempted but unavailable because the browser transport closed during connection; CI was not run.
-
-Phase 47 merged through PR #83 at `8340c9f8417865242a0bf1faba7b3dd156614cc5`. Its post-merge review passed exact tree/diff verification, GitHub CI, and Pages; deployed `listEditor.js` matched merged source; browser QA remained unavailable because the browser transport closed.
-
-Phase 48 adds direct storage-classification, browser-compatibility, saved-option, original-index removal, import-fidelity, issue-count, and tokenization tests plus DOM source guardrails. Its local `npm run check` run syntax-checked 59 files, resolved all static relative imports, and passed all 27 test files / 336 tests. `git diff --check origin/main` passed with no output. In-app browser QA was attempted but unavailable because the browser transport closed before discovery. CI and Pages were not run for the unpublished phase.
-
-Phase 48 then merged through PR #84 at `4aa67ed97b89f35e0bf468628536d2993819b182` with no 48.1. Its post-merge review reran the same 59-file / 27-file / 336-test check, confirmed an exact branch-tree match and clean `git diff --check origin/main`, verified desktop-keyring authentication, PR checks, post-merge Project verification, Pages, exact deployed `patternSemantics.js` and `regexToItemIds.js`, and browser behavior for `(?>a)`, early incompatibility handling, blank rejection, and desktop/840px/390px overflow.
-
-Phase 49 adds the shared scalar module and direct classification, repair, validation/merge, typed-input decision, no-op/notification, and focused DOM-wiring coverage. Its local `npm run check` run syntax-checked 61 files, resolved all static relative imports, and passed all 28 test files / 347 tests; `git diff --check origin/main` passed with no output. In-app browser QA was attempted twice but unavailable because the browser transport closed; CI and Pages were not run.
-
-Phase 49.1 adds exact Int32 boundary classification and repair coverage, exact uint adjacency coverage, typed range boundary decisions, bound-specific messages, per-component accessibility state, duplicate/absent category-ID finding identity, repeated-analysis dedupe, separate range-component retention, and unchanged grouped SortPosition behavior. Its local `npm run check` run syntax-checked 61 files, resolved all static relative imports, and passed all 28 test files / 352 tests; `git diff --check origin/main` passed with no output. In-app browser QA was attempted twice but unavailable because the browser transport closed before initialization; CI and Pages were not run.
-
-Phase 50 adds direct compatibility-envelope, Int32 Order/Priority, exact uint list, unsafe-digit-string, top-level/category scalar, Item Sort Criteria, unknown-property, Color overflow repair, rarity materiality, and shared preflight behavior coverage. Its local `npm run check` run syntax-checked 63 files, resolved all static relative imports, and passed all 29 test files / 370 tests; `git diff --check origin/main` passed with no output. Upstream AetherBags `master` remained `368bd4677b16594d9d4624efc8269ada7408d4f5`. In-app browser QA was attempted twice but unavailable because the browser transport closed during initialization; CI and Pages were not run.
-
-Phase 50.1 adds direct nested root/category/rule fidelity coverage, exact non-finite JSON paths, callback suppression and non-mutation, finite unknown round trips, cycles/BigInt/sparse arrays/accessors, upstream root defaults/ignored values, omitted category/rule/nested defaults, explicit-null blockers, accurate modal copy, unchanged shared callback wiring, and narrow path/title wrapping. Its local `npm run check` run syntax-checked 63 files, resolved all static relative imports, and passed all 29 test files / 375 tests; `git diff --check origin/main` passed with no output. Browser QA passed both blocked actions, accessible focus/inert/return behavior, unchanged saved-state behavior, and overflow-free desktop, 840px, and 390px layouts. CI and Pages were not run because publication remains separate.
-
-Phase 50.2 adds direct zero-sign equality and Raw JSON decision coverage, exact root/category/rule/object/array negative-zero paths, both export-callback suppression paths, ordinary-zero allowance, enumerable/non-enumerable `toJSON` accessor invocation counters, and retained function-valued `toJSON`, accessor, sparse-array, cycle, non-finite, unknown-property, and default/ignored-member coverage. Its local `npm run check` run syntax-checked 63 files, resolved all static relative imports, and passed all 29 test files / 381 tests; `git diff --check origin/main` passed with no output. Browser QA passed both blocked actions, dirty-state and focus/inert restoration, no-download verification, and overflow-free 1280px, 840px, and 390px layouts. CI and Pages were not run because publication remains separate.
-
-Phase 51 adds direct omitted/empty Use Global equivalence, Custom Order fallback, Use Global precedence, supplied-normalization, malformed ordering, duplicate custom-order ID, stable category identity, shared export-preflight, bundled-preset parser, issue-count, modal-gating, and JSON-shape fidelity coverage. Its local `npm run check` run syntax-checked 63 files, resolved all static relative imports, and passed all 29 test files / 386 tests; `git diff --check origin/main` passed with no output. The basic preset remained 24 categories with neither ordering property inserted and no ordering findings or issue badges; the advanced preset retained its three unrelated duplicate sort-position warnings. Browser QA passed silent basic-preset import, both export actions, one actionable Custom Order warning, modal focus/inert/return behavior, and overflow-free desktop/840px/390px layouts. CI and Pages were not run because publication remains separate.
-
-Phase 52 adds `src/itemOrdering.js` as the shared non-mutating authority used by compatibility analysis, structured UI, global referenced-ID collection, and generated descriptions. `src/ui/itemOrderingEditor.js` owns the disclosure card and local refresh boundary; it never writes ordering properties during analysis/render. Criteria and custom-rank changes are delegated to DOM-free decisions or the reusable list editor's opt-in ordered mode. Blocking containers stay outside structured mutation and route to the existing selected-category Raw JSON control. Valid custom IDs participate in Item lookup even when the list is retained inactive. The local `npm run check` run syntax-checked 66 files, resolved all static relative imports, and passed all 30 test files / 403 tests; `git diff --check origin/main` passed. Browser QA verified omitted-shape export fidelity, normalization repair, local issue clearing, malformed-data preservation/routing/focus, rank validation/add/reorder/duplicate/lookup/retained-inactive behavior, focus continuity, and desktop/840px/390px overflow. CI and Pages were not run because publication remains separate.
-
-Phase 52.1 separates compatible export representation from safe structured criterion editing, routes extra-member criteria to selected-category Raw JSON without mutation, and adds shared DOM-free focus planning for criterion and ordered custom-rank add/move/remove rerenders. Its local `npm run check` run syntax-checked 66 files, resolved all static relative imports, and passed all 30 test files / 408 tests; `git diff --check origin/main` passed. In-app browser QA remained unavailable after the original two attempts and a later two-tab retry because the browser webview did not attach, so desktop/840px/390px runtime checks were not completed. CI and Pages were not run because publication remains separate.
-
-Phase 53 adds focused source coverage for the shared text/compact/icon/primary/danger/link taxonomy, 30px/26px standalone icon targets, the compact 18px pill exception, neutral movement versus destructive removal, contextual accessible names/titles, native disabled boundaries, blank-input Add disabling, unresolved-lookup visibility/placement, and the intentional final glyph labels. Its local `npm run check` run syntax-checked 66 files, resolved all static relative imports, and passed all 30 test files / 412 tests; `git diff --check origin/main` passed. Final-build in-app browser QA passed all six themes, both densities, and 1280px/840px/390px: every matrix entry kept 18×18 pill actions inside 28px pills, 30px/26px standalone minima, and zero horizontal overflow. Runtime interaction also verified blank-input Add transitions, contextual lookup placement/visibility, glyph names/titles, and disabled boundaries. Browser automation did not produce pointer hover or keyboard focus traversal, so glow/focus-visible rendering remains source/test verified. CI and Pages were not run because publication remains separate.
-
-Phase 53.1 adds direct focus-plan tests and focused source guards for matched 38px/34px list Add controls, matched 35px/31px Add criterion controls, centered 30px/26px criterion actions, equal-height category-header actions, the unchanged standalone 24px minimum, structural rerender wiring, visible pill focus outlines, and disabled-button tooltip/hover suppression. `syncButtonTooltip(...)` retains enabled-state titles and supports an explicit disabled-state explanation, but no current control uses that exception; the shared hover border is limited to enabled buttons. Its local `npm run check` run syntax-checked 66 files, resolved all static relative imports, and passed all 30 test files / 418 tests; `git diff --check origin/main` passed. In-app browser QA measured the exact Comfortable/Compact matched and centered relationships, Move/Duplicate/Delete focus restoration, 18px pill geometry and visible keyboard focus across all six themes, and zero overflow at 1280px/840px/390px. CI and Pages were not run because publication remains separate.
-
-Phase 54 adds normal-importer regression coverage for the 55-category advanced preset's seven corrected descriptions and focused CSS/source coverage for density-aware first-row lookup centering. A decoded recursive comparison against `origin/main` is the semantic authority for the opaque advanced payload; it reports only category Description paths 0, 8, 9, 10, 17, 18, and 46, while the basic payload remains byte-for-byte identical. Its local `npm run check` run syntax-checked 66 files, resolved all static relative imports, and passed all 30 test files / 419 tests; `git diff --check origin/main` passed. In-app browser QA verified the descriptions plus unresolved-only Item and ItemUICategory actions, zero center offset, 30px/26px targets, multi-row first-row alignment, reserved space, and zero overflow in both densities at 1280px/840px/390px. CI and Pages were not run because publication remains separate.
-
-Phase 56 replaces the single 1,073-line / 79-test source-check file with three ownership-oriented suites: application/data-flow architecture, UI/accessibility/focus/responsive styling, and lookup/import/export/no-op wiring. `testSupport/sourceFiles.mjs` centralizes deterministic repository-root reads and recursive JavaScript discovery outside Node's automatic `test/` discovery. Seventy-six surviving source-guard names remain exactly once. The retired import-helper and duplicate-sort source assertions are covered by existing direct helper/validation behavior tests; the retired lookup-chunk regex is replaced by a direct multi-chunk `fetchLookupBatch(...)` test. Whitespace-sensitive adjacency checks now tolerate harmless formatting while retaining exact structural contracts. `decideUniqueItemAdd(...)` and `decideItemRemove(...)` are removed from `src/itemOrdering.js` because the reusable list editor owns runtime custom-order add/remove behavior and no caller consumes those exports. `.button-compact` remains the documented compact-text taxonomy role and retains a source guard. The local `npm run check` run syntax-checked 69 files, resolved all static relative imports, and passed all 32 test files / 416 tests; focused coverage passed 102 tests, source-name accounting passed, and `git diff --check origin/main` passed. Browser QA was not required because no runtime behavior changed; CI and Pages were not run because publication remains separate.
-
-Phase 57 moved the complete matching-rule grid and private rarity renderer into `src/ui/matchingRulesEditor.js`, including strict typed row-ID and dedupe wiring, lookup/search composition, comma-preserving pattern configuration, converter placement, and rarity normalization. `categoryEditor.js` supplies the converter launcher and retains category-level validation, optional generated-description, and sidebar-refresh orchestration through one narrow callback. Phase 57 merged through PR #97 at `291ad8db3cef2060a5a891963c9ee4103c2b4c58`. Its implementation-time browser QA passed both densities at 1280px, 840px, and 390px. The post-merge review then confirmed an identical local/merged tree, passed `npm run check` with 70 JavaScript files, 32 test files, and 417 tests, and passed `git diff --check origin/main` with no output. GitHub post-merge Project verification and Pages deployment succeeded for `291ad8d`. The post-merge in-app browser attempt used two fresh tabs, but the webview did not attach, so no post-merge runtime pass is claimed.
-
-Phase 58 moves the complete Color card and `normalizeRgbInputValue(...)` into `src/ui/colorEditor.js`. `categoryEditor.js` retains the single scheduler implementation, creates a fresh Color-specific instance for the leaf, and retains a separate instance for Range/State filters. The local `npm run check` run syntax-checked 71 files, resolved all static relative imports, and passed all 32 test files / 418 tests; `git diff --check origin/main` passed with no output. Final-build in-app browser QA was attempted with two fresh local tabs, but neither webview attached, so the Comfortable/Compact 1280px/840px/390px matrix and live Color synchronization/no-op checks remain unavailable. CI and Pages were not run because implementation and publication remain separate.
-
-Post-merge browser review then confirmed that Phase 58 had not actually synchronized the visible R/G/B controls or their private committed snapshots after Hex/native changes. Phase 58.1 adds per-control refresh hooks to the existing shared visual update without changing ownership, dependencies, scheduling, dirty/render counts, or focus. Its local `npm run check` run syntax-checked 71 files, resolved all static relative imports, and passed all 32 test files / 418 tests; `git diff --check origin/main` passed with no output. Local browser QA was attempted with two fresh in-app tabs and later retried with two additional fresh tabs, but none of the four webviews attached, so the requested interactive and responsive matrix was unavailable. CI and Pages were not run because implementation and publication remain separate.
-
-Phase 59 moves the complete existing Range Filters and State Filters disclosure cards into `src/ui/rangeStateFiltersEditor.js`. The leaf owns control composition, private labels/bounds, and local summaries; `categoryEditor.js` retains validation, optional description generation, the shared Range/State scheduler, separate Color scheduling, and overall order. Focused coverage passed 197 tests. The local `npm run check` run syntax-checked 72 files, resolved all static relative imports, and passed all 32 test files / 419 tests; `git diff --check origin/main` passed with no output. In-app browser QA passed both densities at 1280px, 840px, and 390px with desktop three-column and narrower stacked grids, live Range/State summary and control behavior, accessible roles/labels, focus continuity, and zero horizontal overflow. A fresh-tab retry for a separate live Maximum commit did not attach, so that edit remains focused-test/source verified. CI and Pages were not run because implementation and publication remain separate.
-
-Phase 60 moves the complete existing Basics card and generated-description controller into `src/ui/basicEditor.js`. The leaf owns its controls, local warnings, modal/controller, description synchronization, and debounced sidebar helper; `categoryEditor.js` retains the selected header/badge, category-wide validation, overall order, structural actions, scheduler ownership, and cross-card orchestration through the narrow controller. The shell fell from 404 to 285 lines and the new leaf is 163 lines. Focused coverage passed 150 tests. The local `npm run check` run syntax-checked 73 files, resolved all static relative imports, and passed all 32 test files / 420 tests; `git diff --check origin/main` passed with no output. In-app browser QA passed both densities at 1280px, 840px, and 390px with exact Basics/Color order, zero overflow, live Name/header/sidebar synchronization, every generated-description decision path, auto-generation, switch warnings, signed-Int32 numeric restore/commit behavior, modal focus restoration, and no console errors. CI and Pages were not run because implementation and publication remain separate.
-
-Phase 61 adds `customOrderRelevant` to the shared item-ordering analysis and conditionally appends the complete Custom Item Order section only for active, retained nonempty, or corrective malformed/incompatible states. Inactive omitted and valid empty states render no section or placeholder. Criterion rerenders keep explicit surviving focus, and clearing the final retained inactive rank rerenders locally and focuses Add criterion. Focused coverage passed 129 tests. The local `npm run check` run syntax-checked 73 files, resolved all static relative imports, and passed all 32 test files / 423 tests; `git diff --check origin/main` passed with no output. Final-build browser QA passed Comfortable and Compact at 1280px, 840px, and 390px with zero inactive Custom Item Order body elements, zero horizontal overflow, immediate active appearance, warning clearing after rank addition, retained-inactive visibility, final-rank disappearance with connected focus, malformed Raw JSON routing, and no console errors. CI and Pages were not run because implementation and publication remain separate.
-
-Phase 62 adds `src/actionAvailability.js` as the DOM-free authority for text-backed candidates, normalized result duplication, converter work, global category actions, referenced-ID work, and cache-entry/busy state. UI owners keep local synchronizers: reusable Search and result actions stay inside `listEditor.js`; Import/full Raw JSON and global actions stay in `app.js`; selected Raw JSON stays in `categoryEditor.js`; converter state stays in `regexToItemIds.js`; and cache subscription state stays in `lookupCacheModal.js`. Existing render/list callbacks notify global availability without adding structural rerenders or dirty changes. Producer completion uses current input/cache/config state rather than blind enabling, while defensive no-op/race guards remain. The local `npm run check` run syntax-checked 75 files, resolved all static relative imports, and passed all 33 test files / 432 tests; focused coverage passed 117 tests and `git diff --check origin/main` passed with no output. Final-build browser QA passed the required action transitions plus accessible-name/tooltip checks and zero overflow in both densities at 1280px/840px/390px. CI and Pages were not run because publication remains separate.
-
-Phase 63 adds direct small-limit tests for exact/over UTF-8 JSON boundaries, multibyte accounting, whitespace-tolerant Base64, pre-`atob` rejection, post-decode defense, exact/overflow streaming output, cancellation/release, compression-bomb expansion, split UTF-8 chunks, malformed Base64/gzip/JSON, missing stream support, file-size-before-read, and downstream callback suppression. Focused coverage passed 121 tests. The local `npm run check` run syntax-checked 75 files, resolved all static relative imports, and passed all 33 test files / 444 tests; final `git diff --check origin/main` passed with no output. Browser QA passed normal plain and gzip+Base64 imports, both Raw JSON no-ops, modal focus/ARIA restoration, and zero overflow in both densities at 1280px/840px/390px. The browser file chooser and a production-size oversized payload were not exercised; the injected-limit tests are authoritative for those boundaries. CI and Pages were not run because publication remains separate.
-
-Phase 64 adds direct fixed-`i`, stable-order, bounded-batch, duplicate/exact-limit, success, timeout, pending-cancel, construction/post/runtime/message error, one-termination, timer/listener cleanup, stale-reply, completed-batch partial-result, and production-policy tests through injected fake workers and timers; no catastrophic regex runs inside Node tests. Focused coverage passed 65 tests. The local `npm run check` run syntax-checked 78 files, resolved all static relative imports, and passed all 34 test files / 460 tests; final `git diff --check origin/main` passed with no output. Final-build browser QA passed normal custom/saved worker scans, progress and Add, duplicate-only no-op availability, optional pattern removal, active pathological and ordinary cancellation, deterministic timeout with responsive UI and AetherBags-safe copy, modal-close focus/busy/cache cleanup, and zero body/document/modal overflow in both densities at 1280px/840px/390px. No unexpected application console error appeared; the deliberate timeout status and Electron development CSP warning were expected. CI and Pages were not run because publication remains separate.
-
-Phase 65 adds deterministic fake-fetch/timer/signal coverage for the 15,000 ms production policy, early and in-flight caller cancellation, HTTP/JSON classification, one abort, every-exit cleanup, and ignored late settlement. All four XIVAPI functions are proven to use the boundary; batch tests prove no timeout bisection/retry, preserved ordinary fallback, retained earlier chunks, and no useful-cache overwrite. Focused request/XIVAPI coverage passed 32 tests and related converter/cache/action/source coverage passed 111 tests. The local `npm run check` run syntax-checked 80 files, resolved all static relative imports, and passed all 35 test files / 478 tests; final `git diff --check origin/main` passed with no output. Browser QA passed ordinary Search/per-list/global/regex success, controlled nonanswering-request timeouts for each surface, distinct regex user cancellation, busy/action recovery, modal focus/background ARIA, and zero document/body overflow in both densities at 1280px/840px/390px. The controlled timeout used a temporary same-origin endpoint and shortened deadline; production was restored to XIVAPI and 15,000 ms before final validation. CI and Pages were not run because publication remains separate.
-
-Phase 66 adds direct classic-script execution coverage for every established Theme/Density option and storage failure class; static policy tests for CSP/resource ordering, exact directives, absent inline script, same-origin/XIVAPI/worker/image/style boundaries, and excluded header-only claims; direct clipboard-fallback behavior; and immutable workflow SHA/contract guards. The local `npm run check` run syntax-checked 83 files, resolved all static relative imports, and passed all 37 test files / 491 tests; final `git diff --check origin/main` passed with no output. Browser QA passed stored appearance reload, preferences, real XIVAPI Search, module-worker scan/cancel, normal and bundled import, Export/Copy, Blob Download completion, modal focus/background restoration, live dynamic style attributes, and both densities at 1280px/840px/390px without overflow or CSP violations. CI and Pages were not run because implementation and publication remain separate.
-
-Phase 67 adds direct English lookup, named interpolation, unsupported-locale fallback, unknown-key, missing-parameter, plain-text catalog, and DOM-free coverage. Focused source coverage proves the complete Preferences surface uses translated keys through escaped template sinks while retaining exact tab semantics, keyboard behavior, callbacks, and state persistence; the Phase 66 bootstrap guard now explicitly rejects module/localization coupling. Focused coverage passed 81 tests. The local `npm run check` run syntax-checked 86 files, resolved all static relative imports, and passed all 38 test files / 499 tests; final `git diff --check origin/main` passed with no output. Browser QA passed exact English copy, ArrowRight/ArrowLeft and End/Home tab navigation, Theme/Density/behavior application and reload persistence, launcher focus restoration, both densities at 1280px/840px/390px without body/document/modal overflow, and no CSP violations. Electron's generic development CSP warning was the only warning; original local preferences and viewport were restored. CI and Pages were not run because implementation and publication remain separate.
-
-Phase 68 adds representative Help/Lookup Cache lookup and cache-stat interpolation tests, catalog-wide frozen/plain-text/no-HTML coverage, one-translator injection guards, complete Help key/semantic/escaping source coverage, and Lookup Cache count/status/escaping/availability/subscription/race guards. Focused coverage passed 127 tests. The local `npm run check` run syntax-checked 86 files, resolved all static relative imports, and passed all 38 test files / 501 tests; final `git diff --check origin/main` passed with no output. Browser QA passed exact English copy, Help heading/list/emphasis/code semantics, locale-formatted nonempty cache counts, modal focus containment/return, background restoration, and both densities at 1280px/840px/390px without body/document/modal overflow. The existing 381 cached names were preserved, so browser clear plus empty/active producer states were not exercised; direct tests remain authoritative. Electron's generic development CSP warning was the only warning. The original Compact preference and viewport were restored. Phase 68 merged through PR #110 at `d53fd23f161480e7fdbd139dfdd0f1e9b2583772`; PR checks, post-merge Project verification, and GitHub Pages deployment passed. Post-merge `npm run check` and fresh deployed QA confirmed the same 86-file / 38-file / 501-test baseline and the exact copy, semantics, focus, ARIA, CSP, and 840px/390px overflow contracts. Cache clearing was deliberately not exercised against the deployed profile's existing data.
-
-Phase 69 adds direct ordered-part, surrounding-text, reordering, repetition, opaque-identity, missing-parameter, unknown-key, plain-catalog, and DOM-free localization coverage. A new Help behavior suite directly builds the modal content with a minimal document boundary and proves exact English list text, `4/4/16/11/3` semantics, allowlist rejection, safe text handling, and synthetic placeholder reordering; source guards retain no-HTML-parser and single-translator boundaries. Focused coverage passed 72 tests. The implementation `npm run check` run syntax-checked 87 files, resolved all static relative imports, and passed all 39 test files / 506 tests; `git diff --check origin/main` passed before durable-doc updates. Phase 69 then merged through PR #112 at `831c6d7271cd146fda9a306904c7de9372340448`; both PR verification checks, post-merge Project verification run `29844811387`, and Pages deployment run `29844808768` succeeded. The post-merge review reran the same 87-file / 39-file / 506-test baseline with zero failures, skips, cancellations, or todos. Fresh deployed Help QA passed exact English text, four headings, four lists, sixteen list items, eleven `strong` runs, three `code` runs, Close-button focus, launcher focus return, background `aria-hidden` restoration, and zero body/document/modal horizontal overflow at the default viewport, 840px, and 390px. No application warning, error, or CSP violation appeared; Electron's generic development CSP warning was the only warning.
-
-Phase 70 adds direct behavior coverage for every localized chrome text/attribute, exact English output, injected-translator use, safe sinks, immediate HTML fallback, shared action-label promotion, and retained Help behavior. Focused chrome/localization/Help/accessibility/application/startup/CSP coverage passed 115 tests. The implementation `npm run check` run syntax-checked 89 files, resolved all static relative imports, and passed all 40 test files / 511 tests with zero failures, skips, cancellations, or todos; final `git diff --check origin/main` passed. Browser QA passed exact visible/accessibility chrome, search clear/Escape, contextual global actions, Preferences/Help focus return, Help `4/4/16/11/3` semantics, and zero body/document/topbar/sidebar overflow at the default 1506px desktop viewport, 840px, and 390px. No application warning, error, or CSP violation appeared; Electron's generic development CSP warning was the only warning. The viewport override was reset and no preference was changed. Phase 70 changed 13 files with 313 insertions and 39 deletions from the Phase 69.1 merge baseline and merged through PR #114 at `d337e7f4d5c7f4f933a9be9c90d4f80ffe71610e`. Both PR verification checks, post-merge Project verification run `29850360304`, and Pages deployment run `29850356841` passed. Fresh review `npm run check` retained the same 89-file / 40-file / 511-test zero-failure baseline; `git diff --check origin/main` passed and the reviewed worktree matched `origin/main`. Fresh deployed QA passed the expected localized persistent chrome and accessible names, search Clear/Escape, Preferences/Help focus return, contextual disabled actions, and zero horizontal overflow at 1280px, 840px, and 390px.
-
-Phase 70.1 merged through PR #115 at `e458689777ac34ac8fbcabdf1d14bbb24907ad0d` and changed only the three durable documents. Both PR verification checks, post-merge Project verification run `29859389669`, and Pages deployment run `29859388338` passed. The post-merge review reran `npm run check` with 89 JavaScript files, all static relative imports, and 40 test files / 511 tests passing with zero failures, skips, cancellations, or todos; `git diff --check origin/main` passed and the reviewed tree matched `origin/main`.
-
-Phase 71 adds direct dependency-free category-list behavior coverage with a small fake DOM. Duplicate names and blank IDs prove targeting does not depend on mutable identity text, while each click, Enter, Space, and repeated-selection activation proves one full render, a disconnected stale node, and focus on the connected newly rendered `aria-current` entry. Focused category-list/accessibility coverage passed 43 tests. The full `npm run check` passed 89 JavaScript files, all static relative imports, and 40 test files / 512 tests with zero failures, skips, cancellations, or todos; `git diff --check origin/main` passed. Fresh local browser QA passed pointer/Enter/Space/repeated selection, selected editor content, unchanged saved state, search focus without sidebar theft, a visible 2px focus outline plus halo, and zero body/document/sidebar horizontal overflow at 1280px, 840px, and 390px. Phase 71 merged through PR #116 at `ff1017ad6cb9ed1701e2ff8c851d87a0b30d6db1`; PR Project verification, CodeQL JavaScript/TypeScript and Actions analyses, the CodeQL aggregate check, post-merge Project verification run `29863854786`, Pages run `29863853734`, and main security scan run `29863853827` passed. Fresh post-merge verification retained the same 89-file / 40-file / 512-test baseline, passed `git diff --check origin/main`, matched the merged tree exactly, and confirmed deployed Enter focus/editor/Search behavior without application warnings or errors.
-
-Phase 72 adds direct fake-DOM empty-state coverage for exact English text/order, two `strong` runs, every translator call, synthetic Upload-before-Import/Paste ordering, text-node/textContent sinks, strong-only rejection, catalog safety, button identity/accessibility/callback ordering, selection reset, and populated-data builder bypass. Preset coverage retains exact IDs/order/source labels/data and proves `label` is absent; source checks cover the one-translator application → category-editor path and unchanged preset routing. Focused localization/empty-state/preset/application/accessibility/startup/CSP coverage passed 94 tests. `npm run check` passed 91 JavaScript files, all static relative imports, and 41 test files / 519 tests with zero failures, skips, cancellations, or todos. Fresh local browser QA passed exact card semantics, both 24-category and 55-category preset routes, populated editor rendering, `No changes`, Preferences/Help focus/background behavior, and zero overflow in both densities at 1280px/840px/390px. Comfortable and the viewport were restored; the QA tab was closed. The advanced preset's established three warnings remained. No CSP violation or unexpected application error appeared; Electron's generic development CSP warning was the only infrastructure warning. Phase 72 merged through PR #117 on 2026-07-21 at `f978b2c0a525615da11c8908da188c7cc84dcff2`; its PR checks and post-merge Project verification `29874069440`, Pages `29874068838`, and main security scan `29874069280` passed. Live `main` then advanced to `5167d1297d02192689ccdc22eba1d0f78dd00447` through a one-line `test/staticTrustBoundaries.test.mjs` closing-script regexp correction for CodeQL alert #1 (`js/bad-tag-filter`). That test-only change matches through the closing-tag boundary and changes no runtime code, safe-DOM behavior, CSP boundary, or runtime security boundary. Live-main Project verification `29874154312`, Pages `29874153760`, and main security scan `29874154077` passed. Fresh exact-live-main review retained the 91-file / 41-file / 519-test baseline, and deployed QA confirmed exact empty-state text/list/`strong` semantics and accessibility, the basic preset route to the populated Materias editor with `No changes`, and no horizontal overflow at 1280px, 840px, or 390px. Electron's generic development CSP warning was the only console warning; the viewport was reset and the QA tab was closed.
-
-Testing styles:
-
-- direct unit tests for pure logic,
-- source checks for DOM-heavy wiring and architectural guardrails.
-
-Use source checks carefully; avoid brittle exact-format matching when a behavior test is practical.
-
----
-
-## 17. Known architectural pressure points
-
-### Large category editor
-
-`src/ui/categoryEditor.js` remains the main category-shell orchestration hotspot, reduced to 285 lines by the Phase 57 matching-rule, Phase 58 Color, Phase 59 Range/State, and Phase 60 Basics/description extractions.
-
-Possible future split: `rawCategoryEditor.js`.
-
-Phase 57 completed the matching-rule split through `src/ui/matchingRulesEditor.js`, Phase 58 completed the Color split through `src/ui/colorEditor.js`, Phase 59 completed the combined Range/State split through `src/ui/rangeStateFiltersEditor.js`, and Phase 60 completed the Basics/generated-description split through `src/ui/basicEditor.js`. Future work should preserve all four narrow dependency/callback boundaries rather than moving application orchestration into a leaf. Remaining pressure is concentrated in Raw JSON, the selected-category validation/header shell, and category structural actions.
-
-### Source-check growth
-
-Phase 56 established three responsibility-owned source suites plus a shared source-reading helper. As source checks accumulate, keep ownership within those suites and periodically review whether:
-
-- the behavior can now be tested directly,
-- regex checks overfit whitespace or exact implementation,
-- checks duplicate each other.
-
-### Localization
-
-Phase 77 completed the bounded Item Ordering UI extraction after the Phase 67–75 English-only foundation, modal, rich-message, application-chrome, empty-state, matching-rule, and reusable list-editor phases.
-
-Remaining sequence:
-
-1. Extract broader validation/status and remaining populated editor/sidebar message families in bounded phases; keep `src/itemOrdering.js` findings for a later validation-family phase.
-2. Add a persisted locale preference and fallback UI through application state/orchestration.
-3. Add locale key-parity tests when another catalog exists.
-4. Localize generated descriptions separately.
-
----
-
-## 18. Repository planning and delivery architecture
-
-The public [AB Category Editor Roadmap](https://github.com/users/Bahbus/projects/2) is the operational planning layer. Committed code remains the implementation source of truth, while repository issues provide durable task/evidence history and the three project documents retain behavioral contracts, architecture, and phase results.
-
-The Project uses built-in `Status` plus custom `Priority`, `Area`, and `Phase` fields. Durable candidates are repository issues labeled `roadmap`; numbered work also uses `phase`. Project-only draft cards are avoided because repository issues can link PRs, close automatically, retain discussion, and remain useful if the Project is reorganized.
-
-Review is a synchronization boundary:
-
-1. fetch and inspect live `main` plus the durable documents;
-2. reconcile open issues and Project fields against verified code/review evidence;
-3. create or update issues without promoting speculation to a bug;
-4. select one coherent next item, assign its Phase, and move it to `In Progress`;
-5. hand the written task to its own planning thread.
-
-Coding phases update the three durable documents and Project issue as part of acceptance, record new deferred findings as separate issues, and publish a ready-for-review PR with a closing link to the phase issue. Enabled GitHub Project workflows handle item-added defaults, linked PRs, merged PRs, closed items, sub-issues, and issue closing.
-
-No repository Actions workflow stores a personal Projects token. GitHub's repository-scoped `GITHUB_TOKEN` cannot write a user-owned Project, and the current lifecycle is covered by built-in Project automation plus explicit task/PR templates. This avoids adding a broad, long-lived credential merely to shuffle cards.
-
-Repository governance surfaces:
-
-- `.github/ISSUE_TEMPLATE/bug.yml` — reproducible problems, expected/actual behavior, app source, environment, optional AetherBags version, and sanitized evidence;
-- `.github/ISSUE_TEMPLATE/improvement.yml` — desired workflow, current limitation, proposed behavior, benefit, and optional alternatives/examples without requiring implementation knowledge;
-- `.github/ISSUE_TEMPLATE/accessibility.yml` — keyboard, focus, screen-reader, zoom, contrast, responsive, and general usability barriers with relevant reproduction context;
-- `.github/ISSUE_TEMPLATE/documentation.yml` — affected guide location, unclear or incorrect content, and a useful suggested correction;
-- `.github/ISSUE_TEMPLATE/general.yml` — questions and uncategorized problems so focused choices do not remove a general support path;
-- `.github/ISSUE_TEMPLATE/config.yml` — disables blank issues, links planned work in plain language, and routes security reports to a private advisory instead of public disclosure;
-- `.github/maintainer/numbered-phase-issue.md` — reusable evidence, scope, contracts, verification, documentation, Project, and PR-link body kept outside the public chooser;
-- `.github/pull_request_template.md` — closing issue link, actual verification, durable synchronization, and ready-for-review contract;
-- `test/repositoryGovernance.test.mjs` — direct source coverage for those repository workflow contracts.
-
-GitHub cannot make one issue form in a public repository visible only to selected users. Numbered-phase creation is therefore a maintainer convention, not an access-control boundary: maintainers create the issue directly from the off-chooser body, apply `roadmap` and `phase`, add it to the Project, and set Status, Priority, Area, and Phase. Ordinary reporters see only the focused public forms and plain-language chooser links.
-
-Phase 73.1 governance coverage verifies the exact public chooser inventory, intended labels and required fields for all five public forms, absence of the former phase/review forms and internal jargon, private security routing, the documented off-chooser maintainer workflow, and the unchanged ready-for-review PR behavior. Phase 73.1 merged through PR #131 at `0892b97f8138f268e94f6359a208306ccb84fd14`, but post-merge GitHub validation rejected every form because each contained the optional empty scalar `title: ""`. Generic PyYAML parsing and the source assertions proved YAML structure and repository policy, not GitHub's issue-form schema or live default-branch rendering.
-
-Phase 73.2 removes that optional key from all five forms without substituting title prefixes. The remaining form definitions were audited against GitHub's current official issue-form syntax, form schema, and common-validation-error guidance; no other violation was confirmed. The focused source guard now rejects empty or whitespace-only values for string-valued form keys, proves the guard with synthetic `title` regressions, and explicitly checks every established required text field and required checkbox option while retaining exact inventory, labels, language, security, maintainer-workflow, and PR-policy coverage. PyYAML 6.0.3 parses all six chooser/form files as mappings; the focused suite passes 10 tests; and `npm run check` passes 92 JavaScript files, all static relative imports, and 42 test files / 529 tests. At implementation time those were source/schema guards only; GitHub's required default-branch live observation is recorded below.
-
-Phase 73.2 merged through PR #133 at `60989edeb88aa83030f3bec889d556930d8c0506`. The user's live chooser observation confirmed the five YAML forms are accepted and rendered from the default branch even though `community/profile` continues to return `issue_template: null`; that endpoint is therefore not a reliable acceptance oracle for this form inventory. The post-merge review passed the 92-file / 42-file / 529-test verification baseline, measured experimental Node coverage at 84.61% lines / 89.61% branches / 91.39% functions, reached all 47 runtime modules, found no open CodeQL or Dependabot alerts, retained the SHA-pinned read-only verification workflow, and passed 1280px/840px/390px no-overflow smoke QA.
-
-Phase 74 keeps clipboard and modal focus ownership local to their existing modules. `src/importExport.js::copyTextToClipboard(...)` does not touch focus on primary Clipboard API success. On fallback, it snapshots the active element before creating the hidden textarea, records whether that textarea still owns focus, removes it in `finally`, and attempts restoration only for a still-connected target with a callable `focus`. Newer focus state, disconnected targets, and restoration exceptions are deliberately ignored without altering the existing true/false copy result. `src/modals.js::trapModalFocus(...)` now treats an active element outside the visible modal as a containment boundary: forward Tab enters at the first focusable control and Shift+Tab at the last; existing first/last cycling and interior native movement remain unchanged.
-
-Phase 74 direct tests cover primary no-movement, fallback success/failure/exception cleanup and restoration, stale/disconnected and superseded targets, restoration failure, and both outside-focus Tab directions while retaining static trust/source coverage. Focused coverage passed 185 tests; `npm run check` passed 92 JavaScript files, all static imports, and 42 test files / 543 tests. Local browser QA passed Raw JSON Copy, Export / Copy, modal cycling/return/background restoration, and application/Export-modal no-overflow checks at 1280px/840px/390px. The browser exercised the primary Clipboard API but could not honestly force fallback, leaving direct tests authoritative for that path. No application error or CSP violation appeared; only Electron's generic development CSP warning was present. No data, serialization, status, save/dirty, lifecycle, inert/ARIA, caller, CSP, style, dependency, or unrelated application contract changed. Ready-for-review PR #135 passed both verification runs, CodeQL JavaScript/TypeScript and Actions analyses, and the aggregate CodeQL check.
-
-### Reorder motion
-
-Phase 76 adds `src/reorderMotion.js` as a progressive presentation boundary around existing reorder decisions. Callers capture keyed node rectangles immediately before a known reorder, perform the existing synchronous mutation/render/focus path, and then request motion for connected replacement nodes. The helper computes first-to-last deltas and delegates a 180 ms transform-only transition to the Web Animations API. It does not delay, authorize, repeat, or infer a mutation.
-
-Category rows receive stable keys from object reference through a private `WeakMap`, preserving identity even for blank or duplicate IDs, duplicate names, and JSON-identical objects. Criteria rows and ordered list pills instead keep per-occurrence token arrays because their render models contain normalized copies or primitives; move actions swap the corresponding token with the data occurrence. These keys are runtime-only `data-reorder-motion-key` attributes and never enter application data, persistence, localization, import, or export.
-
-The participating boundaries are intentionally narrow:
-
-- `src/ui/categoryEditor.js` captures around enabled header Move up/down actions;
-- `src/ui/categoryList.js` captures around application-owned, identity-validated real drops;
-- `src/app.js` captures around a changed Sort by Order result, including multi-row displacement;
-- `src/ui/itemOrderingEditor.js` captures around changed criterion move decisions;
-- ordered `src/ui/listEditor.js` pills capture around valid Custom Item Rank moves.
-
-All addition, removal, duplication, filtering, validation refresh, disclosure/modal change, selection-only render, and ordinary render paths remain motionless. Those replacement boundaries cancel any active keyed animation before replacing nodes. Capture also cancels stale same-key work before a rapid repeat; completion or cancellation removes bookkeeping. The helper writes no temporary inline style and registers no event listener. Reduced motion, absent or throwing animation APIs, invalid measurements, unchanged geometry, and disconnected replacement nodes return without affecting final DOM state.
-
-Phase 76 focused tests use fake connected and replacement nodes plus DOM-free identity helpers to cover occurrence safety, object-reference identity, setup and deltas, completion cleanup, interruption, explicit cancellation, failed or unsupported APIs, disconnection, no displacement, and reduced motion. The application-level source guard confirms all four integrations while the existing category reorder, drag/drop, dirty/no-op, focus, item-ordering, list-editor, accessibility, and localization suites retain behavioral coverage. Browser QA results and honest tooling limits are recorded in `docs/REVIEW_HISTORY.md`.
-
-Final Phase 76 validation syntax-checked 95 JavaScript files, resolved all static relative imports, and passed all 44 test files / 552 tests with zero failures, skips, cancellations, or todos. `git diff --check origin/main` passed with no output.
-
-### Item Ordering localization
-
-Phase 77 keeps `src/ui/itemOrderingEditor.js` as the Item Ordering UI owner and adds `createItemOrderingMessages(translate)` as its DOM-free message adapter. The adapter receives the one application translator already passed through `categoryEditor.js`; the leaf does not import `src/localization.js`, the English catalog, application state, or locale persistence.
-
-The adapter owns disclosure/summary copy, zero/one/many issue labels, criterion titles and guidance, field/direction UI labels and options, position-aware group/action names, structured-editing Raw JSON guidance, normalization preview/action/success, Custom Item Order active/inactive/correction copy, and the existing Custom Item Ranks caller values. Counts, positions, movement direction, and the translated normalized preview are named parameters. Catalog strings contain no markup.
-
-UI field and direction labels intentionally no longer come from `ITEM_SORT_FIELDS` or `ITEM_SORT_DIRECTIONS`; those exports remain exact English metadata for DOM-free ordering analysis and compatibility messages. `src/itemOrdering.js`, its validation/compatibility findings, normalized decisions, and `validateList` output are unchanged. Translated/dynamic UI values use `textContent`, explicit ARIA/title attributes, tooltip synchronization, or list-editor plain-text sinks; analyzer findings retain their existing escaped validation rendering.
-
-Phase 77 focused coverage passed 266 tests. Full verification syntax-checked 96 JavaScript files, resolved all static relative imports, and passed 45 test files / 555 tests. Browser QA covered the populated advanced preset, mutation/focus/correction routes, both densities, and 1280px/840px/390px without horizontal overflow. The current automation surface reported no `Element.animate` and offered no reduced-motion emulation; the separate post-Phase-76 user observation of visible category animation remains direct human evidence rather than automation evidence.
+It runs exhaustive `.js`/`.mjs` syntax checking, static relative-import
+resolution, and `node --test`.
+
+Tests combine:
+
+- direct unit/behavior tests for DOM-free decisions and injected service seams;
+- small fake-DOM tests for focus/render ownership where practical;
+- source guards for DOM-heavy wiring, safe sinks, CSS/accessibility contracts,
+  CSP/workflow trust boundaries, and repository governance.
+
+### Why `testSupport/sourceFiles.mjs` is outside `test/`
+
+Eight current guard suites share `testSupport/sourceFiles.mjs` for deterministic
+repository-root reads and recursive JavaScript discovery. It deliberately lives
+outside `test/`: Node's automatic `node --test` discovery treats JavaScript
+files under test directories as test files, so placing this support-only module
+there would count and execute it as a test file. Keep it outside automatic
+discovery unless a demonstrable test-runner or ownership benefit justifies a
+change.
+
+The responsibility-owned source suites are:
+
+- `test/applicationDataFlowSource.test.mjs`;
+- `test/uiAccessibilitySource.test.mjs`;
+- `test/lookupImportExportSource.test.mjs`.
+
+Other focused suites may import the same support helper. Prefer behavior tests
+over formatting-sensitive regular expressions when behavior is directly
+testable.
+
+## Repository planning and governance
+
+GitHub Project #2 is the operational planning layer. Repository issues are the
+durable task/evidence units; committed code is the implementation authority.
+The Project uses built-in `Status` plus `Priority`, `Area`, and `Phase`.
+Project-only draft cards are avoided.
+
+Repository workflow surfaces:
+
+- `.github/ISSUE_TEMPLATE/` — friendly public bug, improvement,
+  accessibility/usability, documentation, and general forms plus private
+  security routing;
+- `.github/maintainer/numbered-phase-issue.md` — evidence/scope/contracts body
+  outside the public chooser;
+- `.github/pull_request_template.md` — closing issue, actual verification,
+  relevance-based durable updates, Project synchronization, and
+  ready-for-review policy;
+- `test/repositoryGovernance.test.mjs` — source and structure guardrails.
+
+The three primary durable documents remain required entry points, but their
+roles do not overlap:
+
+- current context and contracts;
+- current architecture;
+- chronology and archived evidence routing.
+
+Architecture changes only when current boundaries change. A phase that does not
+change architecture records that document as not applicable instead of adding
+repetitive history.
+
+## Current pressure points
+
+- `src/ui/categoryEditor.js` remains the selected-category orchestration shell.
+  Split another leaf only when feature/reliability evidence shows a cohesive
+  ownership benefit; file size alone is not sufficient.
+- Source guards can become formatting-sensitive. Retire or relax one only when
+  direct behavior coverage or a more stable architectural assertion replaces
+  its protection.
+- Remaining localization families need bounded ownership migrations before
+  locale persistence and a second catalog.
+- A lightweight real-browser harness remains a Project candidate, not an
+  implicit dependency mandate.
+
+## Related records
+
+- Current workflow and behavioral contracts:
+  [`AI_PROJECT_CONTEXT.md`](AI_PROJECT_CONTEXT.md)
+- Recent verified results: [`REVIEW_HISTORY.md`](REVIEW_HISTORY.md)
+- Detailed historical evidence: [`history/README.md`](history/README.md)

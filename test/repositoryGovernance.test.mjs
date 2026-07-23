@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, statSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 import { read } from '../testSupport/sourceFiles.mjs';
 
@@ -17,6 +19,17 @@ const issueConfig = read(`${PUBLIC_FORM_DIR}/config.yml`);
 const maintainerPhaseTemplate = read('.github/maintainer/numbered-phase-issue.md');
 const pullRequestTemplate = read('.github/pull_request_template.md');
 const readme = read('README.md');
+const primaryDocumentPaths = [
+  'docs/AI_PROJECT_CONTEXT.md',
+  'docs/ARCHITECTURE.md',
+  'docs/REVIEW_HISTORY.md',
+];
+const primaryDocuments = new Map(primaryDocumentPaths.map((documentPath) => [
+  documentPath,
+  read(documentPath),
+]));
+const historyIndex = read('docs/history/README.md');
+const repositoryRoot = fileURLToPath(new URL('../', import.meta.url));
 
 const PROJECT_URL = 'https://github.com/users/Bahbus/projects/2';
 const STRING_SCALAR_KEYS = new Set([
@@ -62,6 +75,47 @@ function assertFormContract(path, labels, ids, requiredIds) {
     assert.match(form, new RegExp(`id: ${id}\\b`));
   }
   assertRequiredFields(form, requiredIds);
+}
+
+function markdownAnchor(text) {
+  return text
+    .trim()
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s-]/gu, '')
+    .replace(/\s+/g, '-');
+}
+
+function documentAnchors(source) {
+  return new Set(
+    source
+      .split('\n')
+      .filter((line) => /^#{1,6}\s+/.test(line))
+      .map((line) => markdownAnchor(line.replace(/^#{1,6}\s+/, ''))),
+  );
+}
+
+function assertInternalMarkdownLinks(documentPath, source) {
+  const links = [...source.matchAll(/!?\[[^\]]*]\(([^)]+)\)/g)];
+  for (const [, targetWithTitle] of links) {
+    const target = targetWithTitle.trim().split(/\s+(?=["'])/)[0];
+    if (/^(?:https?:|mailto:)/.test(target)) continue;
+    const [relativeTarget, encodedAnchor] = target.split('#', 2);
+    const targetPath = relativeTarget
+      ? path.resolve(repositoryRoot, path.dirname(documentPath), decodeURIComponent(relativeTarget))
+      : path.resolve(repositoryRoot, documentPath);
+    assert.equal(
+      existsSync(targetPath),
+      true,
+      `${documentPath} links to missing internal target ${target}`,
+    );
+    if (!encodedAnchor) continue;
+    const targetSource = read(path.relative(repositoryRoot, targetPath));
+    assert.equal(
+      documentAnchors(targetSource).has(decodeURIComponent(encodedAnchor)),
+      true,
+      `${documentPath} links to missing heading ${target}`,
+    );
+  }
 }
 
 test('the chooser links planned work and private security reporting in plain language', () => {
@@ -186,4 +240,115 @@ test('pull requests link their issue, record real verification, synchronize dura
   }
   assert.match(pullRequestTemplate, /Updated the linked AB Category Editor Roadmap item/);
   assert.match(pullRequestTemplate, /ready for review, not a draft/i);
+});
+
+test('the three primary durable documents have distinct roles and required routing', () => {
+  const requiredHeadings = new Map([
+    ['docs/AI_PROJECT_CONTEXT.md', [
+      'Required entry order and document roles',
+      'Current state',
+      'Standard workflow',
+      'Behavioral contracts',
+      'Working environment',
+      'Deeper records',
+    ]],
+    ['docs/ARCHITECTURE.md', [
+      'System shape',
+      'Testing architecture',
+      'Repository planning and governance',
+      'Current pressure points',
+      'Related records',
+    ]],
+    ['docs/REVIEW_HISTORY.md', [
+      'How to use this record',
+      'Chronological index',
+      'Recent verified record',
+      'Recording future work',
+    ]],
+  ]);
+
+  for (const [documentPath, headings] of requiredHeadings) {
+    const source = primaryDocuments.get(documentPath);
+    for (const heading of headings) {
+      assert.match(source, new RegExp(`^## ${heading}$`, 'm'), `${documentPath} must retain ${heading}`);
+    }
+  }
+
+  assert.doesNotMatch(
+    primaryDocuments.get('docs/AI_PROJECT_CONTEXT.md'),
+    /^## Phase \d/m,
+    'current context must not become a phase journal',
+  );
+  assert.doesNotMatch(
+    primaryDocuments.get('docs/ARCHITECTURE.md'),
+    /^## Phase \d/m,
+    'current architecture must not become a phase journal',
+  );
+  for (const linkedPath of primaryDocumentPaths) {
+    const otherPrimarySources = [...primaryDocuments.entries()]
+      .filter(([documentPath]) => documentPath !== linkedPath)
+      .map(([, source]) => source)
+      .join('\n');
+    assert.match(otherPrimarySources, new RegExp(path.basename(linkedPath).replaceAll('.', '\\.')));
+  }
+  assert.match(primaryDocuments.get('docs/REVIEW_HISTORY.md'), /history\/README\.md/);
+});
+
+test('durable history archives are indexed once and reachable from the primary review record', () => {
+  const archiveFiles = readdirSync('docs/history')
+    .filter((name) => name.endsWith('.md') && name !== 'README.md')
+    .sort();
+  assert.deepEqual(archiveFiles, ['PHASES_27_77.md']);
+  for (const archiveFile of archiveFiles) {
+    const escapedName = archiveFile.replaceAll('.', '\\.');
+    assert.match(historyIndex, new RegExp(escapedName), `${archiveFile} must be in the history index`);
+    assert.match(
+      primaryDocuments.get('docs/REVIEW_HISTORY.md'),
+      new RegExp(escapedName),
+      `${archiveFile} must be reachable from REVIEW_HISTORY.md`,
+    );
+  }
+  const archivedPhases = read('docs/history/PHASES_27_77.md');
+  for (const phase of ['27', '38', '46', '56', '67', '73', '74', '75', '76', '77']) {
+    assert.match(archivedPhases, new RegExp(`^## Phase ${phase}(?:\\b|\\.)`, 'm'));
+  }
+});
+
+test('all internal Markdown links in durable documentation resolve', () => {
+  const documentPaths = [
+    ...primaryDocumentPaths,
+    ...readdirSync('docs/history')
+      .filter((name) => name.endsWith('.md'))
+      .map((name) => `docs/history/${name}`),
+  ];
+  for (const documentPath of documentPaths) {
+    assertInternalMarkdownLinks(documentPath, read(documentPath));
+  }
+});
+
+test('the primary durable entry set stays below its anti-journal size budget', () => {
+  const baselineBytes = 410198;
+  const baselineLines = 4141;
+  const currentBytes = primaryDocumentPaths
+    .map((documentPath) => statSync(documentPath).size)
+    .reduce((total, size) => total + size, 0);
+  const currentLines = primaryDocumentPaths
+    .map((documentPath) => read(documentPath).split('\n').length - 1)
+    .reduce((total, lines) => total + lines, 0);
+
+  assert.ok(currentBytes <= 180000, `primary documents use ${currentBytes} bytes`);
+  assert.ok(currentLines <= 2000, `primary documents use ${currentLines} lines`);
+  assert.ok(currentBytes <= baselineBytes / 2, 'Phase 78 must reduce primary bytes by at least 50%');
+  assert.ok(currentLines <= baselineLines / 2, 'Phase 78 must reduce primary lines by at least 50%');
+});
+
+test('phase and pull-request templates require relevant documentation updates without boilerplate', () => {
+  for (const template of [maintainerPhaseTemplate, pullRequestTemplate]) {
+    assert.match(template, /AI_PROJECT_CONTEXT\.md/);
+    assert.match(template, /REVIEW_HISTORY\.md/);
+    assert.match(template, /ARCHITECTURE\.md/);
+    assert.match(template, /current content changed|content changed/i);
+    assert.match(template, /not applicable/i);
+    assert.match(template, /repetitive|affected documents/i);
+  }
 });
