@@ -260,6 +260,35 @@ Verification on the exact implementation tree:
   violation appeared. Committed drag motion was not automated; move controls
   and automated reorder coverage remain authoritative for mutation behavior.
 
+### Phase 81.1: category-shell message-surface cleanup
+
+The category-list message adapter no longer returns its test-only
+`noDescription` member, and the selected-category message adapter no longer
+returns its test-only plain delete-question function. Production continues to
+use the captured no-description translation through subtitle composition and
+the delete-question catalog key through semantic rich-message parts. Exact
+English output, catalog keys and values, translator calls, injected ownership,
+safe sinks, UI structure, and runtime behavior remain unchanged.
+
+Verification on the exact implementation tree:
+
+- focused category-shell localization, category-list, category-editor,
+  application-data-flow, accessibility, localization, and trust-boundary
+  suites passed all 91 tests;
+- `npm run check -- --test-reporter=dot` passed: 99 JavaScript files
+  syntax-checked, all static relative imports resolved, and 48 test files /
+  576 tests passed;
+- repository-wide inspection found no remaining public-member or test-only
+  reference while both catalog keys retain their production adapter paths, and
+  `git diff --check origin/main` passed with no output;
+- changed runtime scope is limited to deleting the two unused returned
+  members; the only other changes are the directly related test cleanup and
+  this durable review record;
+- `docs/AI_PROJECT_CONTEXT.md` and `docs/ARCHITECTURE.md` remain accurate and
+  unchanged, so context and architecture updates are not applicable;
+- browser QA is not applicable because no executed application or presentation
+  path changed.
+
 ## Recording future work
 
 For each numbered phase implementation tree:

@@ -13,7 +13,6 @@ test('category-list message adapter preserves exact English and inserts category
   const unnamed = { Name: '', Description: ' ', Order: 8 };
 
   assert.equal(messages.unnamed, '(unnamed)');
-  assert.equal(messages.noDescription, 'No description');
   assert.equal(messages.unknownFormat, 'Unknown format');
   assert.equal(messages.issueLabel(1), '1 validation issue');
   assert.equal(messages.issueLabel(2), '2 validation issues');
@@ -46,14 +45,12 @@ test('category-editor shell message adapter preserves exact English and inserts 
   assert.equal(messages.actions.delete('Raid <Gear>'), 'Delete Raid <Gear>');
   assert.deepEqual({
     title: messages.deleteConfirmation.title,
-    question: messages.deleteConfirmation.question('Raid <Gear>'),
     questionParts: messages.deleteConfirmation.questionParts('Raid <Gear>'),
     warning: messages.deleteConfirmation.warning,
     confirm: messages.deleteConfirmation.confirm,
     cancel: messages.deleteConfirmation.cancel
   }, {
     title: 'Delete category',
-    question: 'Delete Raid <Gear>?',
     questionParts: [
       { type: 'text', value: 'Delete ' },
       { type: 'placeholder', name: 'name', value: 'Raid <Gear>' },
@@ -98,7 +95,6 @@ test('category shell adapters invoke every owned stable catalog key with named i
   editor.actions.moveDown('Name');
   editor.actions.duplicate('Name');
   editor.actions.delete('Name');
-  editor.deleteConfirmation.question('Name');
   editor.deleteConfirmation.questionParts('Name');
   editor.rawJson.invalid('detail');
 

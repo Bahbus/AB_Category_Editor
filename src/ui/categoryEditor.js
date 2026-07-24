@@ -28,7 +28,6 @@ export function createCategoryEditorMessages(translate) {
     }),
     deleteConfirmation: Object.freeze({
       title: translate('categoryEditor.delete.title'),
-      question: name => translate('categoryEditor.delete.question', { name }),
       questionParts: name => translate.rich('categoryEditor.delete.question', { name }),
       warning: translate('categoryEditor.delete.warning'),
       confirm: translate('categoryEditor.delete.confirm'),
