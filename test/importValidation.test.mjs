@@ -199,3 +199,35 @@ test('shouldShowImportValidationModal gates quiet cleanup and material issues', 
     true
   );
 });
+
+test('injected summary messages own wording without affecting classification decisions', () => {
+  const messages = {
+    importedCategories: count => `categories(${count})`,
+    errors: count => `errors(${count})`,
+    warnings: count => `warnings(${count})`,
+    repairs: count => `repairs(${count})`,
+    notes: count => `notes(${count})`,
+    noValidationIssues: 'clean',
+    noteOnlyCleanup: 'quiet',
+    normalizedDisplayOrder: 'display-order',
+    normalizedRarityOrder: 'rarity-order',
+    normalizedDisplayAndRarityOrder: 'both-orders'
+  };
+  const materialRepair = { field: 'Rules', material: true, severity: 'warning' };
+
+  assert.equal(
+    validationSummaryText(3, { counts: { error: 1, warning: 2, note: 4 } }, [materialRepair], messages),
+    'categories(3) · errors(1) · warnings(2) · repairs(1) · notes(4)'
+  );
+  assert.equal(validationSummaryText(1, { counts: {} }, [], messages), 'categories(1) · clean');
+  assert.equal(
+    nonMaterialRepairSummary([
+      { field: 'Categories', material: false },
+      { field: 'AllowedRarities', material: false }
+    ], messages),
+    'both-orders'
+  );
+  assert.equal(shouldShowImportValidationModal({ analysis: { findings: [{ severity: 'warning' }] } }), true);
+  assert.equal(shouldShowImportValidationModal({ analysis: { findings: [{ severity: 'note' }] } }), false);
+  assert.equal(importStatusSeverity({ counts: { note: 1 } }, []), 'ok');
+});

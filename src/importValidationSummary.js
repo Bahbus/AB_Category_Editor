@@ -25,38 +25,51 @@ export function importStatusSeverity(analysis = {}, repairs = []) {
   return counts.error || counts.warning || reviewableImportRepairs(repairs).length ? 'warn' : 'ok';
 }
 
-function materialRepairSummary(repairs = []) {
+const DEFAULT_MESSAGES = Object.freeze({
+  importedCategories: count => `Imported ${count.toLocaleString()} ${count === 1 ? 'category' : 'categories'}`,
+  errors: count => `${count} ${count === 1 ? 'error' : 'errors'}`,
+  warnings: count => `${count} ${count === 1 ? 'warning' : 'warnings'}`,
+  repairs: count => `${count} import ${count === 1 ? 'repair' : 'repairs'}`,
+  notes: count => `${count} ${count === 1 ? 'note' : 'notes'}`,
+  noValidationIssues: 'no validation issues',
+  noteOnlyCleanup: 'note-only cleanup',
+  normalizedDisplayOrder: 'normalized display order',
+  normalizedRarityOrder: 'normalized rarity order',
+  normalizedDisplayAndRarityOrder: 'normalized display and rarity order'
+});
+
+function materialRepairSummary(repairs = [], messages = DEFAULT_MESSAGES) {
   const count = reviewableImportRepairs(repairs).length;
   if (!count) return '';
-  return `${count} import ${count === 1 ? 'repair' : 'repairs'}`;
+  return messages.repairs(count);
 }
 
-export function validationSummaryText(categoryCount, analysis, repairs = []) {
+export function validationSummaryText(categoryCount, analysis, repairs = [], messages = DEFAULT_MESSAGES) {
   const counts = analysis.counts || {};
-  const parts = [`Imported ${categoryCount.toLocaleString()} ${categoryCount === 1 ? 'category' : 'categories'}`];
-  const repairSummary = materialRepairSummary(repairs);
-  if (counts.error) parts.push(`${counts.error} ${counts.error === 1 ? 'error' : 'errors'}`);
-  if (counts.warning) parts.push(`${counts.warning} ${counts.warning === 1 ? 'warning' : 'warnings'}`);
+  const parts = [messages.importedCategories(categoryCount)];
+  const repairSummary = materialRepairSummary(repairs, messages);
+  if (counts.error) parts.push(messages.errors(counts.error));
+  if (counts.warning) parts.push(messages.warnings(counts.warning));
   if (repairSummary) parts.push(repairSummary);
-  if (counts.note) parts.push(`${counts.note} ${counts.note === 1 ? 'note' : 'notes'}`);
-  if (!counts.error && !counts.warning && !counts.note && !repairSummary) parts.push('no validation issues');
-  if (!counts.error && !counts.warning && counts.note && !repairSummary) parts.push('note-only cleanup');
-  const nonMaterialSummary = nonMaterialRepairSummary(repairs);
+  if (counts.note) parts.push(messages.notes(counts.note));
+  if (!counts.error && !counts.warning && !counts.note && !repairSummary) parts.push(messages.noValidationIssues);
+  if (!counts.error && !counts.warning && counts.note && !repairSummary) parts.push(messages.noteOnlyCleanup);
+  const nonMaterialSummary = nonMaterialRepairSummary(repairs, messages);
   if (nonMaterialSummary) parts.push(nonMaterialSummary);
   return parts.join(' · ');
 }
 
-export function configValidationSummaryText(config, analysis, repairs = []) {
-  return validationSummaryText(config.Categories.length, analysis, repairs);
+export function configValidationSummaryText(config, analysis, repairs = [], messages = DEFAULT_MESSAGES) {
+  return validationSummaryText(config.Categories.length, analysis, repairs, messages);
 }
 
-export function nonMaterialRepairSummary(repairs = []) {
+export function nonMaterialRepairSummary(repairs = [], messages = DEFAULT_MESSAGES) {
   const nonMaterialRepairs = repairs.filter(repair => !isMaterialImportRepair(repair));
   if (!nonMaterialRepairs.length) return '';
   const hasDisplayOrder = nonMaterialRepairs.some(repair => repair.field === 'Categories');
   const hasRarityOrder = nonMaterialRepairs.some(repair => repair.field === 'AllowedRarities');
-  if (hasDisplayOrder && hasRarityOrder) return 'normalized display and rarity order';
-  if (hasDisplayOrder) return 'normalized display order';
-  if (hasRarityOrder) return 'normalized rarity order';
-  return 'note-only cleanup';
+  if (hasDisplayOrder && hasRarityOrder) return messages.normalizedDisplayAndRarityOrder;
+  if (hasDisplayOrder) return messages.normalizedDisplayOrder;
+  if (hasRarityOrder) return messages.normalizedRarityOrder;
+  return messages.noteOnlyCleanup;
 }

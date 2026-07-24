@@ -7,7 +7,7 @@ test('full Raw JSON wires its summary to the validated candidate', () => {
   const rawApplyStart = source.indexOf("const applyRawFull = requireScopedEl(wrap, '#applyRawFull'");
   const rawApplyEnd = source.indexOf('copyRawFull.addEventListener', rawApplyStart);
   const rawApplySource = source.slice(rawApplyStart, rawApplyEnd);
-  assert.match(rawApplySource, /configValidationSummaryText\(validation\.config, rawAnalysis, validation\.repairs \|\| \[\]\)/);
+  assert.match(rawApplySource, /configValidationSummaryText\(validation\.config, rawAnalysis, validation\.repairs \|\| \[\], applicationDataMessages\.summary\)/);
   assert.doesNotMatch(rawApplySource, /validationSummaryText\(getCategories\(\)\.length/);
 });
 test('import and raw JSON paths do not auto-generate descriptions', () => {
@@ -116,9 +116,9 @@ test('browser-only ingestion wiring uses shared limits before parsing, reading, 
 
   assert.match(fileHandler, /await readImportFileText\(file\)/);
   assert.doesNotMatch(fileHandler, /file\.text\(\)/);
-  assert.match(rawApply, /parseJsonText\(text, \{ label: 'Full Raw JSON input' \}\)/);
+  assert.match(rawApply, /parseJsonText\(text, \{ label: applicationDataMessages\.raw\.inputLimitLabel \}\)/);
   assert.doesNotMatch(rawApply, /JSON\.parse\(text\)/);
-  assert.match(rawCopy, /assertJsonTextWithinLimit\(rawFull\.value, \{ label: 'Full Raw JSON input' \}\)/);
+  assert.match(rawCopy, /assertJsonTextWithinLimit\(rawFull\.value, \{ label: applicationDataMessages\.raw\.inputLimitLabel \}\)/);
   assert.ok(rawCopy.indexOf('assertJsonTextWithinLimit') < rawCopy.indexOf('copyTextToClipboard'));
   assert.match(category, /parseJsonText\(rawCategory\.value, \{ label: messages\.rawJson\.parseLabel \}\)/);
 });

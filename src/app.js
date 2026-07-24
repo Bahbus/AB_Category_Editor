@@ -9,6 +9,7 @@ import { showHelpModal } from './ui/helpModal.js';
 import { showLookupCacheModal } from './ui/lookupCacheModal.js';
 import { showPreferencesModal } from './ui/preferencesModal.js';
 import { applyApplicationChromeLocalization } from './ui/applicationChrome.js';
+import { createApplicationDataMessages } from './ui/applicationDataMessages.js';
 import { createTranslator } from './localization.js';
 import { openRegexToItemIdsTool as openRegexTool } from './tools/regexToItemIds.js';
 import { EXPORT_FILENAME, assertJsonTextWithinLimit, copyTextToClipboard, downloadText, makeBase64Export, parseImportedText, parseJsonText, readImportFileText } from './importExport.js';
@@ -41,6 +42,7 @@ let draggedIndex = null;
 let lookupCache = loadLookupCache();
 let editorPreferences = loadEditorPreferences();
 const translate = createTranslator('en');
+const applicationDataMessages = createApplicationDataMessages(translate);
 const lookupCacheOperations = createLookupCacheOperationCoordinator();
 let resolvingReferencedIds = false;
 
@@ -116,12 +118,18 @@ function repairFieldAllowsBeforeAfter(field) {
 }
 
 function formatRepairMessage(repair) {
-  const prefix = repair.categoryName ? `“${repair.categoryName}”: ` : '';
+  const message = repair.categoryName
+    ? applicationDataMessages.validation.categoryRepair(repair.categoryName, repair.message)
+    : repair.message;
   const canShowBeforeAfter = repair.showBeforeAfter !== false && repairFieldAllowsBeforeAfter(repair.field);
   if (canShowBeforeAfter && (repair.before !== undefined || repair.after !== undefined)) {
-    return `${prefix}${repair.message} Changed from ${shortRepairValue(repair.before)} to ${shortRepairValue(repair.after)}.`;
+    return applicationDataMessages.validation.changedRepair(
+      message,
+      shortRepairValue(repair.before),
+      shortRepairValue(repair.after)
+    );
   }
-  return `${prefix}${repair.message}`;
+  return message;
 }
 
 function showValidationSummary(title, analysis, repairs = []) {
@@ -129,15 +137,15 @@ function showValidationSummary(title, analysis, repairs = []) {
   const reviewRepairs = reviewableImportRepairs(repairs);
   if (!reviewFindings.length && !reviewRepairs.length) return;
   const wrap = document.createElement('div');
-  const rows = reviewFindings.slice(0, 80).map(item => `<li class="field-${item.severity}"><strong>${escapeHtml(item.severity)}:</strong> ${escapeHtml(item.categoryName ? `${item.categoryName} · ${item.field}` : item.field)} — ${escapeHtml(item.message)}</li>`).join('');
-  const more = reviewFindings.length > 80 ? `<p class="hint">Showing first 80 of ${reviewFindings.length} findings.</p>` : '';
-  const findingsSection = reviewFindings.length ? `<ul class="validation-list">${rows}</ul>${more}` : '<p class="hint">No validation guardrail findings.</p>';
+  const rows = reviewFindings.slice(0, 80).map(item => `<li class="field-${item.severity}"><strong>${escapeHtml(applicationDataMessages.validation.severity(item.severity))}:</strong> ${escapeHtml(item.categoryName ? `${item.categoryName} · ${item.field}` : item.field)} — ${escapeHtml(item.message)}</li>`).join('');
+  const more = reviewFindings.length > 80 ? `<p class="hint">${escapeHtml(applicationDataMessages.validation.findingsMore(reviewFindings.length))}</p>` : '';
+  const findingsSection = reviewFindings.length ? `<ul class="validation-list">${rows}</ul>${more}` : `<p class="hint">${escapeHtml(applicationDataMessages.validation.noFindings)}</p>`;
   const repairRows = reviewRepairs.slice(0, 80).map(repair => `<li>${escapeHtml(formatRepairMessage(repair))}</li>`).join('');
-  const repairMore = reviewRepairs.length > 80 ? `<p class="hint">Showing first 80 of ${reviewRepairs.length} import changes.</p>` : '';
-  const repairSection = reviewRepairs.length ? `<h3>Changes made during import</h3><ul class="validation-list">${repairRows}</ul>${repairMore}` : '';
-  wrap.innerHTML = `<p class="hint">Warnings and import repairs do not block import; they are shown so you can review meaningful cleanup.</p>${findingsSection}${repairSection}<div class="row modal-action-row"><button id="closeValidationSummary" class="primary">Continue editing</button></div>`;
+  const repairMore = reviewRepairs.length > 80 ? `<p class="hint">${escapeHtml(applicationDataMessages.validation.repairsMore(reviewRepairs.length))}</p>` : '';
+  const repairSection = reviewRepairs.length ? `<h3>${escapeHtml(applicationDataMessages.validation.repairHeading)}</h3><ul class="validation-list">${repairRows}</ul>${repairMore}` : '';
+  wrap.innerHTML = `<p class="hint">${escapeHtml(applicationDataMessages.validation.explanation)}</p>${findingsSection}${repairSection}<div class="row modal-action-row"><button id="closeValidationSummary" class="primary">${escapeHtml(applicationDataMessages.validation.continueEditing)}</button></div>`;
   openModal(title, wrap);
-  try { requireScopedEl(wrap, '#closeValidationSummary', 'validation summary').addEventListener('click', closeModal); } catch (err) { reportModalBindingError('Validation summary unavailable', err); }
+  try { requireScopedEl(wrap, '#closeValidationSummary', 'validation summary').addEventListener('click', closeModal); } catch (err) { reportModalBindingError(applicationDataMessages.validation.bindingContext, err); }
 }
 
 function showExportCompatibilitySummary(decision) {
@@ -197,15 +205,15 @@ function reportModalBindingError(context, err) {
 function confirmReplacingCurrentWork() {
   if (!dirty) return Promise.resolve(true);
   const wrap = document.createElement('div');
-  wrap.innerHTML = `<p class="hint">Current unexported changes will be replaced. Export or download them first if you want to keep them.</p><div class="row modal-action-row"><button id="confirmReplaceWork" class="danger">Replace current data</button><button id="cancelReplaceWork">Cancel</button></div>`;
+  wrap.innerHTML = `<p class="hint">${escapeHtml(applicationDataMessages.replacement.warning)}</p><div class="row modal-action-row"><button id="confirmReplaceWork" class="danger">${escapeHtml(applicationDataMessages.replacement.confirm)}</button><button id="cancelReplaceWork">${escapeHtml(applicationDataMessages.replacement.cancel)}</button></div>`;
   return new Promise(resolve => {
     let confirmed = false;
-    openModal('Replace current data?', wrap, { onClose: () => resolve(confirmed) });
+    openModal(applicationDataMessages.replacement.title, wrap, { onClose: () => resolve(confirmed) });
     try {
       requireScopedEl(wrap, '#confirmReplaceWork', 'replace confirmation').addEventListener('click', () => { confirmed = true; closeModal(); });
       requireScopedEl(wrap, '#cancelReplaceWork', 'replace confirmation').addEventListener('click', () => closeModal());
     } catch (err) {
-      reportModalBindingError('Replace confirmation unavailable', err);
+      reportModalBindingError(applicationDataMessages.replacement.bindingContext, err);
     }
   });
 }
@@ -246,20 +254,20 @@ function renderList() {
   updateGlobalActionAvailability();
 }
 
-function loadPreset(preset) {
+function loadPreset(preset, sourceLabel) {
   if (!preset?.data) {
-    setStatus('Preset is not available.', 'err');
+    setStatus(applicationDataMessages.import.presetUnavailable, 'err');
     return false;
   }
-  return importText(preset.data, preset.sourceLabel || 'Preset');
+  return importText(preset.data, sourceLabel || preset.sourceLabel || 'Preset');
 }
 
 function loadBasicPresets() {
-  return loadPreset(PRESETS.find(preset => preset.id === 'basic'));
+  return loadPreset(PRESETS.find(preset => preset.id === 'basic'), applicationDataMessages.import.basicPresetSource);
 }
 
 function loadAdvancedPresets() {
-  return loadPreset(PRESETS.find(preset => preset.id === 'advanced'));
+  return loadPreset(PRESETS.find(preset => preset.id === 'advanced'), applicationDataMessages.import.advancedPresetSource);
 }
 
 function renderEditor() {
@@ -322,12 +330,12 @@ async function importText(text, sourceLabel='Import') {
   if (!(await confirmReplacingCurrentWork())) return false;
   applyValidatedConfig(validation);
   selectedIndex = getCategories().length ? 0 : -1;
-  markSaved('No changes');
-  const guardrailSummary = validationSummaryText(getCategories().length, importAnalysis, validation.repairs || []);
-  setStatus(sourceLabel ? `${sourceLabel}: ${guardrailSummary}` : guardrailSummary, importStatusSeverity(importAnalysis, validation.repairs || []));
+  markSaved(applicationDataMessages.import.noChanges);
+  const guardrailSummary = validationSummaryText(getCategories().length, importAnalysis, validation.repairs || [], applicationDataMessages.summary);
+  setStatus(sourceLabel ? applicationDataMessages.import.status(sourceLabel, guardrailSummary) : guardrailSummary, importStatusSeverity(importAnalysis, validation.repairs || []));
   commitActiveField();
   renderAll();
-  if (shouldShowImportValidationModal({ analysis: importAnalysis, repairs: validation.repairs || [] })) setTimeout(() => showValidationSummary('Import validation summary', importAnalysis, validation.repairs || []), 0);
+  if (shouldShowImportValidationModal({ analysis: importAnalysis, repairs: validation.repairs || [] })) setTimeout(() => showValidationSummary(applicationDataMessages.import.validationTitle, importAnalysis, validation.repairs || []), 0);
   maybeAutoLookupImportedIds();
   return true;
 }
@@ -335,8 +343,8 @@ async function importText(text, sourceLabel='Import') {
 function showImportModal(initialText = '') {
   commitActiveField();
   const wrap = document.createElement('div');
-  wrap.innerHTML = `<p class="hint">Paste either formatted JSON or the gzip+Base64 blob. Then click Import.</p><div id="importError" class="modal-error hidden" role="alert"></div><textarea id="importText" class="raw" placeholder="Paste JSON or gzip+Base64 here">${escapeHtml(initialText)}</textarea><div class="row modal-action-row"><button id="importNow" class="primary">Import</button></div>`;
-  openModal('Import / Paste', wrap);
+  wrap.innerHTML = `<p class="hint">${escapeHtml(applicationDataMessages.import.guidance)}</p><div id="importError" class="modal-error hidden" role="alert"></div><textarea id="importText" class="raw" placeholder="${escapeHtml(applicationDataMessages.import.placeholder)}">${escapeHtml(initialText)}</textarea><div class="row modal-action-row"><button id="importNow" class="primary">${escapeHtml(applicationDataMessages.import.action)}</button></div>`;
+  openModal(applicationDataMessages.import.title, wrap);
   try {
     const importTextNode = requireScopedEl(wrap, '#importText', 'import');
     const importButton = requireScopedEl(wrap, '#importNow', 'import');
@@ -350,18 +358,18 @@ function showImportModal(initialText = '') {
         setInlineError('importError', '');
         if (!(await importText(text, ''))) { showImportModal(text); return; }
         closeModal();
-      } catch (err) { const message = errorMessage('Import failed', err); setInlineError('importError', message); setStatus(message, 'err'); }
+      } catch (err) { const message = applicationDataMessages.import.failed(err); setInlineError('importError', message); setStatus(message, 'err'); }
     });
   } catch (err) {
-    reportModalBindingError('Import unavailable', err);
+    setStatus(applicationDataMessages.import.unavailable(err), 'err');
   }
 }
 
 function showRawModal(initialText = JSON.stringify(data, null, 2), initialError = '') {
   commitActiveField();
   const wrap = document.createElement('div');
-  wrap.innerHTML = `<p class="hint">This is the full JSON config. Edit carefully; invalid JSON cannot be applied.</p><div id="rawError" class="modal-error hidden" role="alert"></div><textarea id="rawFull" class="raw">${escapeHtml(initialText)}</textarea><div class="row modal-action-row"><button id="applyRawFull" class="primary">Apply full JSON</button><button id="copyRawFull">Copy</button></div><p class="hint" id="rawCopyStatus"></p>`;
-  openModal('Raw JSON', wrap);
+  wrap.innerHTML = `<p class="hint">${escapeHtml(applicationDataMessages.raw.warning)}</p><div id="rawError" class="modal-error hidden" role="alert"></div><textarea id="rawFull" class="raw">${escapeHtml(initialText)}</textarea><div class="row modal-action-row"><button id="applyRawFull" class="primary">${escapeHtml(applicationDataMessages.raw.apply)}</button><button id="copyRawFull">${escapeHtml(applicationDataMessages.raw.copy)}</button></div><p class="hint" id="rawCopyStatus"></p>`;
+  openModal(applicationDataMessages.raw.title, wrap);
   setInlineError('rawError', initialError);
   try {
     const rawFull = requireScopedEl(wrap, '#rawFull', 'raw JSON');
@@ -380,14 +388,14 @@ function showRawModal(initialText = JSON.stringify(data, null, 2), initialError 
       const text = rawFull.value;
       let validation;
       let preAnalysis;
-      try { const parsed = parseJsonText(text, { label: 'Full Raw JSON input' }); preAnalysis = analyzeImportedConfig(parsed); validation = validateConfig(parsed); }
-      catch (err) { const message = errorMessage('Invalid full JSON', err); setInlineError('rawError', message); setStatus(message, 'err'); return; }
+      try { const parsed = parseJsonText(text, { label: applicationDataMessages.raw.inputLimitLabel }); preAnalysis = analyzeImportedConfig(parsed); validation = validateConfig(parsed); }
+      catch (err) { const message = applicationDataMessages.raw.invalid(err); setInlineError('rawError', message); setStatus(message, 'err'); return; }
       setInlineError('rawError', '');
       const rawAnalysis = mergeValidationFindings(preAnalysis, analyzeImportedConfig(validation.config));
-      const rawSummary = configValidationSummaryText(validation.config, rawAnalysis, validation.repairs || []);
+      const rawSummary = configValidationSummaryText(validation.config, rawAnalysis, validation.repairs || [], applicationDataMessages.summary);
       const showRawSummary = () => {
         setStatus(rawSummary, importStatusSeverity(rawAnalysis, validation.repairs || []));
-        if (shouldShowImportValidationModal({ analysis: rawAnalysis, repairs: validation.repairs || [] })) setTimeout(() => showValidationSummary('Raw JSON validation summary', rawAnalysis, validation.repairs || []), 0);
+        if (shouldShowImportValidationModal({ analysis: rawAnalysis, repairs: validation.repairs || [] })) setTimeout(() => showValidationSummary(applicationDataMessages.raw.validationTitle, rawAnalysis, validation.repairs || []), 0);
       };
       const result = await applyFullConfigCandidate({
         currentData: data,
@@ -395,8 +403,8 @@ function showRawModal(initialText = JSON.stringify(data, null, 2), initialError 
         confirmReplace: confirmReplacingCurrentWork,
         onNoChange: () => {
           closeModal();
-          setStatus(`${rawSummary} No full JSON changes were applied.`, importStatusSeverity(rawAnalysis, validation.repairs || []));
-          if (shouldShowImportValidationModal({ analysis: rawAnalysis, repairs: validation.repairs || [] })) setTimeout(() => showValidationSummary('Raw JSON validation summary', rawAnalysis, validation.repairs || []), 0);
+          setStatus(`${rawSummary} ${applicationDataMessages.raw.noChangeSuffix}`, importStatusSeverity(rawAnalysis, validation.repairs || []));
+          if (shouldShowImportValidationModal({ analysis: rawAnalysis, repairs: validation.repairs || [] })) setTimeout(() => showValidationSummary(applicationDataMessages.raw.validationTitle, rawAnalysis, validation.repairs || []), 0);
         },
         onChanged: () => {
           applyValidatedConfig(validation);
@@ -414,19 +422,19 @@ function showRawModal(initialText = JSON.stringify(data, null, 2), initialError 
     copyRawFull.addEventListener('click', async () => {
       commitActiveField();
       try {
-        assertJsonTextWithinLimit(rawFull.value, { label: 'Full Raw JSON input' });
+        assertJsonTextWithinLimit(rawFull.value, { label: applicationDataMessages.raw.inputLimitLabel });
       } catch (err) {
-        const message = errorMessage('Could not copy full JSON', err);
+        const message = applicationDataMessages.raw.copyError(err);
         setInlineError('rawError', message);
         setStatus(message, 'err');
         return;
       }
       const ok = await copyTextToClipboard(rawFull.value);
-      rawCopyStatus.textContent = ok ? 'Copied to clipboard.' : 'Copy failed. Select the text manually.';
-      setStatus(ok ? 'Copied full JSON' : 'Copy failed. Select the text manually.', ok ? 'ok' : 'warn');
+      rawCopyStatus.textContent = ok ? applicationDataMessages.raw.copiedInline : applicationDataMessages.raw.copyFailed;
+      setStatus(ok ? applicationDataMessages.raw.copiedStatus : applicationDataMessages.raw.copyFailed, ok ? 'ok' : 'warn');
     });
   } catch (err) {
-    reportModalBindingError('Raw JSON unavailable', err);
+    reportModalBindingError(applicationDataMessages.raw.bindingContext, err);
   }
 }
 
@@ -484,7 +492,7 @@ function bindAppEvents() {
       input.value = '';
       input.click();
     } catch (err) {
-      setStatus(errorMessage('Upload unavailable', err), 'err');
+      setStatus(applicationDataMessages.import.uploadUnavailable(err), 'err');
     }
   });
 
@@ -562,7 +570,7 @@ function bindAppEvents() {
     if (!file) return;
     try {
       await importText(await readImportFileText(file), file.name);
-    } catch (err) { setStatus(errorMessage('Could not load file', err), 'err'); }
+    } catch (err) { setStatus(applicationDataMessages.import.fileFailed(err), 'err'); }
   });
 
   bindClick('showImport', () => showImportModal());
@@ -614,6 +622,7 @@ function startApp() {
   if (started) return;
   started = true;
   applyApplicationChromeLocalization(translate);
+  setSaveState(applicationDataMessages.import.noChanges);
   bindAppEvents();
   applyEditorPreferences();
   waitForStylesheetReady().then(renderAll);
