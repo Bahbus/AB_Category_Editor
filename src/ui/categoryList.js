@@ -24,7 +24,6 @@ export function createCategoryListMessages(translate) {
   const unnamed = translate('categoryList.fallback.unnamed');
   return Object.freeze({
     unnamed,
-    noDescription,
     unknownFormat: translate('categoryList.fallback.unknownFormat'),
     issueLabel: count => translate(count === 1 ? 'categoryList.validation.one' : 'categoryList.validation.many', { count }),
     selectionAccessible: (name, subtitle, issues = '') => translate('categoryList.selection.accessible', { name, subtitle, issues }),
