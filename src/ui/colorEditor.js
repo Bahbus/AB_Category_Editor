@@ -1,6 +1,26 @@
 import { colorToHex, colorToHexRGBA, hexToRgb01, hexToRgba01, rgbaCss, componentTo255, canonicalHexRgba, decideHexRgbaCommit, decideRgbCommit, decideAlphaCommit } from '../color.js';
 import { escapeHtml, requireScopedEl } from '../dom.js';
 
+export function createColorEditorMessages(translate) {
+  return Object.freeze({
+    title: translate('color.title'),
+    previewTooltip: translate('color.preview.tooltip'),
+    pickerAccessible: translate('color.picker.accessible'),
+    hex: Object.freeze({
+      label: translate('color.hex.label'),
+      placeholder: translate('color.hex.placeholder'),
+      error: translate('color.hex.error')
+    }),
+    red: translate('color.red.label'),
+    green: translate('color.green.label'),
+    blue: translate('color.blue.label'),
+    alpha: Object.freeze({
+      label: translate('color.alpha.label'),
+      accessible: translate('color.alpha.accessible')
+    })
+  });
+}
+
 export function normalizeRgbInputValue(value, committedValue) {
   const committed = Math.max(0, Math.min(255, Math.round(Number(committedValue) || 0)));
   if (String(value).trim() === '') return committed;
@@ -10,10 +30,13 @@ export function normalizeRgbInputValue(value, committedValue) {
 }
 
 export function renderColorEditor(category, deps = {}) {
-  const { markDirty, markDirtyAndRenderList = () => markDirty({ renderList: true }), scheduleRenderList = () => {} } = deps;
+  const { markDirty, markDirtyAndRenderList = () => markDirty({ renderList: true }), scheduleRenderList = () => {}, translate } = deps;
+  const messages = createColorEditorMessages(translate);
   const color = document.createElement('div');
   color.className = 'card color-card';
-  color.innerHTML = '<h3>Color</h3>';
+  const heading = document.createElement('h3');
+  heading.textContent = messages.title;
+  color.appendChild(heading);
 
   const layout = document.createElement('div');
   layout.className = 'color-layout';
@@ -21,27 +44,31 @@ export function renderColorEditor(category, deps = {}) {
   const left = document.createElement('div');
   left.className = 'color-preview-field';
   left.innerHTML = `
-    <div class="color-preview" title="Click to open the color picker">
+    <div class="color-preview">
       <div class="color-fill"></div>
-      <input class="color-native-input" type="color" value="${colorToHex(category.Color)}" aria-label="Pick RGB color">
+      <input class="color-native-input" type="color" value="${colorToHex(category.Color)}">
     </div>
   `;
+  const preview = requireScopedEl(left, '.color-preview', 'color preview');
+  preview.title = messages.previewTooltip;
+  requireScopedEl(left, '.color-native-input', 'color preview').setAttribute('aria-label', messages.pickerAccessible);
 
   const right = document.createElement('div');
   right.className = 'grid';
 
   const hexWrap = document.createElement('div');
   const hexInputId = `hex-color-input-${Math.random().toString(36).slice(2)}`;
-  hexWrap.innerHTML = `<label for="${hexInputId}">Hex RGBA</label><input id="${hexInputId}" class="hex-color-input" placeholder="#RRGGBBAA" value="${colorToHexRGBA(category.Color).toUpperCase()}">`;
+  hexWrap.innerHTML = `<label for="${hexInputId}">${escapeHtml(messages.hex.label)}</label><input id="${hexInputId}" class="hex-color-input" value="${colorToHexRGBA(category.Color).toUpperCase()}">`;
+  requireScopedEl(hexWrap, '.hex-color-input', 'hex color field').placeholder = messages.hex.placeholder;
 
   const nums = document.createElement('div');
   nums.className = 'grid cols-3 rgb-grid';
   const rgbControls = [];
 
-  function makeRgbaNumber(label, getValue, setValue) {
+  function makeRgbaNumber(key, label, getValue, setValue) {
     const wrap = document.createElement('div');
-    const id = `rgba-${label.toLowerCase()}-${Math.random().toString(36).slice(2)}`;
-    wrap.innerHTML = `<label for="${id}">${label}</label><input id="${id}" type="number" min="0" max="255" step="1" value="${escapeHtml(getValue())}">`;
+    const id = `rgba-${key}-${Math.random().toString(36).slice(2)}`;
+    wrap.innerHTML = `<label for="${id}">${escapeHtml(label)}</label><input id="${id}" type="number" min="0" max="255" step="1" value="${escapeHtml(getValue())}">`;
     const input = wrap.querySelector('input');
     let lastCommitted = getValue();
     function synchronizeFromColor() {
@@ -77,9 +104,9 @@ export function renderColorEditor(category, deps = {}) {
   }
 
   nums.append(
-    makeRgbaNumber('R', () => componentTo255(category.Color.X), n => { category.Color.X = n / 255; }),
-    makeRgbaNumber('G', () => componentTo255(category.Color.Y), n => { category.Color.Y = n / 255; }),
-    makeRgbaNumber('B', () => componentTo255(category.Color.Z), n => { category.Color.Z = n / 255; })
+    makeRgbaNumber('r', messages.red, () => componentTo255(category.Color.X), n => { category.Color.X = n / 255; }),
+    makeRgbaNumber('g', messages.green, () => componentTo255(category.Color.Y), n => { category.Color.Y = n / 255; }),
+    makeRgbaNumber('b', messages.blue, () => componentTo255(category.Color.Z), n => { category.Color.Z = n / 255; })
   );
 
   const alphaWrap = document.createElement('div');
@@ -87,11 +114,12 @@ export function renderColorEditor(category, deps = {}) {
   const alphaSliderId = `alpha-slider-${Math.random().toString(36).slice(2)}`;
   alphaWrap.innerHTML = `
     <div class="alpha-slider-label">
-      <label for="${alphaSliderId}">A</label>
+      <label for="${alphaSliderId}">${escapeHtml(messages.alpha.label)}</label>
       <output class="alpha-value" for="${alphaSliderId}">${escapeHtml(componentTo255(category.Color.W))}</output>
     </div>
-    <input id="${alphaSliderId}" class="alpha-slider" type="range" min="0" max="255" step="1" value="${escapeHtml(componentTo255(category.Color.W))}" aria-label="Alpha">
+    <input id="${alphaSliderId}" class="alpha-slider" type="range" min="0" max="255" step="1" value="${escapeHtml(componentTo255(category.Color.W))}">
   `;
+  requireScopedEl(alphaWrap, '.alpha-slider', 'alpha color field').setAttribute('aria-label', messages.alpha.accessible);
 
   right.append(hexWrap, nums, alphaWrap);
   layout.append(left, right);
@@ -138,7 +166,7 @@ export function renderColorEditor(category, deps = {}) {
   function setHexValidity(value) {
     const trimmed = value.trim();
     const valid = canonicalHexRgba(trimmed) !== null;
-    hexInput.setCustomValidity(valid ? '' : 'Use #RRGGBBAA or RRGGBBAA.');
+    hexInput.setCustomValidity(valid ? '' : messages.hex.error);
     hexInput.classList.toggle('invalid', Boolean(trimmed) && !valid);
     return valid;
   }

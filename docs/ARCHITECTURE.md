@@ -87,9 +87,10 @@ order, and cross-card orchestration.
 
 Focused leaves own cohesive surfaces:
 
-- `basicEditor.js` — Basics, generated-description workflow, and its local
-  validation refresh;
-- `colorEditor.js` — linked RGBA controls and display snapshots;
+- `basicEditor.js` — Basics, its DOM-free UI-message adapter,
+  generated-description workflow, and local validation refresh;
+- `colorEditor.js` — its DOM-free UI-message adapter, linked RGBA controls, and
+  display snapshots;
 - `itemOrderingEditor.js` — criteria/custom-rank composition and local
   ordering refresh;
 - `matchingRulesEditor.js` — the four matching-rule cards and converter entry;
@@ -158,7 +159,10 @@ messages; icon and pill controls retain visible theme-aware focus.
 `src/localization.js` owns locale resolution, named interpolation, and DOM-free
 rich-message part parsing. `src/locales/en.js` is the frozen flat plain-text
 catalog. `src/app.js` creates one fixed-English translator and injects it into
-application chrome and UI owners.
+application chrome and UI owners. `categoryEditor.js` forwards that translator
+to the Basics and Color leaves; each leaf exposes a directly testable,
+DOM-free message adapter and keeps translated values in escaped text or
+explicit text/property/attribute sinks.
 
 UI modules own semantic node construction and safe sinks. Rich messages allow
 only caller-defined semantic parts; catalog content does not supply HTML.

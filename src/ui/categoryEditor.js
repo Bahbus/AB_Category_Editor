@@ -113,7 +113,8 @@ export function renderEditor(deps) {
     lookupName,
     commitActiveField,
     getEditorPreferences,
-    copyTextToClipboard
+    copyTextToClipboard,
+    translate
   });
 
   const topEditorGrid = document.createElement('div');
@@ -121,7 +122,8 @@ export function renderEditor(deps) {
   const colorCard = renderColorEditor(cat, {
     markDirty,
     markDirtyAndRenderList,
-    scheduleRenderList: createScheduledRenderList(renderList)
+    scheduleRenderList: createScheduledRenderList(renderList),
+    translate
   });
   topEditorGrid.append(basicEditor.card, colorCard);
   root.appendChild(topEditorGrid);

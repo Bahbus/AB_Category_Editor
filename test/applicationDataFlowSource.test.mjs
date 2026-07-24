@@ -78,7 +78,7 @@ test('category editor delegates Color composition while preserving top-grid orde
   const colorEditor = read('src/ui/colorEditor.js');
 
   assert.match(categoryEditor, /import \{ renderColorEditor \} from ['"]\.\/colorEditor\.js['"];/);
-  assert.match(categoryEditor, /const colorCard = renderColorEditor\(cat, \{\s*markDirty,\s*markDirtyAndRenderList,\s*scheduleRenderList: createScheduledRenderList\(renderList\)\s*\}\);/);
+  assert.match(categoryEditor, /const colorCard = renderColorEditor\(cat, \{\s*markDirty,\s*markDirtyAndRenderList,\s*scheduleRenderList: createScheduledRenderList\(renderList\),\s*translate\s*\}\);/);
   assert.match(categoryEditor, /topEditorGrid\.append\(basicEditor\.card, colorCard\)/);
   assert.doesNotMatch(categoryEditor, /colorToHex|colorToHexRGBA|hexToRgb01|hexToRgba01|rgbaCss|componentTo255|canonicalHexRgba|decideHexRgbaCommit|decideRgbCommit|decideAlphaCommit|renderColorSection|color-native-input|hex-color-input|alpha-slider/);
   assert.match(colorEditor, /export function renderColorEditor\(category, deps = \{\}\)/);
@@ -97,6 +97,7 @@ test('category editor delegates Basics and description ownership through a narro
   assert.match(categoryEditor, /import \{ renderBasicEditor \} from ['"]\.\/basicEditor\.js['"];/);
   assert.match(categoryEditor, /export \{ getBasicSwitchWarnings \} from ['"]\.\/basicEditor\.js['"];/);
   assert.match(categoryEditor, /const basicEditor = renderBasicEditor\(cat, \{/);
+  assert.match(categoryEditor, /copyTextToClipboard,\s*translate\s*\}\);/);
   assert.match(categoryEditor, /topEditorGrid\.append\(basicEditor\.card, colorCard\)/);
   assert.doesNotMatch(categoryEditor, /Basics<\/h3>|basic-switch-validation|description-generate-row|replaceGeneratedDescription|copyGeneratedDescription|numberInput\('Order'|textInput\('Name'|generateCategoryDescription|applyGeneratedDescriptionChange/);
 
