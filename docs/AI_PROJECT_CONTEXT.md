@@ -52,6 +52,11 @@ The project intentionally has:
   messages, and accessible names use one stable-keyed DOM-free message adapter
   and the existing injected translator. Schema, validation, and compatibility
   metadata remain exact and untranslated.
+- The populated category sidebar and selected-category shell text, statuses,
+  structural-action names, delete confirmation, and Advanced Raw JSON copy use
+  focused DOM-free message adapters and that same translator. Category data,
+  generated duplicate names, validation findings, and schema values remain
+  exact and untranslated.
 - The broader remaining English message families stay tracked by
   [Issue #122](https://github.com/Bahbus/AB_Category_Editor/issues/122).
 - The three primary documents separate current contracts, current

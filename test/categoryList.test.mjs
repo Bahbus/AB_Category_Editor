@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { defaultCategory } from '../src/config.js';
+import { createTranslator } from '../src/localization.js';
 import { computeCategoryIssueCounts, renderCategoryList } from '../src/ui/categoryList.js';
 import { getCategoryIssueCount, getCategoryIssueCounts, isIssueFinding } from '../src/validation.js';
 
@@ -158,6 +159,7 @@ test('click, Enter, and Space selection focus the newly rendered selected entry'
       setDraggedIndex() {},
       renumberCategories() {},
       markDirty() {},
+      translate: createTranslator('en'),
       renderAll() {
         renderCount++;
         renderCategoryList(args);

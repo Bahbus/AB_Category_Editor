@@ -83,7 +83,10 @@ preflight before compression or output callbacks.
 
 `src/ui/categoryEditor.js` is the selected-category shell. It owns the header,
 category-wide validation presentation, Raw JSON route, structural actions, card
-order, and cross-card orchestration.
+order, cross-card orchestration, and a DOM-free shell-message adapter.
+`src/ui/categoryList.js` owns the populated sidebar's display fallbacks,
+selection text, drag/search guidance, badges, count status, and corresponding
+DOM-free message adapter.
 
 Focused leaves own cohesive surfaces:
 
@@ -160,12 +163,14 @@ messages; icon and pill controls retain visible theme-aware focus.
 `src/localization.js` owns locale resolution, named interpolation, and DOM-free
 rich-message part parsing. `src/locales/en.js` is the frozen flat plain-text
 catalog. `src/app.js` creates one fixed-English translator and injects it into
-application chrome and UI owners. `categoryEditor.js` forwards that translator
-to the Basics, Color, Item Ordering, and Range/State leaves. The Range/State
-adapter supplies the same message object to editor cards, summaries, range
-controls, state choices, and accessible names. Its DOM-free summary and
-range-decision helpers retain optional exact-English defaults for existing
-callers. Translated values stay in escaped text or explicit
+application chrome, the populated category list, and the selected-category
+shell. `categoryEditor.js` uses its shell adapter and forwards that translator
+to the Basics, Color, Item Ordering, Matching Rules, and Range/State leaves.
+The category list owns a separate adapter for its sidebar family. The
+Range/State adapter supplies the same message object to editor cards,
+summaries, range controls, state choices, and accessible names. Its DOM-free
+summary and range-decision helpers retain optional exact-English defaults for
+existing callers. Translated values stay in escaped text or explicit
 text/property/attribute sinks.
 
 UI modules own semantic node construction and safe sinks. Rich messages allow

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 
-import { getBasicSwitchWarnings } from '../src/ui/categoryEditor.js';
+import { getBasicSwitchWarnings } from '../src/ui/basicEditor.js';
 import {
   rangeFiltersSummary,
   rangeFiltersSummaryParts,
@@ -163,7 +163,7 @@ test('category editor uses shared range defaults and advanced stable summary pat
   assert.match(source, /const defaults = \{[\s\S]*?min: filter\.defaults\.Min,[\s\S]*?max: filter\.defaults\.Max,[\s\S]*?minimum: key === 'VendorPrice' \? 0 : INT32_MIN,[\s\S]*?maximum: key === 'VendorPrice' \? UINT32_MAX : INT32_MAX[\s\S]*?\};/);
   assert.doesNotMatch(source, /max:\s*100000/);
   assert.doesNotMatch(source, /max:\s*key === 'Level' \? 100 : 800/);
-  assert.match(categoryEditor, /setDetailsSummary\(advanced, \{ title: 'Advanced', badges: \[\], issueCount: 0 \}\)/);
+  assert.match(categoryEditor, /setDetailsSummary\(advanced, \{ title: messages\.advanced\.title, badges: \[\], issueCount: 0 \}\)/);
 });
 
 test('color commits synchronize every linked display and keep established render scheduling', () => {
@@ -194,7 +194,7 @@ test('icon and action controls have accessible labels', () => {
   const listSource = fs.readFileSync(new URL('../src/ui/categoryList.js', import.meta.url), 'utf8');
   const editorSource = fs.readFileSync(new URL('../src/ui/categoryEditor.js', import.meta.url), 'utf8');
   const indexSource = fs.readFileSync(new URL('../index.html', import.meta.url), 'utf8');
-  assert.match(listSource, /aria-label="Pinned"/);
+  assert.match(listSource, /aria-label="\$\{escapeHtml\(messages\.pinned\)\}"/);
   assert.match(listSource, /aria-hidden="true" focusable="false"/);
   assert.match(indexSource, /id="showHelp"[^>]*aria-label="About \/ Help"/);
   assert.match(editorSource, /setAttribute\('aria-label', label\)/);

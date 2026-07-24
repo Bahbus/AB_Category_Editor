@@ -15,22 +15,35 @@ export function isCategorySearchActive() {
   return getCategorySearchText().length > 0;
 }
 
-function getCategoryDisplayName(cat) {
-  return cat.Name || '(unnamed)';
-}
-
 function getCategoryDescriptionText(cat) {
   return String(cat.Description ?? '').trim();
 }
 
-function getCategorySubtitle(cat) {
-  const order = `#${cat.Order ?? ''}`;
-  const description = getCategoryDescriptionText(cat);
-  return description ? `${order} · ${description}` : `${order} · No description`;
-}
-
-function getCategorySubtitleTitle(cat) {
-  return getCategoryDescriptionText(cat) || 'No description';
+export function createCategoryListMessages(translate) {
+  const noDescription = translate('categoryList.fallback.noDescription');
+  const unnamed = translate('categoryList.fallback.unnamed');
+  return Object.freeze({
+    unnamed,
+    noDescription,
+    unknownFormat: translate('categoryList.fallback.unknownFormat'),
+    issueLabel: count => translate(count === 1 ? 'categoryList.validation.one' : 'categoryList.validation.many', { count }),
+    selectionAccessible: (name, subtitle, issues = '') => translate('categoryList.selection.accessible', { name, subtitle, issues }),
+    selectionTooltip: name => translate('categoryList.selection.tooltip', { name }),
+    clearSearchToReorder: translate('categoryList.reorder.clearSearch'),
+    dragToReorder: translate('categoryList.reorder.drag'),
+    enabledOn: translate('categoryList.enabled.on'),
+    enabledOff: translate('categoryList.enabled.off'),
+    pinned: translate('categoryList.pinned.accessible'),
+    searchStatus: count => translate('categoryList.status.search', { count }),
+    reorderStatus: count => translate('categoryList.status.reorder', { count }),
+    displayName: category => category.Name || unnamed,
+    subtitle: category => {
+      const order = `#${category.Order ?? ''}`;
+      const description = getCategoryDescriptionText(category);
+      return description ? `${order} · ${description}` : `${order} · ${noDescription}`;
+    },
+    subtitleTitle: category => getCategoryDescriptionText(category) || noDescription
+  });
 }
 
 export function computeCategoryIssueCounts(cats = []) {
@@ -59,8 +72,10 @@ export function renderCategoryList({
   renumberCategories,
   markDirty,
   renderAll,
-  commitActiveField = () => {}
+  commitActiveField = () => {},
+  translate
 }) {
+  const messages = createCategoryListMessages(translate);
   function filteredCategoryEntries() {
     const cats = getCategories();
     const q = getCategorySearchText().toLowerCase();
@@ -88,7 +103,7 @@ export function renderCategoryList({
   }
 
   const cats = getCategories();
-  el('format').textContent = `${data.Format || 'Unknown format'} v${data.Version ?? '?' }`;
+  el('format').textContent = `${data.Format || messages.unknownFormat} v${data.Version ?? '?' }`;
   el('count').textContent = cats.length;
   const list = el('categoryList');
   cancelReorderMotion(list);
@@ -99,20 +114,20 @@ export function renderCategoryList({
   const searchActive = isCategorySearchActive();
   entries.forEach(({cat, idx}) => {
     const item = document.createElement('div');
-    const displayName = getCategoryDisplayName(cat);
-    const subtitle = getCategorySubtitle(cat);
-    const subtitleTitle = getCategorySubtitleTitle(cat);
+    const displayName = messages.displayName(cat);
+    const subtitle = messages.subtitle(cat);
+    const subtitleTitle = messages.subtitleTitle(cat);
 
     const issueCount = issueCounts.get(cat) || 0;
-    const issueLabel = `${issueCount} validation ${issueCount === 1 ? 'issue' : 'issues'}`;
+    const issueLabel = messages.issueLabel(issueCount);
     const active = idx === getSelectedIndex();
     item.className = 'cat-item' + (active ? ' active' : '') + (searchActive ? ' reorder-disabled' : '');
     item.draggable = !searchActive;
     item.tabIndex = 0;
     item.role = 'button';
     if (active) item.setAttribute('aria-current', 'true');
-    item.setAttribute('aria-label', `Select category ${displayName}. ${subtitle}${issueCount ? `. ${issueLabel}` : ''}`);
-    item.title = `Select ${displayName}`;
+    item.setAttribute('aria-label', messages.selectionAccessible(displayName, subtitle, issueCount ? `. ${issueLabel}` : ''));
+    item.title = messages.selectionTooltip(displayName);
     item.dataset.index = String(idx);
     item.dataset.reorderMotionKey = categoryMotionKey(cat);
     item.style.setProperty('--category-color', rgbaCssWithMinimumAlpha(cat.Color, 0.35));
@@ -173,21 +188,21 @@ export function renderCategoryList({
     };
 
     item.innerHTML = `
-      <div class="drag-handle" title="${searchActive ? 'Clear search to reorder' : 'Drag to reorder'}" aria-hidden="true">☰</div>
+      <div class="drag-handle" title="${escapeHtml(searchActive ? messages.clearSearchToReorder : messages.dragToReorder)}" aria-hidden="true">☰</div>
       <div class="cat-text">
         <div class="cat-name" title="${escapeHtml(displayName)}">${escapeHtml(displayName)}</div>
         <div class="cat-desc" title="${escapeHtml(subtitleTitle)}">${escapeHtml(subtitle)}</div>
       </div>
       <div class="badges">
         ${issueCount ? `<span class="ui-badge ui-badge-warning category-issue-badge" title="${escapeHtml(issueLabel)}" aria-label="${escapeHtml(issueLabel)}">${issueCount}</span>` : ''}
-        <span class="ui-badge badge ${cat.Enabled ? 'on ui-badge-success' : 'ui-badge-muted'}">${cat.Enabled ? 'on' : 'off'}</span>
-        ${cat.Pinned ? '<span class="ui-badge ui-badge-pin ui-badge-icon badge pin" title="Pinned" aria-label="Pinned"><svg class="badge-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M10.8 1.2 14.8 5.2 13.4 6.6 12.6 5.8 9.8 8.6 10.2 10.6 9.2 11.6 6.7 9.1 3.1 12.7 2.2 11.8 5.8 8.2 3.4 5.8 4.4 4.8 6.4 5.2 9.2 2.4 8.4 1.6 9.8.2 10.8 1.2Z"/></svg></span>' : ''}
+        <span class="ui-badge badge ${cat.Enabled ? 'on ui-badge-success' : 'ui-badge-muted'}">${escapeHtml(cat.Enabled ? messages.enabledOn : messages.enabledOff)}</span>
+        ${cat.Pinned ? `<span class="ui-badge ui-badge-pin ui-badge-icon badge pin" title="${escapeHtml(messages.pinned)}" aria-label="${escapeHtml(messages.pinned)}"><svg class="badge-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path fill="currentColor" d="M10.8 1.2 14.8 5.2 13.4 6.6 12.6 5.8 9.8 8.6 10.2 10.6 9.2 11.6 6.7 9.1 3.1 12.7 2.2 11.8 5.8 8.2 3.4 5.8 4.4 4.8 6.4 5.2 9.2 2.4 8.4 1.6 9.8.2 10.8 1.2Z"/></svg></span>` : ''}
       </div>
     `;
     list.appendChild(item);
   });
 
   el('listStatus').textContent = searchActive
-    ? `${entries.length} shown · clear search to reorder`
-    : `${entries.length} shown · drag categories to reorder`;
+    ? messages.searchStatus(entries.length)
+    : messages.reorderStatus(entries.length);
 }
