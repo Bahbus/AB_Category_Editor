@@ -197,6 +197,30 @@ Verification on the exact implementation tree:
   own Electron development CSP warning and the preset's expected three
   validation warnings were the only diagnostics observed.
 
+### Phase 80.1: State filter display-ownership cleanup
+
+The production-unused legacy State filter options export and its test-only
+duplicate English contract are removed. The catalog-backed Range/State message
+adapter remains the sole runtime owner of State choice labels and retains
+direct coverage for stable values `0`, `1`, and `2`, tones, exact English
+labels, and translator ownership. No executed runtime path, UI structure,
+schema, validation, localization output, or behavior changes.
+
+Verification on the exact implementation tree:
+
+- focused form-control and Range/State localization suites passed all 29 tests;
+- `npm run check -- --test-reporter=dot` passed: 98 JavaScript files
+  syntax-checked, all static relative imports resolved, and 47 test files / 571
+  tests passed;
+- repository-wide search found no remaining legacy State options definition,
+  import, or reference, and `git diff --check origin/main` passed;
+- changed files are limited to deletion of the unused export, removal of its
+  directly related test-only contract, and this durable review record;
+- `docs/AI_PROJECT_CONTEXT.md` and `docs/ARCHITECTURE.md` remain accurate and
+  unchanged, so context and architecture updates are not applicable;
+- browser QA is not applicable because no executed runtime or presentation
+  path changed.
+
 ## Recording future work
 
 For each numbered phase implementation tree:

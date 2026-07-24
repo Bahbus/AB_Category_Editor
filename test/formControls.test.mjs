@@ -14,7 +14,6 @@ import {
   decideRangeValueChange,
   numberInputDisplayValue,
   numberInputStoredDisplayValue,
-  STATE_FILTER_OPTIONS,
   rangeSliderBounds,
   rangeInputErrorMessage,
   rangeValidationState
@@ -26,11 +25,6 @@ test('rarity labels hide internal numeric values', () => {
   for (const rarity of RARITIES) {
     assert.doesNotMatch(rarity.label, /\d/);
   }
-});
-
-test('state filter options preserve numeric values with friendly labels', () => {
-  assert.deepEqual(STATE_FILTER_OPTIONS.map(option => option.value), [0, 1, 2]);
-  assert.deepEqual(STATE_FILTER_OPTIONS.map(option => option.label), ['Ignored', 'Required', 'Excluded']);
 });
 
 test('rangeSliderBounds includes current values without clamping unusual imports', () => {
