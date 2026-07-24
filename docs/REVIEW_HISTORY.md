@@ -289,6 +289,55 @@ Verification on the exact implementation tree:
 - browser QA is not applicable because no executed application or presentation
   path changed.
 
+### Phase 82: Import and full Raw JSON localization
+
+Application-owned Import / Paste, dirty-work replacement,
+import-validation-summary presentation, built-in preset source statuses, and
+full Raw JSON workflow copy route through one focused DOM-free message adapter
+and the existing translator created at application composition.
+`importValidationSummary.js` accepts a narrow injected summary-message
+interface at runtime while preserving byte-for-byte English defaults for
+existing callers that omit it. Validation and repair findings, filenames,
+category and field names, before/after values, source data, and configuration
+content remain untranslated dynamic data; only the two built-in preset source
+labels are catalog-owned.
+
+The existing parse, pre-analysis, validation/repair, post-analysis, stable
+finding merge, dirty-work confirmation, atomic replacement, selection,
+dirty/revision state, deferred summary, and optional lookup order is unchanged.
+Full Raw JSON retains size checks, semantic no-op behavior, cancel/reopen,
+changed replacement, copy handling, and modal focus return. Export/download,
+compatibility presentation, lookup/cache statuses, sort/renumber statuses,
+Regex internals, generated descriptions, underlying findings, and locale
+preferences remain outside this phase.
+
+Verification on the exact implementation tree:
+
+- focused localization, import validation, import/export, Raw JSON/category
+  change, application-data-flow, modal/focus, accessibility,
+  action-availability, trust-boundary, preset, category-editor, and governance
+  suites passed all 244 tests;
+- `npm run check -- --test-reporter=dot` passed: 101 JavaScript files
+  syntax-checked, all static relative imports resolved, and 49 test files /
+  580 tests passed;
+- `git diff --check origin/main` passed with no output;
+- browser QA exercised Comfortable and Compact density at 1280 px, 840 px,
+  and 390 px with zero document, app, editor, or tested modal horizontal
+  overflow;
+- live browser checks covered built-in Advanced preset status and validation
+  summary, Import / Paste blank disablement and enabling, invalid inline/status
+  errors, valid import, dirty-work cancel/reopen and confirmation, full Raw JSON
+  availability and blank disablement, invalid input, semantic no-op, changed
+  apply, dirty state, cancel/reopen and confirmation, successful normal
+  clipboard copy, exact presentation copy, and modal focus return;
+- native file selection/upload and the forced clipboard fallback path were not
+  exercised by the available browser tooling; direct automated coverage
+  remains authoritative for file limits and fallback behavior;
+- the browser host's Electron development CSP warning, the preset's expected
+  three validation warnings, and intentionally triggered invalid Import and
+  Raw JSON diagnostics were observed. No unexpected application error or CSP
+  violation appeared.
+
 ## Recording future work
 
 For each numbered phase implementation tree:

@@ -57,6 +57,12 @@ The project intentionally has:
   focused DOM-free message adapters and that same translator. Category data,
   generated duplicate names, validation findings, and schema values remain
   exact and untranslated.
+- Application-owned Import / Paste, dirty-work replacement, import-validation
+  presentation, and full Raw JSON workflow copy use one focused DOM-free
+  message adapter and the same translator. The import-summary decision module
+  accepts an injected message interface while preserving exact-English defaults
+  for direct callers; underlying findings, repairs, filenames, caller-provided
+  source labels, and configuration data remain untranslated.
 - The broader remaining English message families stay tracked by
   [Issue #122](https://github.com/Bahbus/AB_Category_Editor/issues/122).
 - The three primary documents separate current contracts, current

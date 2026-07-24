@@ -159,7 +159,7 @@ test('importText does not keep an unused importSummary binding', () => {
   const source = read('src/app.js');
   assert.doesNotMatch(source, /const\s+importSummary\s*=/);
   assert.match(source, /applyValidatedConfig\(validation\);/);
-  assert.match(source, /function loadPreset\(preset\)[\s\S]*?return importText\(preset\.data, preset\.sourceLabel \|\| 'Preset'\);/);
+  assert.match(source, /function loadPreset\(preset, sourceLabel\)[\s\S]*?return importText\(preset\.data, sourceLabel \|\| preset\.sourceLabel \|\| 'Preset'\);/);
   assert.match(source, /bindChange\('fileInput',[\s\S]*?await importText\(await readImportFileText\(file\), file\.name\);/);
   assert.match(source, /if \(!\(await importText\(text, ''\)\)\)/);
 });
@@ -181,14 +181,16 @@ test('empty state startup actions use preset callbacks without owning import par
 test('app owns bundled preset import through normal import path', () => {
   const app = read('src/app.js');
   assert.match(app, /import \{ PRESETS \} from '\.\/presets\.js';/);
-  assert.match(app, /function loadPreset\(preset\) \{/);
+  assert.match(app, /function loadPreset\(preset, sourceLabel\) \{/);
   assert.match(app, /if \(!preset\?\.data\) \{/);
-  assert.match(app, /Preset is not available\./);
-  assert.match(app, /return importText\(preset\.data, preset\.sourceLabel \|\| 'Preset'\);/);
+  assert.match(app, /applicationDataMessages\.import\.presetUnavailable/);
+  assert.match(app, /return importText\(preset\.data, sourceLabel \|\| preset\.sourceLabel \|\| 'Preset'\);/);
   assert.match(app, /function loadBasicPresets\(\)/);
   assert.match(app, /function loadAdvancedPresets\(\)/);
   assert.match(app, /preset => preset\.id === 'basic'/);
   assert.match(app, /preset => preset\.id === 'advanced'/);
+  assert.match(app, /applicationDataMessages\.import\.basicPresetSource/);
+  assert.match(app, /applicationDataMessages\.import\.advancedPresetSource/);
   assert.match(app, /loadBasicPresets, loadAdvancedPresets,/);
 
   const presets = read('src/presets.js');

@@ -147,6 +147,15 @@ it still owns focus.
 Export snapshot currency is governed by the application data revision, not by
 async completion order.
 
+Application-owned import, dirty-work replacement, import-validation
+presentation, and full Raw JSON copy route through
+`src/ui/applicationDataMessages.js`. `src/importValidationSummary.js` remains
+the DOM-free classification and summary-composition authority: runtime callers
+may inject the adapter's narrow summary-message interface, while callers that
+omit it retain byte-for-byte English defaults. Validation findings and repair
+objects remain decision-owned data and are escaped only when the application
+renders the summary.
+
 ## Modal, focus, and accessibility
 
 `src/modals.js` owns the shared modal shell, focus trap, focus return,
@@ -163,15 +172,16 @@ messages; icon and pill controls retain visible theme-aware focus.
 `src/localization.js` owns locale resolution, named interpolation, and DOM-free
 rich-message part parsing. `src/locales/en.js` is the frozen flat plain-text
 catalog. `src/app.js` creates one fixed-English translator and injects it into
-application chrome, the populated category list, and the selected-category
-shell. `categoryEditor.js` uses its shell adapter and forwards that translator
-to the Basics, Color, Item Ordering, Matching Rules, and Range/State leaves.
-The category list owns a separate adapter for its sidebar family. The
-Range/State adapter supplies the same message object to editor cards,
-summaries, range controls, state choices, and accessible names. Its DOM-free
-summary and range-decision helpers retain optional exact-English defaults for
-existing callers. Translated values stay in escaped text or explicit
-text/property/attribute sinks.
+application chrome, application-data workflows, the populated category list,
+and the selected-category shell. `categoryEditor.js` uses its shell adapter and
+forwards that translator to the Basics, Color, Item Ordering, Matching Rules,
+and Range/State leaves. The category list and application-data workflows own
+separate adapters for their sidebar and import/full-Raw-JSON families. The
+Range/State adapter supplies the same message object to editor cards, summaries,
+range controls, state choices, and accessible names. Its DOM-free summary and
+range-decision helpers, plus import-validation summary composition, retain
+optional exact-English defaults for existing callers. Translated values stay
+in escaped text or explicit text/property/attribute sinks.
 
 UI modules own semantic node construction and safe sinks. Rich messages allow
 only caller-defined semantic parts; catalog content does not supply HTML.
