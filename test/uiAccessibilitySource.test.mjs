@@ -205,7 +205,7 @@ test('key modal, help, pinned, and category issue status controls remain accessi
 
   assert.match(index, /id="showHelp"[^>]*aria-label="About \/ Help"/);
   assert.match(index, /class="modal"[^>]*role="dialog"[^>]*aria-modal="true"/);
-  assert.match(list, /aria-label="Pinned"/);
+  assert.match(list, /aria-label="\$\{escapeHtml\(messages\.pinned\)\}"/);
   assert.match(list, /<svg[^>]*aria-hidden="true"[^>]*focusable="false"/);
   assert.match(list, /class="[^"]*category-issue-badge[^"]*"[^>]*aria-label="\$\{escapeHtml\(issueLabel\)\}"/);
 });
@@ -365,7 +365,7 @@ test('context determines whether input-adjacent icons match height or center com
   assert.match(ordering, /button\.className = 'icon-button movement-button'/);
   assert.match(ordering, /remove\.className = 'icon-button danger'/);
   assert.match(styles, /\.category-header-actions\s*>\s*button\s*{[\s\S]*?height:\s*var\(--button-icon-target\);/);
-  assert.match(category, /id="duplicateCat" class="small">Duplicate<\/button>/);
+  assert.match(category, /id="duplicateCat" class="small">\$\{escapeHtml\(messages\.duplicate\)\}<\/button>/);
 });
 
 test('standalone movement stays neutral while compact pill icons retain visible focus', () => {
@@ -418,8 +418,8 @@ test('movement icon controls retain precise names, enabled-only titles, and disa
   const list = read('src/ui/listEditor.js');
   assert.match(category, /id="moveUp" class="icon-button movement-button">↑<\/button>/);
   assert.match(category, /id="moveDown" class="icon-button movement-button">↓<\/button>/);
-  assert.match(category, /moveUp:\s*`Move \$\{actionName\} up`/);
-  assert.match(category, /moveDown:\s*`Move \$\{actionName\} down`/);
+  assert.match(category, /moveUp:\s*messages\.actions\.moveUp\(actionName\)/);
+  assert.match(category, /moveDown:\s*messages\.actions\.moveDown\(actionName\)/);
   assert.match(category, /el\('moveUp'\)\.disabled = selectedIndex <= 0/);
   assert.match(category, /el\('moveDown'\)\.disabled = selectedIndex >= cats\.length - 1/);
   assert.match(category, /syncButtonTooltip\(button, label\)/);
@@ -454,9 +454,10 @@ test('visible button labels retain clarity with intentional sentence case', () =
   const sources = sourceFiles('src').map(read).join('\n');
   assert.match(index, />Sort by order<\/button>/);
   assert.doesNotMatch(index, />Sort by Order<\/button>/);
-  for (const label of ['Duplicate', 'Export/Copy', 'Raw JSON', 'Resolve IDs']) {
+  for (const label of ['Export/Copy', 'Raw JSON', 'Resolve IDs']) {
     assert.match(`${index}\n${sources}`, new RegExp(`>${label.replace('/', '\\/')}<\\/button>|textContent = '${label.replace('/', '\\/')}'`));
   }
+  assert.match(sources, /id="duplicateCat" class="small">\$\{escapeHtml\(messages\.duplicate\)\}<\/button>/);
   assert.match(sources, /id="deleteCat" class="icon-button danger">🗑<\/button>/);
   assert.match(sources, /remove\.textContent = '×'/);
   assert.match(sources, /add\.textContent = '\+'/);

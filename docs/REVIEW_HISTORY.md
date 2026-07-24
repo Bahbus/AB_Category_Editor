@@ -221,6 +221,45 @@ Verification on the exact implementation tree:
 - browser QA is not applicable because no executed runtime or presentation
   path changed.
 
+### Phase 81: populated category shell localization
+
+The populated category sidebar and selected-category shell-owned header,
+actions, delete confirmation, Advanced editor, Raw JSON statuses, fallbacks,
+guidance, badges, counts, and accessible names route through two focused
+DOM-free message adapters and the one translator created at application
+composition. Persisted names, descriptions, IDs, format values, serialized Raw
+JSON, generated duplicate names, validation and compatibility findings,
+generated descriptions, callback reason strings, and schema keys remain
+unchanged data.
+
+The selected-category shell no longer re-exports details-summary, filter-summary,
+or Basics-warning helpers that it does not own. Tests import the real owner
+modules directly; the owner exports and their behavior remain covered.
+
+Verification on the exact implementation tree:
+
+- focused localization, category-list, category-editor/data-flow, summary,
+  accessibility, Raw JSON/import-export, modal/focus, trust-boundary, and
+  governance suites passed;
+- `npm run check -- --test-reporter=dot` passed: 99 JavaScript files
+  syntax-checked, all static relative imports resolved, and 48 test files / 576
+  tests passed;
+- repository-wide inspection found no stale removed facade import or
+  re-export, and `git diff --check origin/main` passed with no output;
+- browser QA used the populated advanced preset in Comfortable and Compact
+  density at 1280 px, 840 px, and 390 px with zero document, app-shell, or
+  editor horizontal overflow;
+- live browser checks covered exact sidebar/header/Advanced copy, click,
+  Enter, and Space selection focus, search/reorder guidance, contextual action
+  availability, move and duplicate focus, delete cancel/confirm focus,
+  generated duplicate naming, valid/no-op/invalid selected-category Raw JSON,
+  dirty state, enabled on/off, pinned and validation badges, and focus recovery;
+- the browser host's Electron development CSP warning, the preset's expected
+  three validation warnings, and the intentionally triggered invalid-category
+  JSON diagnostic were observed. No unexpected application error or CSP
+  violation appeared. Committed drag motion was not automated; move controls
+  and automated reorder coverage remain authoritative for mutation behavior.
+
 ## Recording future work
 
 For each numbered phase implementation tree:

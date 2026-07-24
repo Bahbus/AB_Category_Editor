@@ -99,7 +99,7 @@ test('category editor delegates Basics and description ownership through a narro
   const basicEditor = read('src/ui/basicEditor.js');
 
   assert.match(categoryEditor, /import \{ renderBasicEditor \} from ['"]\.\/basicEditor\.js['"];/);
-  assert.match(categoryEditor, /export \{ getBasicSwitchWarnings \} from ['"]\.\/basicEditor\.js['"];/);
+  assert.doesNotMatch(categoryEditor, /export \{[^}]*getBasicSwitchWarnings|renderDetailsSummaryHtml|countRangeFilterIssues|countStateFilterIssues|rangeFiltersSummary|stateFiltersSummary/);
   assert.match(categoryEditor, /const basicEditor = renderBasicEditor\(cat, \{/);
   assert.match(categoryEditor, /copyTextToClipboard,\s*translate\s*\}\);/);
   assert.match(categoryEditor, /topEditorGrid\.append\(basicEditor\.card, colorCard\)/);

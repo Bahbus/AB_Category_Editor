@@ -241,7 +241,7 @@ function renderList() {
     setSelectedIndex: value => { selectedIndex = value; },
     getDraggedIndex: () => draggedIndex,
     setDraggedIndex: value => { draggedIndex = value; },
-    renumberCategories, markDirty: markDirtyAndRenderList, renderAll, commitActiveField
+    renumberCategories, markDirty: markDirtyAndRenderList, renderAll, commitActiveField, translate
   });
   updateGlobalActionAvailability();
 }
