@@ -120,6 +120,42 @@ Verification on the exact implementation tree:
   `docs/ARCHITECTURE.md` and application runtime files are unchanged, so
   architecture updates and browser QA are not applicable.
 
+### Phase 79: Basics and Color localization
+
+Basics- and Color-card-owned UI copy, statuses, technical display data, and
+accessible names route through the one translator already created at
+application composition. Each leaf owns a directly testable DOM-free message
+adapter; catalog values stay plain text and reach escaped text or explicit
+text/property/attribute sinks. Stable internal RGB tokens, rather than
+translated labels, remain the element-ID source.
+
+Generated category-description templates, DOM-free validation findings,
+category-shell copy, Advanced, Range/State, sidebar, Regex, and other deferred
+families are unchanged. Existing description, clipboard, signed-number, color
+fidelity, scheduling, validation, focus, dirty/no-op, responsive, CSP, and
+dependency boundaries remain in place.
+
+Verification on the exact implementation tree:
+
+- focused Basics, Color, localization, category/data-flow, accessibility,
+  trust-boundary, and governance coverage passed 201 tests;
+- `npm run check` passed: 97 JavaScript files syntax-checked, all static
+  relative imports resolved, and 46 test files / 567 tests passed;
+- `git diff --check origin/main` passed with no output;
+- browser QA used a populated advanced preset in Comfortable and Compact
+  density at 1280 px, 840 px, and 390 px with zero horizontal overflow;
+- live browser checks covered Name/header/sidebar and Description updates,
+  generated-description review, successful clipboard copy, cancel/return
+  focus, signed Order validation/restoration, Hex/RGB/alpha synchronization,
+  Enabled/Pinned validation, and the displayed-color no-op path;
+- the native color input was verified as a labeled `type=color` control but its
+  browser-native picker was not automated; the successful clipboard path was
+  exercised, while the fallback path could not be forced by the available
+  tooling;
+- no application console error or CSP violation appeared. The browser host's
+  own Electron development warning and the preset's expected three validation
+  warnings were observed and are not application regressions.
+
 ## Recording future work
 
 For each numbered phase implementation tree:

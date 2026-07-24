@@ -291,8 +291,8 @@ test('text controls can refresh validation during input', () => {
   assert.match(formControlsSource, /options\.validateOnInput/);
   assert.match(formControlsSource, /typeof options\.onBlur === 'function'/);
   assert.ok(formControlsSource.includes('onChange(e.target.value);\n    if (options.validateOnInput) setValidation'));
-  assert.match(basicEditorSource, /textInput\('Description',[\s\S]*validateOnInput: true/);
-  assert.match(basicEditorSource, /textInput\('Name',[\s\S]*validateOnInput: true/);
+  assert.match(basicEditorSource, /textInput\(messages\.description,[\s\S]*validateOnInput: true/);
+  assert.match(basicEditorSource, /textInput\(messages\.name,[\s\S]*validateOnInput: true/);
 });
 
 test('number controls commit finite input events without committing empty partial values', () => {

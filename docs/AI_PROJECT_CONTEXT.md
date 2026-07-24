@@ -42,6 +42,9 @@ The project intentionally has:
 
 ## Current state
 
+- Basics- and Color-card-owned text and accessible names use the existing
+  injected translator through focused DOM-free message adapters. Generated
+  description templates and DOM-free validation findings remain exact English.
 - Populated Item Ordering editor-owned text and accessible names use the
   existing injected translator. DOM-free ordering decisions and compatibility
   findings remain exact English.
