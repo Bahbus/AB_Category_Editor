@@ -17,8 +17,7 @@ import {
   STATE_FILTER_OPTIONS,
   rangeSliderBounds,
   rangeInputErrorMessage,
-  rangeValidationState,
-  stateFilterLabel
+  rangeValidationState
 } from '../src/ui/formControls.js';
 
 test('rarity labels hide internal numeric values', () => {
@@ -32,11 +31,6 @@ test('rarity labels hide internal numeric values', () => {
 test('state filter options preserve numeric values with friendly labels', () => {
   assert.deepEqual(STATE_FILTER_OPTIONS.map(option => option.value), [0, 1, 2]);
   assert.deepEqual(STATE_FILTER_OPTIONS.map(option => option.label), ['Ignored', 'Required', 'Excluded']);
-  assert.equal(stateFilterLabel(0), 'Ignored');
-  assert.equal(stateFilterLabel(1), 'Required');
-  assert.equal(stateFilterLabel(2), 'Excluded');
-  assert.equal(stateFilterLabel(99), 'Ignored');
-  assert.equal(stateFilterLabel('1'), 'Ignored');
 });
 
 test('rangeSliderBounds includes current values without clamping unusual imports', () => {
@@ -97,6 +91,26 @@ test('range validation state keeps component errors specific and reversed ranges
   assert.deepEqual(reversed.Max, { invalid: true, describedBy: true });
   assert.equal(reversed.reversed, true);
   assert.equal(reversed.hasError, false);
+});
+
+test('range messages are optional and support translated labels, bounds, and reversed warnings', () => {
+  const messages = {
+    minimum: 'Lower',
+    maximum: 'Upper',
+    minimumSlider: filter => `${filter} lower`,
+    maximumSlider: filter => `${filter} upper`,
+    integer: component => `${component}: integer`,
+    atLeast: (component, minimum) => `${component}: >= ${minimum}`,
+    noGreater: (component, maximum) => `${component}: <= ${maximum}`,
+    bounds: (component, minimum, maximum) => `${component}: ${minimum}..${maximum}`,
+    reversed: 'Lower exceeds upper.'
+  };
+
+  assert.equal(rangeInputErrorMessage('Min', '', {}, messages), 'Lower: integer');
+  assert.equal(rangeInputErrorMessage('Min', '-1', { minimum: 0 }, messages), 'Lower: >= 0');
+  assert.equal(rangeInputErrorMessage('Max', '11', { maximum: 10 }, messages), 'Upper: <= 10');
+  assert.equal(rangeInputErrorMessage('Max', 'nope', { minimum: 0, maximum: 10 }, messages), 'Upper: integer');
+  assert.equal(rangeValidationState({ Min: 20, Max: 10 }, {}, {}, messages).message, 'Lower exceeds upper.');
 });
 
 test('invalid range applications do not mutate or notify and valid integers notify exactly once', () => {
@@ -280,7 +294,7 @@ test('switch markup relies on native checked state instead of mirrored aria-chec
 test('segmented state filter legends are accessible without repeating visible headings', () => {
   const categoryEditorSource = fs.readFileSync(new URL('../src/ui/rangeStateFiltersEditor.js', import.meta.url), 'utf8');
   const formControlsSource = fs.readFileSync(new URL('../src/ui/formControls.js', import.meta.url), 'utf8');
-  assert.match(categoryEditorSource, /segmentedControl\(displayFilterName\(filterName\)/);
+  assert.match(categoryEditorSource, /segmentedControl\(messages\.stateGroup\(filterName\), obj\.State \?\? 0, messages\.stateOptions/);
   assert.match(formControlsSource, /<legend class="sr-only">\$\{escapeHtml\(label\)\}<\/legend>/);
 });
 
@@ -319,6 +333,6 @@ test('range validation applies per-component accessibility while retaining share
 
   assert.match(source, /const validationId = makeControlId\('range-validation'\);/);
   assert.match(source, /<p id="\$\{validationId\}" class="hint range-validation" hidden>/);
-  assert.match(source, /const validity = rangeValidationState\(rangeObj, inputErrors, valueOptions\);/);
+  assert.match(source, /const validity = rangeValidationState\(rangeObj, inputErrors, valueOptions, messages\);/);
   assert.match(source, /for \(const \[input, component\] of \[\[minNumber, validity\.Min\], \[maxNumber, validity\.Max\]\]\) \{[\s\S]*?input\.setAttribute\('aria-invalid', component\.invalid \? 'true' : 'false'\);[\s\S]*?if \(component\.describedBy\) input\.setAttribute\('aria-describedby', validationId\);/);
 });

@@ -612,7 +612,7 @@ test('range controls enforce width-aware input bounds and component-specific acc
   const controls = read('src/ui/formControls.js');
   const editor = read('src/ui/rangeStateFiltersEditor.js');
   assert.match(controls, /type="number" step="1"\$\{minAttr\}\$\{maxAttr\}/);
-  assert.match(controls, /inputErrors\[key\] = rangeInputErrorMessage\(key, input\.value, valueOptions\);[\s\S]*?syncValidity\(\);[\s\S]*?return false;/);
+  assert.match(controls, /inputErrors\[key\] = rangeInputErrorMessage\(key, input\.value, valueOptions, messages\);[\s\S]*?syncValidity\(\);[\s\S]*?return false;/);
   assert.match(controls, /input\.setAttribute\('aria-invalid', component\.invalid \? 'true' : 'false'\)/);
   assert.match(controls, /if \(component\.describedBy\) input\.setAttribute\('aria-describedby', validationId\)/);
   assert.match(editor, /minimum: key === 'VendorPrice' \? 0 : INT32_MIN/);
