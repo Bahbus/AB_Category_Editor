@@ -156,6 +156,47 @@ Verification on the exact implementation tree:
   own Electron development warning and the preset's expected three validation
   warnings were observed and are not application regressions.
 
+### Phase 80: Range and State filter localization
+
+Range and State filter editor-owned headings, display labels, summary badges,
+structured range messages, segmented choices, and accessible names route
+through the one translator already created at application composition. One
+stable-keyed DOM-free adapter supplies the same messages to initial and
+refreshed summaries, editor cards, and shared controls. Schema keys and
+validation/compatibility findings remain untranslated, while existing DOM-free
+summary and range-decision callers retain exact-English defaults.
+
+The confirmed production-unused `stateFilterLabel()` export and its test-only
+contract are removed. Existing range/state mutation order, dirty/no-op
+behavior, validation, restoration, state values, summary refresh, description
+triggers, deferred sidebar rendering, focus, accessibility, responsive
+layout, import/export, safe sinks, and dependency boundaries remain in place.
+
+Verification on the exact implementation tree:
+
+- focused Range/State localization, editor/summary, form-control, category
+  composition, accessibility, validation, import/export source, and governance
+  suites passed;
+- ordinary and compact `npm run check` passed: 98 JavaScript files
+  syntax-checked, all static relative imports resolved, and 47 test files / 572
+  tests passed;
+- `git diff --check origin/main` passed with no output;
+- browser QA used a populated advanced preset with both disclosure sections
+  open in Comfortable and Compact density at 1280 px, 840 px, and 390 px,
+  with zero document, app, editor, Range-grid, or State-grid horizontal
+  overflow;
+- live browser checks covered exact headings, choices, number labels, slider
+  names, state-group names, range enablement, summary badges, unchanged input,
+  blank restoration, out-of-range preservation/error association, reversed
+  range warnings, valid correction, Required/Excluded changes, checked/invalid
+  accessibility state, local focus stability, and Preferences return focus;
+- the in-app browser's synthetic key presses did not change the styled state
+  radio, so keyboard state changes were not claimed from browser automation;
+  source and automated behavior coverage remain authoritative for that path;
+- no application console error or CSP violation appeared. The browser host's
+  own Electron development CSP warning and the preset's expected three
+  validation warnings were the only diagnostics observed.
+
 ## Recording future work
 
 For each numbered phase implementation tree:

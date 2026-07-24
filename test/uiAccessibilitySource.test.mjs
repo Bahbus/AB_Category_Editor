@@ -264,9 +264,9 @@ test('range filter live edits use scheduled list rendering without full rerender
   const categoryEditor = read('src/ui/categoryEditor.js');
   assert.match(categoryEditor, /function createScheduledRenderList\(renderList\)/);
   assert.match(categoryEditor, /const scheduleRenderList = createScheduledRenderList\(renderList\)/);
-  assert.match(source, /rangeSliderControl\(filter\.label, obj, afterRangeChange, defaults\)/);
+  assert.match(source, /rangeSliderControl\(filterLabel, obj, afterRangeChange, defaults, messages\.rangeControls\)/);
   const afterRangeChange = source.slice(source.indexOf('function afterRangeChange()'), source.indexOf('for (const filter of RANGE_FILTERS)'));
-  const rangeOrder = ['markDirty();', 'setDetailsSummary(ranges, rangeFiltersSummaryParts(rules));', "onFiltersChanged('range filter changed');", 'scheduleRenderList();']
+  const rangeOrder = ['markDirty();', 'setDetailsSummary(ranges, rangeFiltersSummaryParts(rules, messages));', "onFiltersChanged('range filter changed');", 'scheduleRenderList();']
     .map(statement => afterRangeChange.indexOf(statement));
   assert.ok(rangeOrder.every(index => index >= 0));
   assert.deepEqual(rangeOrder, [...rangeOrder].sort((a, b) => a - b));
@@ -326,7 +326,7 @@ test('state filter changes schedule list rendering without full render', () => {
   const body = source.match(/function renderStateFilterCard\(filterName, obj\) \{(?<body>[\s\S]*?)\n    return box;/)?.groups.body ?? '';
   assert.match(body, /obj\.State = next;[\s\S]*?afterStateChange\(\);/);
   const afterStateChange = source.slice(source.indexOf('function afterStateChange()'), source.indexOf('function renderStateFilterCard'));
-  const stateOrder = ['markDirty();', 'setDetailsSummary(states, stateFiltersSummaryParts(rules));', "onFiltersChanged('state filter changed');", 'scheduleRenderList();']
+  const stateOrder = ['markDirty();', 'setDetailsSummary(states, stateFiltersSummaryParts(rules, messages));', "onFiltersChanged('state filter changed');", 'scheduleRenderList();']
     .map(statement => afterStateChange.indexOf(statement));
   assert.ok(stateOrder.every(index => index >= 0));
   assert.deepEqual(stateOrder, [...stateOrder].sort((a, b) => a - b));

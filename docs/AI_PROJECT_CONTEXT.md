@@ -48,6 +48,10 @@ The project intentionally has:
 - Populated Item Ordering editor-owned text and accessible names use the
   existing injected translator. DOM-free ordering decisions and compatibility
   findings remain exact English.
+- Populated Range and State filter editor text, summaries, structured-control
+  messages, and accessible names use one stable-keyed DOM-free message adapter
+  and the existing injected translator. Schema, validation, and compatibility
+  metadata remain exact and untranslated.
 - The broader remaining English message families stay tracked by
   [Issue #122](https://github.com/Bahbus/AB_Category_Editor/issues/122).
 - The three primary documents separate current contracts, current

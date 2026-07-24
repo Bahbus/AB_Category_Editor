@@ -94,7 +94,8 @@ Focused leaves own cohesive surfaces:
 - `itemOrderingEditor.js` — criteria/custom-rank composition and local
   ordering refresh;
 - `matchingRulesEditor.js` — the four matching-rule cards and converter entry;
-- `rangeStateFiltersEditor.js` — Range and State disclosure cards;
+- `rangeStateFiltersEditor.js` — Range and State disclosure cards plus their
+  stable-keyed DOM-free UI-message adapter;
 - `listEditor.js` — reusable typed list, ordered pill, lookup, and manual-search
   behavior;
 - modal-specific files — Preferences, Help, Lookup Cache, and empty-state
@@ -160,9 +161,12 @@ messages; icon and pill controls retain visible theme-aware focus.
 rich-message part parsing. `src/locales/en.js` is the frozen flat plain-text
 catalog. `src/app.js` creates one fixed-English translator and injects it into
 application chrome and UI owners. `categoryEditor.js` forwards that translator
-to the Basics and Color leaves; each leaf exposes a directly testable,
-DOM-free message adapter and keeps translated values in escaped text or
-explicit text/property/attribute sinks.
+to the Basics, Color, Item Ordering, and Range/State leaves. The Range/State
+adapter supplies the same message object to editor cards, summaries, range
+controls, state choices, and accessible names. Its DOM-free summary and
+range-decision helpers retain optional exact-English defaults for existing
+callers. Translated values stay in escaped text or explicit
+text/property/attribute sinks.
 
 UI modules own semantic node construction and safe sinks. Rich messages allow
 only caller-defined semantic parts; catalog content does not supply HTML.
