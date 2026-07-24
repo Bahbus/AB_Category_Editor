@@ -9,12 +9,6 @@ function makeControlId(prefix) {
   return `${prefix}-${nextControlId}`;
 }
 
-export const STATE_FILTER_OPTIONS = [
-  { value: 0, label: 'Ignored', tone: 'ignored' },
-  { value: 1, label: 'Required', tone: 'required' },
-  { value: 2, label: 'Excluded', tone: 'excluded' }
-];
-
 const DEFAULT_RANGE_CONTROL_MESSAGES = Object.freeze({
   minimum: 'Minimum',
   maximum: 'Maximum',
