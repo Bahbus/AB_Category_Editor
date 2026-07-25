@@ -156,6 +156,16 @@ omit it retain byte-for-byte English defaults. Validation findings and repair
 objects remain decision-owned data and are escaped only when the application
 renders the summary.
 
+Application-owned export availability, busy/failure copy, saved-state labels,
+Export / Copy and Download completion copy, revision-current/stale
+presentation, and the blocked compatibility modal route through
+`src/ui/applicationExportMessages.js`. The adapter accepts the composition-owned
+translator and does not import catalogs, locale state, DOM, application
+orchestration, export decisions, or snapshot decisions. Counts, filenames,
+error details, Base64 content, compatibility locations, and compatibility
+findings remain untranslated dynamic or decision-owned data and continue
+through escaped HTML or explicit text/property sinks.
+
 ## Modal, focus, and accessibility
 
 `src/modals.js` owns the shared modal shell, focus trap, focus return,
@@ -172,16 +182,18 @@ messages; icon and pill controls retain visible theme-aware focus.
 `src/localization.js` owns locale resolution, named interpolation, and DOM-free
 rich-message part parsing. `src/locales/en.js` is the frozen flat plain-text
 catalog. `src/app.js` creates one fixed-English translator and injects it into
-application chrome, application-data workflows, the populated category list,
-and the selected-category shell. `categoryEditor.js` uses its shell adapter and
-forwards that translator to the Basics, Color, Item Ordering, Matching Rules,
-and Range/State leaves. The category list and application-data workflows own
-separate adapters for their sidebar and import/full-Raw-JSON families. The
-Range/State adapter supplies the same message object to editor cards, summaries,
-range controls, state choices, and accessible names. Its DOM-free summary and
-range-decision helpers, plus import-validation summary composition, retain
-optional exact-English defaults for existing callers. Translated values stay
-in escaped text or explicit text/property/attribute sinks.
+application chrome, application-data and application-export workflows, the
+populated category list, and the selected-category shell. `categoryEditor.js`
+uses its shell adapter and forwards that translator to the Basics, Color, Item
+Ordering, Matching Rules, and Range/State leaves. The category list,
+application-data workflows, and application-export workflows own separate
+adapters for their sidebar, import/full-Raw-JSON, and output/compatibility
+families. The Range/State adapter supplies the same message object to editor
+cards, summaries, range controls, state choices, and accessible names. Its
+DOM-free summary and range-decision helpers, plus import-validation summary
+composition, retain optional exact-English defaults for existing callers.
+Translated values stay in escaped text or explicit text/property/attribute
+sinks.
 
 UI modules own semantic node construction and safe sinks. Rich messages allow
 only caller-defined semantic parts; catalog content does not supply HTML.

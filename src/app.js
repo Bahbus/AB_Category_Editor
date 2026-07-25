@@ -10,6 +10,7 @@ import { showLookupCacheModal } from './ui/lookupCacheModal.js';
 import { showPreferencesModal } from './ui/preferencesModal.js';
 import { applyApplicationChromeLocalization } from './ui/applicationChrome.js';
 import { createApplicationDataMessages } from './ui/applicationDataMessages.js';
+import { createApplicationExportMessages } from './ui/applicationExportMessages.js';
 import { createTranslator } from './localization.js';
 import { openRegexToItemIdsTool as openRegexTool } from './tools/regexToItemIds.js';
 import { EXPORT_FILENAME, assertJsonTextWithinLimit, copyTextToClipboard, downloadText, makeBase64Export, parseImportedText, parseJsonText, readImportFileText } from './importExport.js';
@@ -43,6 +44,7 @@ let lookupCache = loadLookupCache();
 let editorPreferences = loadEditorPreferences();
 const translate = createTranslator('en');
 const applicationDataMessages = createApplicationDataMessages(translate);
+const applicationExportMessages = createApplicationExportMessages(translate);
 const lookupCacheOperations = createLookupCacheOperationCoordinator();
 let resolvingReferencedIds = false;
 
@@ -83,11 +85,11 @@ function advanceDataRevision() { dataRevision += 1; }
 function markDirty(options = {}) {
   advanceDataRevision();
   dirty = true;
-  setSaveState('Changes not exported', 'warn');
+  setSaveState(applicationExportMessages.savedState.changesNotExported, 'warn');
   if (options.renderList) renderList();
 }
 function markDirtyAndRenderList() { markDirty({ renderList: true }); }
-function markSaved(label='Exported') { dirty = false; setSaveState(label); }
+function markSaved(label=applicationExportMessages.savedState.exported) { dirty = false; setSaveState(label); }
 function applyValidatedConfig(validation) {
   return applyConfigReplacement(data, validation.config, candidate => {
     data = candidate;
@@ -154,13 +156,13 @@ function showExportCompatibilitySummary(decision) {
     const location = item.categoryName ? `${item.categoryName} · ${item.field}` : item.field;
     return `<li class="field-error"><strong>${escapeHtml(location)}:</strong> ${escapeHtml(item.message)}</li>`;
   }).join('');
-  const more = findings.length > 80 ? `<p class="hint">Showing first 80 of ${findings.length} blocking compatibility errors.</p>` : '';
+  const more = findings.length > 80 ? `<p class="hint">${escapeHtml(applicationExportMessages.compatibility.truncated(findings.length))}</p>` : '';
   const wrap = document.createElement('div');
-  wrap.innerHTML = `<div role="alert"><p><strong>Export blocked:</strong> the current data contains ${findings.length} value(s) that cannot be safely serialized or read by the current AetherBags category importer.</p><p class="hint">Correct the listed fields in the structured controls or Raw JSON, then run Export / Copy or Download again. Values that AetherBags will safely default or ignore are review warnings and do not block export. No export was generated and the saved state was not changed.</p></div><ul class="validation-list">${rows}</ul>${more}<div class="row modal-action-row"><button id="closeExportCompatibility" class="primary">Continue editing</button></div>`;
-  openModal('AetherBags export compatibility', wrap);
-  try { requireScopedEl(wrap, '#closeExportCompatibility', 'export compatibility').addEventListener('click', closeModal); }
-  catch (err) { reportModalBindingError('Export compatibility summary unavailable', err); }
-  setStatus(`Export blocked by ${findings.length} AetherBags compatibility error(s). Correct the listed fields and try again.`, 'err');
+  wrap.innerHTML = `<div role="alert"><p><strong>${escapeHtml(applicationExportMessages.compatibility.heading)}</strong> ${escapeHtml(applicationExportMessages.compatibility.explanation(findings.length))}</p><p class="hint">${escapeHtml(applicationExportMessages.compatibility.guidance)}</p></div><ul class="validation-list">${rows}</ul>${more}<div class="row modal-action-row"><button id="closeExportCompatibility" class="primary">${escapeHtml(applicationExportMessages.compatibility.continueEditing)}</button></div>`;
+  openModal(applicationExportMessages.compatibility.title, wrap);
+  try { requireScopedEl(wrap, '#closeExportCompatibility', applicationExportMessages.compatibility.bindingContext).addEventListener('click', closeModal); }
+  catch (err) { reportModalBindingError(applicationExportMessages.compatibility.bindingContext, err); }
+  setStatus(applicationExportMessages.compatibility.status(findings.length), 'err');
 }
 
 async function makeCompatibleRevisionedExportSnapshot(busyTitle, busyMessage, onBusy = () => {}) {
@@ -498,69 +500,69 @@ function bindAppEvents() {
 
   bindClick('showExportCopy', async () => {
     commitActiveField();
-    if (getCategories().length === 0) { updateExportControls(); setStatus('Add or import at least one category before exporting.', 'warn'); return; }
+    if (getCategories().length === 0) { updateExportControls(); setStatus(applicationExportMessages.availability.exportEmpty, 'warn'); return; }
     let busyShown = false;
     try {
-      const snapshot = await makeCompatibleRevisionedExportSnapshot('Generating export', 'Compressing JSON to gzip+Base64...', () => { busyShown = true; });
+      const snapshot = await makeCompatibleRevisionedExportSnapshot(applicationExportMessages.busy.exportTitle, applicationExportMessages.busy.compression, () => { busyShown = true; });
       if (!snapshot) return;
       const b64 = snapshot.value;
       hideBusy(); busyShown = false;
       if (isModalOpen()) {
-        setStatus('Export generation finished while another dialog was active. Close it and run Export / Copy again.', 'warn');
+        setStatus(applicationExportMessages.export.activeDialog, 'warn');
         return;
       }
       const snapshotCurrent = isSnapshotCurrent(snapshot.revision, dataRevision);
       const wrap = document.createElement('div');
       const snapshotExplanation = snapshotCurrent
-        ? 'Current gzip+Base64 export. Automatic clipboard copy will be attempted if the browser allows it.'
-        : 'This gzip+Base64 export represents earlier editor data and is not the current config. Automatic clipboard copy will still be attempted.';
-      wrap.innerHTML = `<p class="hint">${snapshotExplanation}</p><div id="exportError" class="modal-error hidden" role="alert"></div><textarea id="exportText" class="raw" readonly>${escapeHtml(b64)}</textarea><div class="row modal-action-row"><button id="copyExportAgain" class="primary">Copy again</button></div><p class="hint" id="exportCopyStatus"></p>`;
-      openModal('Export / Copy', wrap);
+        ? applicationExportMessages.export.currentExplanation
+        : applicationExportMessages.export.staleExplanation;
+      wrap.innerHTML = `<p class="hint">${escapeHtml(snapshotExplanation)}</p><div id="exportError" class="modal-error hidden" role="alert"></div><textarea id="exportText" class="raw" readonly>${escapeHtml(b64)}</textarea><div class="row modal-action-row"><button id="copyExportAgain" class="primary">${escapeHtml(applicationExportMessages.export.copyAgain)}</button></div><p class="hint" id="exportCopyStatus"></p>`;
+      openModal(applicationExportMessages.export.title, wrap);
       saveSnapshotIfCurrent(snapshot.revision, dataRevision, {
-        onSaved: () => markSaved('Exported'),
+        onSaved: () => markSaved(applicationExportMessages.savedState.exported),
         onStale: () => setStatus(
           dirty
-            ? 'Generated export snapshot succeeded, but newer changes remain unexported.'
-            : 'Generated export snapshot represents earlier editor data and is not the current config.',
+            ? applicationExportMessages.export.staleDirtyStatus
+            : applicationExportMessages.export.staleSavedStatus,
           'warn'
         )
       });
       const copied = await copyTextToClipboard(b64);
-      const exportCopyStatus = requireScopedEl(wrap, '#exportCopyStatus', 'export');
-      const exportText = requireScopedEl(wrap, '#exportText', 'export');
-      const copyExportAgain = requireScopedEl(wrap, '#copyExportAgain', 'export');
-      exportCopyStatus.textContent = copied ? 'Copied to clipboard.' : 'Automatic copy was blocked by the browser. Use “Copy again” or select the text manually.';
+      const exportCopyStatus = requireScopedEl(wrap, '#exportCopyStatus', applicationExportMessages.export.bindingContext);
+      const exportText = requireScopedEl(wrap, '#exportText', applicationExportMessages.export.bindingContext);
+      const copyExportAgain = requireScopedEl(wrap, '#copyExportAgain', applicationExportMessages.export.bindingContext);
+      exportCopyStatus.textContent = copied ? applicationExportMessages.export.copied : applicationExportMessages.export.automaticCopyBlocked;
       copyExportAgain.addEventListener('click', async () => {
         commitActiveField();
         const ok = await copyTextToClipboard(exportText.value);
-        exportCopyStatus.textContent = ok ? 'Copied to clipboard.' : 'Copy failed. Select the text manually.';
-        setInlineError('exportError', ok ? '' : 'Copy failed. Select the export text manually.');
+        exportCopyStatus.textContent = ok ? applicationExportMessages.export.copied : applicationExportMessages.export.retryCopyFailed;
+        setInlineError('exportError', ok ? '' : applicationExportMessages.export.retryCopyError);
       });
-    } catch (err) { if (busyShown) hideBusy(); setStatus(errorMessage('Export failed', err), 'err'); }
+    } catch (err) { if (busyShown) hideBusy(); setStatus(applicationExportMessages.failure.export(err), 'err'); }
   });
 
   bindClick('downloadBase64', async () => {
     commitActiveField();
-    if (getCategories().length === 0) { updateExportControls(); setStatus('Add or import at least one category before downloading.', 'warn'); return; }
+    if (getCategories().length === 0) { updateExportControls(); setStatus(applicationExportMessages.availability.downloadEmpty, 'warn'); return; }
     let busyShown = false;
     try {
-      const snapshot = await makeCompatibleRevisionedExportSnapshot('Generating download', 'Compressing JSON to gzip+Base64...', () => { busyShown = true; });
+      const snapshot = await makeCompatibleRevisionedExportSnapshot(applicationExportMessages.busy.downloadTitle, applicationExportMessages.busy.compression, () => { busyShown = true; });
       if (!snapshot) return;
       downloadText(EXPORT_FILENAME, snapshot.value, 'text/plain', { onDownloaded(filename) {
         saveSnapshotIfCurrent(snapshot.revision, dataRevision, {
-          onSaved() { markSaved('Downloaded'); setStatus(`Downloaded ${filename}`, 'ok'); },
+          onSaved() { markSaved(applicationExportMessages.savedState.downloaded); setStatus(applicationExportMessages.download.success(filename), 'ok'); },
           onStale() {
             setStatus(
               dirty
-                ? `Downloaded ${filename}, but newer changes remain unexported.`
-                : `Downloaded ${filename}, but it represents earlier editor data and is not the current config.`,
+                ? applicationExportMessages.download.staleDirty(filename)
+                : applicationExportMessages.download.staleSaved(filename),
               'warn'
             );
           }
         });
       } });
     }
-    catch (err) { setStatus(errorMessage('Download failed', err), 'err'); }
+    catch (err) { setStatus(applicationExportMessages.failure.download(err), 'err'); }
     finally { if (busyShown) hideBusy(); }
   });
 

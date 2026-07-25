@@ -275,7 +275,7 @@ test('export guards the generated snapshot before awaiting automatic clipboard c
   const handler = app.match(/bindClick\('showExportCopy', async \(\) => \{(?<body>[\s\S]*?)\n  \}\);/)?.groups.body ?? '';
   const modalGuardIndex = handler.indexOf('if (isModalOpen())');
   const wrapIndex = handler.indexOf("document.createElement('div')");
-  const openIndex = handler.indexOf("openModal('Export / Copy', wrap)");
+  const openIndex = handler.indexOf('openModal(applicationExportMessages.export.title, wrap)');
   const savedIndex = handler.indexOf('saveSnapshotIfCurrent(snapshot.revision, dataRevision');
   const clipboardIndex = handler.indexOf('await copyTextToClipboard(b64)');
 
@@ -284,11 +284,11 @@ test('export guards the generated snapshot before awaiting automatic clipboard c
   assert.ok(modalGuardIndex < openIndex, 'active modal guard must run before opening the export modal');
   assert.ok(modalGuardIndex < savedIndex, 'active modal guard must run before changing save state');
   assert.ok(modalGuardIndex < clipboardIndex, 'active modal guard must run before automatic clipboard work');
-  assert.match(handler, /if \(isModalOpen\(\)\) \{[\s\S]*?another dialog was active[\s\S]*?return;[\s\S]*?\}/);
+  assert.match(handler, /if \(isModalOpen\(\)\) \{[\s\S]*?applicationExportMessages\.export\.activeDialog[\s\S]*?return;[\s\S]*?\}/);
   assert.ok(openIndex < savedIndex, 'the generated export must be shown before it counts as exported');
   assert.ok(savedIndex < clipboardIndex, 'saved state must not be cleared after the clipboard await');
   assert.doesNotMatch(handler.slice(clipboardIndex), /markSaved\(|saveSnapshotIfCurrent\(/);
-  assert.match(handler, /snapshotCurrent[\s\S]*?Current gzip\+Base64 export[\s\S]*?represents earlier editor data and is not the current config/);
+  assert.match(handler, /snapshotCurrent[\s\S]*?applicationExportMessages\.export\.currentExplanation[\s\S]*?applicationExportMessages\.export\.staleExplanation/);
 });
 
 test('both export paths share the accessible AetherBags compatibility preflight', () => {
@@ -305,10 +305,10 @@ test('both export paths share the accessible AetherBags compatibility preflight'
   assert.match(exportHandler, /makeCompatibleRevisionedExportSnapshot\(/);
   assert.match(downloadHandler, /makeCompatibleRevisionedExportSnapshot\(/);
   assert.match(blockedSummary, /role="alert"/);
-  assert.match(blockedSummary, /cannot be safely serialized or read/);
-  assert.match(blockedSummary, /safely default or ignore/);
-  assert.match(blockedSummary, /structured controls or Raw JSON/);
-  assert.match(blockedSummary, /saved state was not changed/);
+  assert.match(blockedSummary, /applicationExportMessages\.compatibility\.explanation\(findings\.length\)/);
+  assert.match(blockedSummary, /applicationExportMessages\.compatibility\.guidance/);
+  assert.match(blockedSummary, /escapeHtml\(item\.message\)/);
+  assert.match(blockedSummary, /escapeHtml\(location\)/);
   assert.match(styles, /\.modal\s*\{[\s\S]*?width:\s*min\(900px, calc\(100vw - 40px\)\)/);
   assert.match(styles, /\.modal-title-row > \.flush-heading\s*\{[\s\S]*?overflow-wrap:\s*anywhere/);
   assert.match(styles, /\.validation-list\s*\{[\s\S]*?overflow-wrap:\s*anywhere/);
@@ -337,10 +337,10 @@ test('all live config identity revisions guard both asynchronous export snapshot
     assert.match(handler, /makeCompatibleRevisionedExportSnapshot\(/);
     assert.match(handler, /saveSnapshotIfCurrent\(snapshot\.revision, dataRevision/);
   }
-  assert.match(exportHandler, /newer changes remain unexported\./);
-  assert.match(exportHandler, /represents earlier editor data and is not the current config\./);
-  assert.match(downloadHandler, /newer changes remain unexported\./);
-  assert.match(downloadHandler, /represents earlier editor data and is not the current config\./);
+  assert.match(exportHandler, /applicationExportMessages\.export\.staleDirtyStatus/);
+  assert.match(exportHandler, /applicationExportMessages\.export\.staleSavedStatus/);
+  assert.match(downloadHandler, /applicationExportMessages\.download\.staleDirty\(filename\)/);
+  assert.match(downloadHandler, /applicationExportMessages\.download\.staleSaved\(filename\)/);
   assert.doesNotMatch(exportHandler, /onStale:\s*\(\) => \{\s*if \(dirty\)/);
   assert.doesNotMatch(downloadHandler, /onStale\(\) \{\s*if \(dirty\)/);
 });

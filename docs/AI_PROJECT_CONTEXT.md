@@ -63,6 +63,11 @@ The project intentionally has:
   accepts an injected message interface while preserving exact-English defaults
   for direct callers; underlying findings, repairs, filenames, caller-provided
   source labels, and configuration data remain untranslated.
+- Application-owned Export / Copy, Download, revisioned snapshot/saved-state
+  presentation, and blocked export-compatibility presentation use a separate
+  focused DOM-free message adapter and that same translator. Compatibility
+  findings, category and field locations, filenames, error details, snapshots,
+  and export data remain untranslated dynamic or decision-owned data.
 - The broader remaining English message families stay tracked by
   [Issue #122](https://github.com/Bahbus/AB_Category_Editor/issues/122).
 - The three primary documents separate current contracts, current
