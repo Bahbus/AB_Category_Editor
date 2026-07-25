@@ -338,6 +338,41 @@ Verification on the exact implementation tree:
   Raw JSON diagnostics were observed. No unexpected application error or CSP
   violation appeared.
 
+### Phase 83: orphaned compatibility and Item Ordering API cleanup
+
+The production-unused export-compatibility category accessor and its sole
+private-symbol metadata attachment are removed. Compatibility findings retain
+the same enumerable severity, field, message, blocking, serialization,
+category ID, category name, and category index data, and the preflight result
+and application presentation continue to consume those fields.
+
+The two production-unused Item Ordering label helpers are also removed.
+`ITEM_SORT_FIELDS` and `ITEM_SORT_DIRECTIONS` retain their exact stable values
+and order, remain the validation authorities for supported values, and still
+supply the structured Item Ordering editor. Display-label ownership,
+localization boundaries, decision findings, serialized data, and executed UI
+paths are unchanged.
+
+Verification on the exact implementation tree:
+
+- focused Item Ordering, export compatibility, validation, localization,
+  import/export source, trust-boundary, and orphan-API source coverage passed
+  all 168 tests;
+- `npm run check -- --test-reporter=dot` passed: 102 JavaScript files
+  syntax-checked, all static relative imports resolved, and 50 test files /
+  582 tests passed;
+- production-source inspection found no remaining obsolete accessor, helper,
+  or export-compatibility symbol name; the retained option tables keep both
+  decision and editor consumers, and `git diff --check origin/main` passed
+  with no output;
+- changed runtime scope is limited to deleting the orphaned accessor, helpers,
+  symbol declaration, and symbol attachment; the only other changes are
+  focused source coverage and this durable review record;
+- `docs/AI_PROJECT_CONTEXT.md` and `docs/ARCHITECTURE.md` remain accurate and
+  unchanged, so context and architecture updates are not applicable;
+- browser QA is not applicable because no executed application or
+  presentation path changed.
+
 ## Recording future work
 
 For each numbered phase implementation tree:

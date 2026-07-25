@@ -13,8 +13,6 @@ import { analyzeItemOrdering } from './itemOrdering.js';
 export const AETHERBAGS_EXPORT_FORMAT = 'AetherBags_Category';
 export const AETHERBAGS_EXPORT_VERSION = 1;
 
-const CATEGORY_INSTANCE = Symbol('aetherBagsCompatibilityCategoryInstance');
-
 function hasOwn(value, key) {
   return Object.prototype.hasOwnProperty.call(value, key);
 }
@@ -168,18 +166,12 @@ export function jsonSerializationFidelityFindings(value) {
 }
 
 function categoryFinding(category, index, severity, field, message, options = {}) {
-  const result = finding(severity, field, message, {
+  return finding(severity, field, message, {
     categoryId: category?.Id,
     categoryName: categoryLabel(category, index),
     categoryIndex: index,
     ...options
   });
-  Object.defineProperty(result, CATEGORY_INSTANCE, { value: category });
-  return result;
-}
-
-export function compatibilityFindingCategory(item) {
-  return item?.[CATEGORY_INSTANCE];
 }
 
 function blockingCategoryFinding(category, index, field, message) {
