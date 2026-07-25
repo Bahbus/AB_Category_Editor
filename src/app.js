@@ -11,10 +11,11 @@ import { showPreferencesModal } from './ui/preferencesModal.js';
 import { applyApplicationChromeLocalization } from './ui/applicationChrome.js';
 import { createApplicationDataMessages } from './ui/applicationDataMessages.js';
 import { createApplicationExportMessages } from './ui/applicationExportMessages.js';
+import { createApplicationOperationsMessages } from './ui/applicationOperationsMessages.js';
 import { createTranslator } from './localization.js';
 import { openRegexToItemIdsTool as openRegexTool } from './tools/regexToItemIds.js';
 import { EXPORT_FILENAME, assertJsonTextWithinLimit, copyTextToClipboard, downloadText, makeBase64Export, parseImportedText, parseJsonText, readImportFileText } from './importExport.js';
-import { sheetLabel, collectReferencedIds, countReferencedIds, countUncachedReferencedIds, fetchLookupBatch as xivapiFetchLookupBatch, searchXivapi } from './xivapi.js';
+import { collectReferencedIds, countReferencedIds, countUncachedReferencedIds, fetchLookupBatch as xivapiFetchLookupBatch, searchXivapi } from './xivapi.js';
 import { generateCategoryDescription, isUsefulGeneratedDescription } from './descriptionGenerator.js';
 import { isUsefulLookupName } from './lookupNames.js';
 import { analyzeImportedConfig, mergeValidationFindings } from './validation.js';
@@ -45,6 +46,7 @@ let editorPreferences = loadEditorPreferences();
 const translate = createTranslator('en');
 const applicationDataMessages = createApplicationDataMessages(translate);
 const applicationExportMessages = createApplicationExportMessages(translate);
+const applicationOperationsMessages = createApplicationOperationsMessages(translate);
 const lookupCacheOperations = createLookupCacheOperationCoordinator();
 let resolvingReferencedIds = false;
 
@@ -67,8 +69,8 @@ function fetchLookupBatch(sheet, ids, options = {}) { return xivapiFetchLookupBa
 function clearLookupCache() {
   return clearLookupCacheIfIdle({
     isActive: lookupCacheOperations.isActive,
-    onRefused: () => setStatus('Lookup cache cannot be cleared while a lookup or scan is running.', 'warn'),
-    clear: () => { lookupCache = emptyLookupCache(); removeLookupCache(); renderAll(); setStatus('Lookup cache cleared. Category data was not changed.', 'ok'); }
+    onRefused: () => setStatus(applicationOperationsMessages.cache.clearRefused, 'warn'),
+    clear: () => { lookupCache = emptyLookupCache(); removeLookupCache(); renderAll(); setStatus(applicationOperationsMessages.cache.cleared, 'ok'); }
   });
 }
 function getCategories() { return data.Categories; }
@@ -194,12 +196,6 @@ function setInlineError(id, message) {
   node.classList.toggle('hidden', !message);
 }
 
-function errorMessage(prefix, err) {
-  const message = err instanceof Error ? err.message : String(err);
-  return `${prefix}: ${message}`;
-}
-
-
 function reportModalBindingError(context, err) {
   setStatus(`${context}: ${err instanceof Error ? err.message : String(err)}`, 'err');
 }
@@ -290,37 +286,58 @@ async function lookupReferencedIds(options = {}) {
   const ids = collectReferencedIds(getCategories(), ensureShape);
   const total = countReferencedIds(ids);
   const uncached = countUncachedReferencedIds(ids, lookupName);
-  if (!total) { if (!quiet) setStatus('No referenced Item/UI Category IDs to look up.', 'warn'); return; }
-  if (!uncached) { if (!quiet) setStatus(`All ${total} referenced ID name(s) already cached.`, 'ok'); commitActiveField(); renderAll(); return; }
+  if (!total) { if (!quiet) setStatus(applicationOperationsMessages.lookup.noneReferenced, 'warn'); return; }
+  if (!uncached) { if (!quiet) setStatus(applicationOperationsMessages.lookup.allCached(total), 'ok'); commitActiveField(); renderAll(); return; }
   resolvingReferencedIds = true;
   updateGlobalActionAvailability();
   const failures = [];
   const releaseLookupCacheProducer = lookupCacheOperations.acquire();
   try {
-    showBusy('Looking up IDs', `0/${uncached} complete`, 0);
+    showBusy(
+      applicationOperationsMessages.lookup.busyTitle,
+      applicationOperationsMessages.lookup.busyInitial(uncached),
+      0
+    );
     for (const [sheet, sheetIds] of [['ItemUICategory', [...ids.ItemUICategory]], ['Item', [...ids.Item]]]) {
       const missing = sheetIds.filter(id => !isUsefulLookupName(lookupName(sheet, id)));
       if (!missing.length) continue;
       const priorCached = uncached - countUncachedReferencedIds(ids, lookupName);
-      const batchFailures = await fetchLookupBatch(sheet, missing, { onProgress(doneForSheet, totalForSheet) { const done = Math.min(uncached, priorCached + doneForSheet); const percent = uncached ? (done / uncached) * 100 : 100; updateBusy(`${done}/${uncached} checked · ${sheetLabel(sheet)} batch ${Math.ceil(doneForSheet / LOOKUP_BATCH_SIZE)}/${Math.ceil(totalForSheet / LOOKUP_BATCH_SIZE)}`, percent); } });
+      const batchFailures = await fetchLookupBatch(sheet, missing, { onProgress(doneForSheet, totalForSheet) {
+        const done = Math.min(uncached, priorCached + doneForSheet);
+        const percent = uncached ? (done / uncached) * 100 : 100;
+        updateBusy(applicationOperationsMessages.lookup.busyProgress(
+          done,
+          uncached,
+          sheet,
+          Math.ceil(doneForSheet / LOOKUP_BATCH_SIZE),
+          Math.ceil(totalForSheet / LOOKUP_BATCH_SIZE)
+        ), percent);
+      } });
       failures.push(...batchFailures.map(failure => `${failure.sheet} ${failure.id}`));
     }
     saveLookupCache(); commitActiveField(); renderAll();
     if (failures.length) {
       const shown = failures.slice(0, 5).join(', ');
-      const more = failures.length > 5 ? `, +${failures.length - 5} more` : '';
-      const message = `Lookup finished with ${failures.length} failure(s): ${shown}${more}`;
-      if (quiet) setStatus(`Automatic lookup left ${failures.length} unresolved ID(s).`);
+      const more = failures.length > 5
+        ? applicationOperationsMessages.lookup.failureMore(failures.length - 5)
+        : '';
+      const message = applicationOperationsMessages.lookup.partialFailure(
+        failures.length,
+        `${shown}${more}`
+      );
+      if (quiet) setStatus(applicationOperationsMessages.lookup.automaticUnresolved(failures.length));
       else setStatus(message, 'warn');
     }
-    else if (quiet) setStatus(`Automatic lookup cached ${uncached} new name(s).`);
-    else setStatus(`Lookup complete: ${uncached} new name(s) cached.`, 'ok');
+    else if (quiet) setStatus(applicationOperationsMessages.lookup.automaticCached(uncached));
+    else setStatus(applicationOperationsMessages.lookup.complete(uncached), 'ok');
   } finally { releaseLookupCacheProducer(); hideBusy(); resolvingReferencedIds = false; updateGlobalActionAvailability(); }
 }
 
 function maybeAutoLookupImportedIds() {
   if (!editorPreferences.autoLookupImportedIds) return;
-  lookupReferencedIds({ quiet: true }).catch(err => { setStatus(errorMessage('Automatic ID lookup failed', err), 'warn'); });
+  lookupReferencedIds({ quiet: true }).catch(err => {
+    setStatus(applicationOperationsMessages.lookup.automaticFailed(err), 'warn');
+  });
 }
 
 async function importText(text, sourceLabel='Import') {
@@ -466,17 +483,20 @@ function bindAppEvents() {
     const result = sortCategoriesPreservingSelection(getCategories(), selectedIndex, compareCategoriesForImport);
     selectedIndex = result.selectedIndex;
     if (result.changed) markDirty();
-    else setStatus('Categories are already sorted. No changes were made.', 'ok');
+    else setStatus(applicationOperationsMessages.categories.sortNoop, 'ok');
     renderAll();
     if (result.changed) animateReorderMotion(el('categoryList'), positions);
   });
   bindClick('renumber', () => {
     commitActiveField();
     if (renumberCategories()) markDirty();
-    else setStatus('Order and Priority are already renumbered. No changes were made.', 'ok');
+    else setStatus(applicationOperationsMessages.categories.renumberNoop, 'ok');
     renderAll();
   });
-  bindClick('lookupReferencedIds', () => { commitActiveField(); lookupReferencedIds().catch(err => setStatus(errorMessage('ID lookup failed', err), 'err')); });
+  bindClick('lookupReferencedIds', () => {
+    commitActiveField();
+    lookupReferencedIds().catch(err => setStatus(applicationOperationsMessages.lookup.failed(err), 'err'));
+  });
   bindClick('showLookupCache', () => { commitActiveField(); showLookupCacheModal({ lookupCacheStats, clearLookupCache, isLookupCacheProducerActive: lookupCacheOperations.isActive, onLookupCacheProducerChange: lookupCacheOperations.subscribe, translate }); });
   bindClick('showHelp', () => { commitActiveField(); showHelpModal({ translate }); });
   bindClick('showPreferences', () => showPreferencesModal({

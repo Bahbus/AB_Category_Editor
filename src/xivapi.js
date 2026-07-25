@@ -4,12 +4,6 @@ import { normalizeRowIdValue } from './rowIds.js';
 import { analyzeItemOrdering } from './itemOrdering.js';
 import { fetchXivapiJson, XivapiRequestTimeoutError } from './xivapiRequest.js';
 
-export function sheetLabel(sheet) {
-  if (sheet === 'Item') return 'Item';
-  if (sheet === 'ItemUICategory') return 'UI category';
-  return sheet;
-}
-
 export function normalizeLookupIds(ids) {
   const seen = new Set();
   const out = [];

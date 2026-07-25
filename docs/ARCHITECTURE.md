@@ -166,6 +166,16 @@ error details, Base64 content, compatibility locations, and compatibility
 findings remain untranslated dynamic or decision-owned data and continue
 through escaped HTML or explicit text/property sinks.
 
+Application-owned global lookup progress/outcomes, lookup-cache clear outcomes,
+and category sort/renumber no-op statuses route through
+`src/ui/applicationOperationsMessages.js`. The same DOM-free module owns the
+stable-identifier-to-localized-display-label boundary used by the global
+Resolve IDs workflow and reusable list editor. `src/xivapi.js` continues to
+receive and report stable sheet identifiers and owns no localized display
+label. Counts, batch positions, row/sheet failure identifiers, and lower-layer
+error details remain interpolated data consumed through plain-text status and
+busy-overlay sinks.
+
 ## Modal, focus, and accessibility
 
 `src/modals.js` owns the shared modal shell, focus trap, focus return,
@@ -201,6 +211,16 @@ Localization ownership is intentionally incremental. The remaining message
 families are tracked by
 [Issue #122](https://github.com/Bahbus/AB_Category_Editor/issues/122);
 locale persistence and a second locale are separate later decisions.
+
+Phase 85 verification at this boundary passed 237 focused localization,
+lookup/cache, list-editor, category-operation, accessibility, trust-boundary,
+and governance tests. `npm run check` passed 106 JavaScript files, static
+relative imports, and 52 test files / 591 tests. Comfortable and Compact
+browser QA at 1280 px, 840 px, and 390 px found no document, application,
+sidebar, or editor horizontal overflow and observed normal global lookup,
+shared sheet labels, cache clearing/active guarding, and renumbering.
+Network-failure/partial/automatic outcomes and native-disabled defensive
+sort/renumber/cache-refusal branches were not forced in the browser.
 
 ## Reorder motion
 

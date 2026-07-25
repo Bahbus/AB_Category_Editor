@@ -1,9 +1,10 @@
 import { escapeHtml, setStatus, showBusy, updateBusy, hideBusy, syncButtonTooltip } from '../dom.js';
-import { sheetLabel, normalizeLookupIds, rowId, rowName } from '../xivapi.js';
+import { normalizeLookupIds, rowId, rowName } from '../xivapi.js';
 import { normalizeRowIdValue } from '../rowIds.js';
 import { isUsefulLookupName } from '../lookupNames.js';
 import { listMutationFocusPlan } from '../itemOrdering.js';
 import { lookupResultAddAvailable, textActionAvailable } from '../actionAvailability.js';
+import { createLookupSheetLabel } from './applicationOperationsMessages.js';
 import {
   animateReorderMotion,
   cancelReorderMotion,
@@ -20,7 +21,8 @@ export function tokenizeListInput(rawInput, splitOnCommas = true) {
   return trimmedInput.split(',').map(value => value.trim()).filter(Boolean);
 }
 
-export function createListEditorMessages(translate, { title, sheet = '' }) {
+export function createListEditorMessages(translate, { title, lookupSheet = '' }) {
+  const sheet = lookupSheet ? createLookupSheetLabel(translate)(lookupSheet) : '';
   return Object.freeze({
     empty: translate('listEditor.empty'),
     defaultPlaceholder: translate('listEditor.input.placeholder'),
@@ -76,8 +78,7 @@ export function listEditor(title, arr, parser, formatter, options = {}) {
     onAvailabilityChanged = null,
     translate
   } = options;
-  const sheet = lookupSheet ? sheetLabel(lookupSheet) : '';
-  const messages = createListEditorMessages(translate, { title, sheet });
+  const messages = createListEditorMessages(translate, { title, lookupSheet });
 
   const card = document.createElement('div');
   card.className = 'card';

@@ -384,7 +384,8 @@ test('lookup cache modal disables empty and busy clearing while retaining the de
   const english = read('src/locales/en.js');
 
   assert.match(app, /clearLookupCacheIfIdle\(\{/);
-  assert.match(app, /Lookup cache cannot be cleared while a lookup or scan is running\./);
+  assert.match(app, /applicationOperationsMessages\.cache\.clearRefused/);
+  assert.match(app, /applicationOperationsMessages\.cache\.cleared/);
   assert.match(modal, /clearButton\.disabled = !lookupCacheClearAvailable\(stats, active\);/);
   assert.match(modal, /unavailable\.textContent = active[\s\S]*?translate\('lookupCache\.unavailable\.active'\)[\s\S]*?translate\('lookupCache\.unavailable\.empty'\)/);
   assert.match(modal, /if \(!clearLookupCache\(\)\)/);
@@ -414,10 +415,10 @@ test('automatic lookup uses quiet success and unresolved statuses while manual l
   assert.match(source, /lookupReferencedIds\(\{ quiet: true \}\)/);
   const lookupBody = source.match(/async function lookupReferencedIds\(options = \{\}\) \{(?<body>[\s\S]*?)\nfunction maybeAutoLookupImportedIds/)?.groups.body ?? '';
   assert.match(lookupBody, /const \{ quiet = false \} = options;/);
-  assert.match(lookupBody, /if \(quiet\) setStatus\(`Automatic lookup left \$\{failures\.length\} unresolved ID\(s\)\.`\);/);
+  assert.match(lookupBody, /if \(quiet\) setStatus\(applicationOperationsMessages\.lookup\.automaticUnresolved\(failures\.length\)\);/);
   assert.match(lookupBody, /else setStatus\(message, 'warn'\);/);
-  assert.match(lookupBody, /else if \(quiet\) setStatus\(`Automatic lookup cached \$\{uncached\} new name\(s\)\.`\);/);
-  assert.match(lookupBody, /else setStatus\(`Lookup complete: \$\{uncached\} new name\(s\) cached\.`, 'ok'\);/);
+  assert.match(lookupBody, /else if \(quiet\) setStatus\(applicationOperationsMessages\.lookup\.automaticCached\(uncached\)\);/);
+  assert.match(lookupBody, /else setStatus\(applicationOperationsMessages\.lookup\.complete\(uncached\), 'ok'\);/);
   assert.doesNotMatch(lookupBody, /if \(quiet\) setStatus\([^)]*, ['"](?:ok|warn|err)['"]\)/);
 });
 
