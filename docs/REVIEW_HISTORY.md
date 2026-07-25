@@ -373,6 +373,52 @@ Verification on the exact implementation tree:
 - browser QA is not applicable because no executed application or
   presentation path changed.
 
+### Phase 84: Export and Download workflow localization
+
+Application-owned Export / Copy, Download, revisioned snapshot/saved-state
+presentation, and blocked AetherBags export-compatibility presentation route
+through one focused DOM-free message adapter and the existing translator
+created at application composition. Exact English output is retained. Counts,
+filenames, error details, Base64 output, category/field locations, and
+compatibility findings remain untranslated dynamic or decision-owned data;
+`src/exportCompatibility.js`, export snapshot decisions, compression,
+clipboard/download services, modal infrastructure, and operational ordering
+are unchanged.
+
+Verification on the exact implementation tree:
+
+- focused localization, export compatibility, export snapshot, import/export,
+  application-data-flow, modal/focus, action-availability, accessibility,
+  trust-boundary, governance, category-change, and DOM suites passed all 231
+  tests;
+- `npm run check -- --test-reporter=dot` passed: 104 JavaScript files
+  syntax-checked, all static relative imports resolved, and 51 test files /
+  586 tests passed;
+- `git diff --check origin/main` passed with no output;
+- browser QA used the populated advanced preset in Comfortable and Compact
+  density at 1280 px, 840 px, and 390 px. The Export / Copy and compatibility
+  modals, application shell, and document had zero horizontal overflow at all
+  six combinations;
+- live browser checks covered empty-config native action disablement, normal
+  Export / Copy, current-snapshot explanation, automatic copy, Copy again,
+  `Exported` saved-state presentation, and return focus to Export / Copy;
+- a preserved numeric-string Item ID remained visible and blocked before
+  output with the exact category, field, finding, modal guidance, blocked
+  status, and `Changes not exported` state. A subsequent compatible value
+  allowed Download and produced the observable `Downloaded
+  aetherbags_categories.txt` application status and `Downloaded` saved-state
+  label;
+- compression completed too quickly for the browser tool to capture the busy
+  overlay text directly. The tool also did not force clipboard fallback, stale
+  overlapping snapshots, active-dialog completion, export/download failures,
+  first-80 truncation, or a native download-file event, so those paths are not
+  claimed from browser QA; direct adapter, source, snapshot, compatibility,
+  clipboard, and import/export coverage remains authoritative;
+- diagnostics contained the browser host's Electron development CSP warning,
+  expected advanced-preset/import validation warnings, and the intentionally
+  triggered export-block errors. No unexpected application error or CSP
+  violation appeared.
+
 ## Recording future work
 
 For each numbered phase implementation tree:
