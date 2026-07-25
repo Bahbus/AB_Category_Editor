@@ -68,6 +68,22 @@ The project intentionally has:
   focused DOM-free message adapter and that same translator. Compatibility
   findings, category and field locations, filenames, error details, snapshots,
   and export data remain untranslated dynamic or decision-owned data.
+- Application-owned global Resolve IDs, lookup-cache clear outcomes, and
+  category sort/renumber no-op presentation use a focused DOM-free operations
+  adapter and that same translator. The global workflow and reusable list
+  editor derive localized display labels from stable `Item` and
+  `ItemUICategory` identifiers through one shared boundary; service identifiers,
+  row IDs, failure details, counts, and lookup decisions remain untranslated
+  data.
+- Phase 85 focused localization, lookup/cache, list-editor, category-operation,
+  accessibility, trust-boundary, and governance coverage passed 237 tests.
+  `npm run check` passed 106 JavaScript files, static relative imports, and 52
+  test files / 591 tests. Browser QA covered Comfortable and Compact density at
+  1280 px, 840 px, and 390 px without horizontal overflow and observed normal
+  Resolve IDs, shared sheet labels, cache clearing/active guarding, and
+  renumbering. Network failure/partial/automatic outcomes and defensively
+  unreachable sort/renumber and cache-clear refusal statuses were not forced in
+  the browser.
 - The broader remaining English message families stay tracked by
   [Issue #122](https://github.com/Bahbus/AB_Category_Editor/issues/122).
 - The three primary documents separate current contracts, current

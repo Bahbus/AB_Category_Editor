@@ -419,6 +419,47 @@ Verification on the exact implementation tree:
   triggered export-block errors. No unexpected application error or CSP
   violation appeared.
 
+### Phase 85: application lookup and list-operation localization
+
+Application-owned global Resolve IDs presentation, lookup-cache clear outcomes,
+and category Sort by Order/Renumber no-op statuses route through one focused
+DOM-free operations adapter and the existing translator created at application
+composition. The global workflow and reusable list editor derive exact-English
+`Item` and `UI category` display labels from stable `Item` and
+`ItemUICategory` service identifiers through one shared boundary. Unknown sheet
+identifiers retain the existing raw fallback.
+
+XIVAPI requests, batching, progress calculations, failure aggregation, cache
+reads/writes and leases, referenced-ID decisions, action availability,
+sort/renumber mutations, dirty state, selection, focus plans, reorder motion,
+and list behavior are unchanged. Counts, progress positions, sheet/row
+identifiers, truncation counts, and lower-layer error details remain dynamic
+data consumed through plain-text sinks.
+
+Verification on the exact implementation tree:
+
+- focused localization, lookup/cache, list-editor, category-operation,
+  accessibility, trust-boundary, and governance suites passed 237 tests;
+- `npm run check` passed: 106 JavaScript files syntax-checked, all static
+  relative imports resolved, and 52 test files / 591 tests passed;
+- `git diff --check origin/main` passed with no output;
+- browser QA used the populated advanced preset in Comfortable and Compact
+  density at 1280 px, 840 px, and 390 px with zero document, body, application,
+  sidebar, or editor horizontal overflow;
+- live browser checks covered exact `Item` and `UI category` list labels,
+  lookup-cache statistics and clearing, unchanged category saved state,
+  Resolve IDs enablement, `Looking up IDs`, initial and batch progress, a
+  successful 379-ID completion, active-lookup cache-clear disablement and
+  re-enablement, and successful Renumber mutation/dirty/availability behavior;
+- the active cache guard prevented browser activation of the defensive
+  clear-refusal outcome, and native action availability prevented browser
+  activation of sort/renumber no-op handlers. Partial, failed, and automatic
+  lookup outcomes were not forced. Direct adapter, decision, source, cache,
+  lookup, and category-change coverage remains authoritative for those paths;
+- diagnostics contained only the browser host's Electron development CSP
+  warning and the advanced preset's expected three import warnings. No
+  unexpected application error or CSP violation appeared.
+
 ## Recording future work
 
 For each numbered phase implementation tree:

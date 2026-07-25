@@ -25,7 +25,7 @@ test('list input tokenization trims surrounding whitespace without changing inte
 test('list editor messages preserve exact English copy and named dynamic values', () => {
   const messages = createListEditorMessages(createTranslator('en'), {
     title: 'Custom Item Ranks',
-    sheet: 'Item'
+    lookupSheet: 'Item'
   });
 
   assert.equal(messages.empty, 'Empty');
@@ -57,4 +57,21 @@ test('list editor messages preserve exact English copy and named dynamic values'
   assert.equal(messages.noUsableResults, 'No usable results with valid row IDs.');
   assert.equal(messages.noUsableStatus, 'No usable search results with valid row IDs.');
   assert.equal(messages.searchComplete, 'Search complete');
+});
+
+test('list editor lookup messages derive display labels from stable sheet identifiers', () => {
+  const translate = createTranslator('en');
+  const uiCategory = createListEditorMessages(translate, {
+    title: 'Allowed UI Category IDs',
+    lookupSheet: 'ItemUICategory'
+  });
+  const unknown = createListEditorMessages(translate, {
+    title: 'Unknown IDs',
+    lookupSheet: 'FutureSheet'
+  });
+
+  assert.equal(uiCategory.lookupLabel, 'Lookup UI category names');
+  assert.equal(uiCategory.lookupComplete, 'UI category lookup complete');
+  assert.equal(unknown.lookupLabel, 'Lookup FutureSheet names');
+  assert.equal(unknown.lookupComplete, 'FutureSheet lookup complete');
 });

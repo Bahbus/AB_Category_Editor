@@ -222,6 +222,7 @@ test('application injects one explicit English translator into chrome, focused a
   const app = read('src/app.js');
   const chrome = read('src/ui/applicationChrome.js');
   const applicationExport = read('src/ui/applicationExportMessages.js');
+  const applicationOperations = read('src/ui/applicationOperationsMessages.js');
   const preferences = read('src/ui/preferencesModal.js');
   const help = read('src/ui/helpModal.js');
   const lookupCache = read('src/ui/lookupCacheModal.js');
@@ -230,6 +231,7 @@ test('application injects one explicit English translator into chrome, focused a
   assert.equal((app.match(/createTranslator\(/g) || []).length, 1);
   assert.match(app, /const applicationDataMessages = createApplicationDataMessages\(translate\);/);
   assert.match(app, /const applicationExportMessages = createApplicationExportMessages\(translate\);/);
+  assert.match(app, /const applicationOperationsMessages = createApplicationOperationsMessages\(translate\);/);
   for (const source of [read('src/ui/matchingRulesEditor.js'), read('src/ui/listEditor.js'), read('src/ui/itemOrderingEditor.js')]) {
     assert.doesNotMatch(source, /createTranslator|DEFAULT_LOCALE|localization\.js|locales\/en\.js/);
   }
@@ -251,7 +253,7 @@ test('application injects one explicit English translator into chrome, focused a
   assert.match(app, /showLookupCacheModal\(\{ lookupCacheStats, clearLookupCache, isLookupCacheProducerActive: lookupCacheOperations\.isActive, onLookupCacheProducerChange: lookupCacheOperations\.subscribe, translate \}\)/);
   assert.match(help, /export function showHelpModal\(\{ translate \}\)/);
   assert.match(lookupCache, /export function showLookupCacheModal\(\{ lookupCacheStats, clearLookupCache, isLookupCacheProducerActive, onLookupCacheProducerChange, translate \}\)/);
-  for (const modal of [chrome, applicationExport, help, lookupCache]) {
+  for (const modal of [chrome, applicationExport, applicationOperations, help, lookupCache]) {
     assert.doesNotMatch(modal, /createTranslator|DEFAULT_LOCALE|localization\.js|app\.js/);
   }
   assert.match(preferences, /applyEditorPreferences\(\{ \.\.\.getEditorPreferences\(\), \[key\]: e\.target\.value \}\)/);
