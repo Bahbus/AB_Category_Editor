@@ -41,14 +41,6 @@ function issue(severity, field, message, options = {}) {
   return { severity, field, message, blocksExport: false, ...options };
 }
 
-export function itemSortFieldLabel(value) {
-  return ITEM_SORT_FIELDS.find(option => option.value === value)?.label || `Unsupported field ${String(value)}`;
-}
-
-export function itemSortDirectionLabel(value) {
-  return ITEM_SORT_DIRECTIONS.find(option => option.value === value)?.label || `Unsupported direction ${String(value)}`;
-}
-
 export function analyzeItemOrdering(category) {
   const criteriaPresent = hasOwn(category || {}, 'ItemSortCriteria');
   const storedCriteria = category?.ItemSortCriteria;
