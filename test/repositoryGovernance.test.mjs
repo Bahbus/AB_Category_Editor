@@ -238,7 +238,7 @@ test('pull requests link their issue, record real verification, synchronize dura
   for (const path of ['docs/AI_PROJECT_CONTEXT.md', 'docs/ARCHITECTURE.md', 'docs/REVIEW_HISTORY.md']) {
     assert.match(pullRequestTemplate, new RegExp(path.replaceAll('.', '\\.')));
   }
-  assert.match(pullRequestTemplate, /current linked item/);
+  assert.match(pullRequestTemplate, /every issue this pull request closes or advances/i);
   assert.match(pullRequestTemplate, /Project #2/);
   assert.match(pullRequestTemplate, /ready for review, not a draft/i);
 });
@@ -397,4 +397,56 @@ test('review guidance preserves the complete contract with compact routine outpu
   assert.match(guidance, /history archives only when older evidence (?:is|was) relevant/i);
   assert.match(guidance, /current (?:linked )?issue(?:\/| and its current )Project item/i);
   assert.match(guidance, /entire completed board/i);
+});
+
+test('review findings are tracked before severity-aware phase selection', () => {
+  const currentContext = primaryDocuments.get('docs/AI_PROJECT_CONTEXT.md');
+  const architecture = primaryDocuments.get('docs/ARCHITECTURE.md');
+  const guidance = `${currentContext}\n${architecture}`;
+
+  assert.match(
+    currentContext,
+    /before selecting phase work,[\s\S]{0,80}record every actionable review finding[\s\S]{0,80}most relevant repository issue/i,
+  );
+  assert.match(
+    guidance,
+    /create a focused issue|created, linked as a sub-issue, or added to the existing repository issue/i,
+  );
+  assert.match(guidance, /evidence, impact, severity, urgency, relationship, and[\s\n]+deferral risk/i);
+  assert.match(guidance, /confirmed bugs, material acceptance misses, test[\s\n]+gaps, maintainability debt, speculative risks, and optional polish/i);
+  assert.match(guidance, /select work from the updated issue tracker and Project #2|selects? work from the[\s\n]+updated issue tracker and Project #2/i);
+  assert.match(guidance, /small low-(?:priority|impact) findings[\s\S]*tracked until they combine naturally/i);
+});
+
+test('phase and publication templates preserve coherent multi-issue ownership', () => {
+  assert.match(maintainerPhaseTemplate, /## Source issues and relationships/);
+  assert.match(maintainerPhaseTemplate, /Also closes or advances: #/);
+  assert.match(maintainerPhaseTemplate, /shared ownership and verification boundary/i);
+  assert.match(maintainerPhaseTemplate, /unrelated grab bag/i);
+  assert.match(maintainerPhaseTemplate, /every issue this phase closes or advances/i);
+
+  assert.match(pullRequestTemplate, /every issue this pull request completes or materially advances/i);
+  assert.match(pullRequestTemplate, /Closes #/);
+  assert.match(pullRequestTemplate, /Advances #/);
+  assert.match(pullRequestTemplate, /every new deferred finding in the most relevant new or existing repository issue/i);
+});
+
+test('decimal phases are restricted and generated-description localization remains blocked', () => {
+  const currentContext = primaryDocuments.get('docs/AI_PROJECT_CONTEXT.md');
+  const architecture = primaryDocuments.get('docs/ARCHITECTURE.md');
+
+  assert.doesNotMatch(currentContext, /require a `?\.1`? follow-up/i);
+  assert.match(
+    currentContext,
+    /reserve decimal phases for important, tightly related direct corrections[\s\S]*should not wait/i,
+  );
+  assert.match(
+    architecture,
+    /not the automatic destination for every review[\s\n]+finding/i,
+  );
+  for (const source of [currentContext, architecture]) {
+    assert.match(source, /issues\/126/);
+    assert.match(source, /issues\/175/);
+    assert.match(source, /#126[\s\S]{0,120}remains[\s\n]+blocked[\s\S]{0,120}#175/i);
+  }
 });

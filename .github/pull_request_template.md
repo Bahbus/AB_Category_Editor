@@ -2,7 +2,10 @@
 
 <!-- Describe the delivered capability and its verified source issue in terms that remain true before and after merge. Do not predict that this pull request has merged. -->
 
+<!-- List every issue this pull request completes or materially advances. -->
+
 Closes #
+Advances #
 
 ## Scope and behavioral contracts
 
@@ -21,8 +24,8 @@ Closes #
 
 - [ ] Updated `docs/AI_PROJECT_CONTEXT.md` and `docs/REVIEW_HISTORY.md` only for delivered capabilities, durable contracts, and verified evidence, using merge-neutral wording
 - [ ] Updated `docs/ARCHITECTURE.md` and other affected documents when their current content changed, or explicitly recorded them as not applicable
-- [ ] Kept live Status, Priority, Area, and Phase values in Project #2; updated only the current linked item instead of loading the entire completed board
+- [ ] Kept live Status, Priority, Area, and Phase values in Project #2; synchronized every issue this pull request closes or advances without loading the entire completed board
 - [ ] Read history archives only when older evidence was relevant
 - [ ] Requested post-merge documentation correction only if merged code or verified behavior actually disagrees with the durable record
-- [ ] Recorded any new deferred finding as a separate issue
+- [ ] Recorded every new deferred finding in the most relevant new or existing repository issue
 - [ ] This pull request is ready for review, not a draft

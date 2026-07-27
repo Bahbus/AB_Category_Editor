@@ -6,7 +6,15 @@
 
 ## Review evidence and Project decision
 
-<!-- Record the evidence that justified this phase and identify related issues or deferred items. Keep live Status, Priority, Area, and Phase values in Project #2 rather than duplicating them in durable documents. -->
+<!-- Record the focused evidence that justified this phase and the severity/impact-aware selection decision. Confirm every actionable finding was recorded in its owning repository issue before selection. Keep live Status, Priority, Area, and Phase values in Project #2 rather than duplicating them in durable documents. -->
+
+## Source issues and relationships
+
+- Primary issue: #
+- Also closes or advances: #
+- Related, blocked, or deferred issues: #
+
+<!-- List every tracked issue this coherent phase packs. Explain their relationships and the shared ownership and verification boundary; do not use a multi-issue phase as an unrelated grab bag. -->
 
 ## Implementation
 
@@ -24,6 +32,6 @@
 
 - [ ] Update `docs/AI_PROJECT_CONTEXT.md` and `docs/REVIEW_HISTORY.md` only for delivered capabilities, durable contracts, and verified evidence; keep the wording merge-neutral.
 - [ ] Update `docs/ARCHITECTURE.md` and any other affected document when its current content changed; otherwise record that document as not applicable instead of adding repetitive phase boilerplate.
-- [ ] Keep live workflow values in Project #2, update the current Project item, and add newly verified deferred work as a separate repository issue.
+- [ ] Keep live workflow values in Project #2, synchronize every issue this phase closes or advances, and record each newly verified deferred finding in the most relevant new or existing repository issue.
 - [ ] Request a post-merge documentation correction only when merged code or verified behavior actually disagrees with the durable record.
-- [ ] Link the pull request to this issue with a closing keyword so Project workflows can complete both items after merge.
+- [ ] Link the pull request to every issue it completes with a closing keyword, and identify every issue it advances without closing, so Project workflows can synchronize the affected items after merge.

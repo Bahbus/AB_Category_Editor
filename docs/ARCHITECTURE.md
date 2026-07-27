@@ -332,16 +332,32 @@ durable task/evidence units; committed code is the implementation authority.
 The Project uses built-in `Status` plus `Priority`, `Area`, and `Phase`.
 Project-only draft cards are avoided.
 
+Review triage is issue-first. Every actionable evidence-backed finding is
+created, linked as a sub-issue, or added to the existing repository issue that
+owns it before phase selection. Maintainers classify its type, impact,
+severity, urgency, relationship, and deferral risk, then select work from the
+updated issue tracker and Project #2. Small low-impact findings may remain
+tracked until they combine naturally, accumulate sufficient value, or
+higher-priority work is exhausted.
+
+A numbered phase may close or advance multiple related issues when they share a
+coherent ownership and verification boundary and packing reduces repeated
+workflow overhead. Decimal phases remain available for important, tightly
+related corrections that should not wait, especially material regressions or
+acceptance failures; they are not the automatic destination for every review
+finding. Unrelated grab-bag phases remain out of bounds.
+
 Repository workflow surfaces:
 
 - `.github/ISSUE_TEMPLATE/` — friendly public bug, improvement,
   accessibility/usability, documentation, and general forms plus private
   security routing;
-- `.github/maintainer/numbered-phase-issue.md` — evidence/scope/contracts body
-  outside the public chooser;
-- `.github/pull_request_template.md` — closing issue, actual verification,
-  relevance-based durable updates, Project synchronization, and
-  ready-for-review policy;
+- `.github/maintainer/numbered-phase-issue.md` — source-issue relationships,
+  evidence, ownership boundaries, scope, and contracts outside the public
+  chooser;
+- `.github/pull_request_template.md` — every completed or advanced issue,
+  actual verification, newly tracked deferred findings, relevance-based
+  durable updates, Project synchronization, and ready-for-review policy;
 - `test/repositoryGovernance.test.mjs` — source and structure guardrails.
 
 The three primary durable documents remain required entry points, but their
@@ -365,6 +381,11 @@ repetitive history.
   its protection.
 - Remaining localization families need bounded ownership migrations before
   locale persistence and a second catalog.
+- Generated-description localization
+  [#126](https://github.com/Bahbus/AB_Category_Editor/issues/126) remains
+  blocked by significant base-generator improvement
+  [#175](https://github.com/Bahbus/AB_Category_Editor/issues/175); stabilizing
+  the improved English generation model and templates comes first.
 - A lightweight real-browser harness remains a Project candidate, not an
   implicit dependency mandate.
 
