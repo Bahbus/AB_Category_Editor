@@ -179,7 +179,7 @@ async function makeCompatibleRevisionedExportSnapshot(busyTitle, busyMessage, on
   }
   return result.value;
 }
-function openRegexToItemIdsTool() { commitActiveField(); openRegexTool({ getCategories, getSelectedIndex: () => selectedIndex, ensureShape, lookupCache, saveLookupCache, acquireLookupCacheProducer: lookupCacheOperations.acquire, markDirty, renderAll, onAvailabilityChanged: updateGlobalActionAvailability }); }
+function openRegexToItemIdsTool() { commitActiveField(); openRegexTool({ getCategories, getSelectedIndex: () => selectedIndex, ensureShape, lookupCache, saveLookupCache, acquireLookupCacheProducer: lookupCacheOperations.acquire, markDirty, renderAll, onAvailabilityChanged: updateGlobalActionAvailability, translate }); }
 
 function commitActiveField() {
   const active = document.activeElement;

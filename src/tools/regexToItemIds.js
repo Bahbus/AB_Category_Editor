@@ -12,6 +12,7 @@ import {
   RegexBatchTimeoutError,
   RegexWorkerCanceledError
 } from './regexBatchEvaluator.js';
+import { createRegexToItemIdsMessages } from './regexToItemIdsMessages.js';
 
 export function openRegexToItemIdsTool(deps) {
   const {
@@ -23,12 +24,14 @@ export function openRegexToItemIdsTool(deps) {
     acquireLookupCacheProducer,
     markDirty,
     renderAll,
+    translate,
     onAvailabilityChanged = null,
     createRegexEvaluator = createRegexBatchEvaluator
   } = deps;
   const cat = getCategories()[getSelectedIndex()];
   if (!cat) return;
   ensureShape(cat);
+  const messages = createRegexToItemIdsMessages(translate);
   const patterns = cat.Rules.AllowedItemNamePatterns || [];
   const savedPatternSelection = selectUsableSavedPatterns(patterns);
   const savedPatternOptions = savedPatternSelection.options;
@@ -36,7 +39,7 @@ export function openRegexToItemIdsTool(deps) {
   const wrap = document.createElement('div');
   const options = savedPatternOptions.map(({ pattern, sourceIndex }) => `<option value="${sourceIndex}">${escapeHtml(pattern)}</option>`).join('');
   const omittedPatternCopy = savedPatternSelection.omittedCount
-    ? `<p class="field-warning">${savedPatternSelection.omittedCount.toLocaleString()} saved pattern(s) were omitted because they are non-string, empty, or whitespace-only. Correct them in Allowed Item Name Patterns or Raw JSON.</p>`
+    ? `<p class="field-warning">${escapeHtml(messages.modal.omittedPatterns(savedPatternSelection.omittedCount.toLocaleString()))}</p>`
     : '';
   let matches = [];
   let activeScan = null;
@@ -50,61 +53,61 @@ export function openRegexToItemIdsTool(deps) {
   };
 
   wrap.innerHTML = `
-    <p class="hint">AetherBags matches patterns with case-insensitive, culture-invariant .NET regex. This browser converter approximates that behavior with fixed case-insensitive JavaScript regex against English Item names from XIVAPI; some valid AetherBags patterns cannot be scanned here.</p>
+    <p class="hint">${escapeHtml(messages.modal.introduction)}</p>
     ${omittedPatternCopy}
     <div>
-      <label for="regexPatternSelect">Saved pattern or custom regex</label>
+      <label for="regexPatternSelect">${escapeHtml(messages.modal.patternLabel)}</label>
       <select id="regexPatternSelect">
-        <option value="custom">Custom regex</option>
+        <option value="custom">${escapeHtml(messages.modal.customPattern)}</option>
         ${options}
       </select>
     </div>
     <div class="modal-action-row">
-      <label for="regexPatternInput">Regex</label>
-      <input id="regexPatternInput" value="${escapeHtml(firstSavedPattern?.pattern || '')}" placeholder="Example: ^Augmented .*">
+      <label for="regexPatternInput">${escapeHtml(messages.modal.regexLabel)}</label>
+      <input id="regexPatternInput" value="${escapeHtml(firstSavedPattern?.pattern || '')}" placeholder="${escapeHtml(messages.modal.placeholder)}">
     </div>
     <div class="grid cols-3 modal-action-row">
       <div>
-        <label for="regexMaxMatches">Max matches to collect</label>
+        <label for="regexMaxMatches">${escapeHtml(messages.modal.maxMatchesLabel)}</label>
         <input id="regexMaxMatches" type="number" min="1" step="1" value="5000">
       </div>
       <div>
-        <label for="regexPageSize">Page size</label>
+        <label for="regexPageSize">${escapeHtml(messages.modal.pageSizeLabel)}</label>
         <input id="regexPageSize" type="number" min="100" max="5000" step="100" value="3000">
       </div>
       <div>
-        <label for="regexRemovePattern">When adding IDs</label>
+        <label for="regexRemovePattern">${escapeHtml(messages.modal.addBehaviorLabel)}</label>
         <select id="regexRemovePattern">
-          <option value="keep">Keep regex filter</option>
-          <option value="remove">Remove selected regex filter</option>
+          <option value="keep">${escapeHtml(messages.modal.keepPattern)}</option>
+          <option value="remove">${escapeHtml(messages.modal.removePattern)}</option>
         </select>
       </div>
     </div>
     <div class="row modal-action-row modal-action-row-loose">
-      <button id="runRegexScan" class="primary">Scan matching items</button>
-      <button id="cancelRegexScan" disabled hidden>Cancel scan</button>
-      <button id="addRegexMatches" disabled>Add matched IDs</button>
+      <button id="runRegexScan" class="primary">${escapeHtml(messages.modal.scan)}</button>
+      <button id="cancelRegexScan" disabled hidden>${escapeHtml(messages.modal.cancel)}</button>
+      <button id="addRegexMatches" disabled>${escapeHtml(messages.modal.add)}</button>
     </div>
     <p class="hint" id="regexScanSummary"></p>
     <div class="regex-results" id="regexResults"></div>
   `;
 
-  openModal('Regex → Item IDs', wrap, {
+  openModal(messages.modal.title, wrap, {
     onClose: () => {
-      if (stopActiveScan()) updateBusy('Canceling Item sheet scan...', null);
+      if (stopActiveScan()) updateBusy(messages.scan.cancelingBusy, null);
     }
   });
 
-  const select = requireScopedEl(wrap, '#regexPatternSelect', 'regex scan');
-  const input = requireScopedEl(wrap, '#regexPatternInput', 'regex scan');
-  const runButton = requireScopedEl(wrap, '#runRegexScan', 'regex scan');
-  const cancelButton = requireScopedEl(wrap, '#cancelRegexScan', 'regex scan');
-  const maxMatchesInput = requireScopedEl(wrap, '#regexMaxMatches', 'regex scan');
-  const pageSizeInput = requireScopedEl(wrap, '#regexPageSize', 'regex scan');
-  const removePatternSelect = requireScopedEl(wrap, '#regexRemovePattern', 'regex scan');
-  const addButton = requireScopedEl(wrap, '#addRegexMatches', 'regex scan');
-  const resultsBox = requireScopedEl(wrap, '#regexResults', 'regex scan');
-  const summary = requireScopedEl(wrap, '#regexScanSummary', 'regex scan');
+  const select = requireScopedEl(wrap, '#regexPatternSelect', messages.modal.bindingContext);
+  const input = requireScopedEl(wrap, '#regexPatternInput', messages.modal.bindingContext);
+  const runButton = requireScopedEl(wrap, '#runRegexScan', messages.modal.bindingContext);
+  const cancelButton = requireScopedEl(wrap, '#cancelRegexScan', messages.modal.bindingContext);
+  const maxMatchesInput = requireScopedEl(wrap, '#regexMaxMatches', messages.modal.bindingContext);
+  const pageSizeInput = requireScopedEl(wrap, '#regexPageSize', messages.modal.bindingContext);
+  const removePatternSelect = requireScopedEl(wrap, '#regexRemovePattern', messages.modal.bindingContext);
+  const addButton = requireScopedEl(wrap, '#addRegexMatches', messages.modal.bindingContext);
+  const resultsBox = requireScopedEl(wrap, '#regexResults', messages.modal.bindingContext);
+  const summary = requireScopedEl(wrap, '#regexScanSummary', messages.modal.bindingContext);
 
   const selectedPatternCanBeRemoved = () => removePatternSelect.value === 'remove'
     && select.value !== 'custom'
@@ -146,7 +149,7 @@ export function openRegexToItemIdsTool(deps) {
     if (matches.length > 300) {
       const more = document.createElement('p');
       more.className = 'hint';
-      more.textContent = `Showing first 300 of ${matches.length.toLocaleString()} matches.`;
+      more.textContent = messages.results.truncated(matches.length.toLocaleString());
       resultsBox.appendChild(more);
     }
   };
@@ -170,8 +173,8 @@ export function openRegexToItemIdsTool(deps) {
   cancelButton.onclick = () => {
     if (!stopActiveScan()) return;
     cancelButton.disabled = true;
-    summary.textContent = 'Canceling scan... keeping matches found so far.';
-    updateBusy('Canceling Item sheet scan...', null);
+    summary.textContent = messages.scan.cancelingSummary;
+    updateBusy(messages.scan.cancelingBusy, null);
   };
 
   runButton.onclick = async () => {
@@ -179,18 +182,18 @@ export function openRegexToItemIdsTool(deps) {
 
     const compilation = compileBrowserPattern(input.value);
     if (compilation.status === 'blank') {
-      setStatus('Enter a nonblank AetherBags pattern before scanning.', 'err');
+      setStatus(messages.scan.blankPattern, 'err');
       return;
     }
     if (compilation.status === 'incompatible') {
-      setStatus(`This AetherBags/.NET pattern cannot be scanned by the browser converter because JavaScript regex syntax is incompatible: ${compilation.error.message}`, 'err');
+      setStatus(messages.scan.incompatiblePattern(compilation.error), 'err');
       return;
     }
     let evaluator;
     try {
       evaluator = createRegexEvaluator({ pattern: input.value });
     } catch (err) {
-      setStatus(`Regex scan could not start because the isolated browser worker was unavailable: ${err.message}`, 'err');
+      setStatus(messages.scan.workerUnavailable(err), 'err');
       return;
     }
 
@@ -215,7 +218,7 @@ export function openRegexToItemIdsTool(deps) {
 
     try {
       releaseLookupCacheProducer = acquireLookupCacheProducer();
-      showBusy('Scanning items', 'Starting Item sheet scan...', 0);
+      showBusy(messages.scan.busyTitle, messages.scan.busyStarting, 0);
       busyShown = true;
       while (keepGoing) {
         const payload = await fetchItemRowsPage(after, pageSize, { signal: scanState.controller.signal });
@@ -245,16 +248,32 @@ export function openRegexToItemIdsTool(deps) {
               cache[String(id)] = name;
               cacheChanged = true;
             }
-            summary.textContent = `${scanned.toLocaleString()} item rows scanned · ${matches.length.toLocaleString()} matches found · ${pages.toLocaleString()} page(s) fetched`;
-            updateBusy(`${scanned.toLocaleString()} items scanned · ${matches.length.toLocaleString()} matches · ${pages.toLocaleString()} page(s)`, null);
+            summary.textContent = messages.scan.progressSummary(
+              scanned.toLocaleString(),
+              matches.length.toLocaleString(),
+              pages.toLocaleString()
+            );
+            updateBusy(messages.scan.progressBusy(
+              scanned.toLocaleString(),
+              matches.length.toLocaleString(),
+              pages.toLocaleString()
+            ), null);
           }
         });
         if (pageResult.limitReached) keepGoing = false;
 
         saveLookupCache();
         cacheChanged = false;
-        summary.textContent = `${scanned.toLocaleString()} item rows scanned · ${matches.length.toLocaleString()} matches found · ${pages.toLocaleString()} page(s) fetched`;
-        updateBusy(`${scanned.toLocaleString()} items scanned · ${matches.length.toLocaleString()} matches · ${pages.toLocaleString()} page(s)`, null);
+        summary.textContent = messages.scan.progressSummary(
+          scanned.toLocaleString(),
+          matches.length.toLocaleString(),
+          pages.toLocaleString()
+        );
+        updateBusy(messages.scan.progressBusy(
+          scanned.toLocaleString(),
+          matches.length.toLocaleString(),
+          pages.toLocaleString()
+        ), null);
 
         if (scanState.canceled) break;
         await new Promise(resolve => setTimeout(resolve, 0));
@@ -265,11 +284,17 @@ export function openRegexToItemIdsTool(deps) {
       }
 
       if (scanState.canceled) {
-        summary.textContent = `Scan canceled after ${scanned.toLocaleString()} item row(s). ${matches.length.toLocaleString()} match(es) found.`;
-        setStatus('Regex scan canceled', 'ok');
+        summary.textContent = messages.scan.canceledSummary(
+          scanned.toLocaleString(),
+          matches.length.toLocaleString()
+        );
+        setStatus(messages.scan.canceledStatus, 'ok');
       } else {
-        summary.textContent = `${matches.length.toLocaleString()} match(es) found after scanning ${scanned.toLocaleString()} item row(s).`;
-        setStatus('Regex scan complete', 'ok');
+        summary.textContent = messages.scan.completeSummary(
+          matches.length.toLocaleString(),
+          scanned.toLocaleString()
+        );
+        setStatus(messages.scan.completeStatus, 'ok');
       }
       renderRegexMatches();
       syncAddButtonState();
@@ -280,28 +305,40 @@ export function openRegexToItemIdsTool(deps) {
       }
       if (err instanceof RegexBatchTimeoutError) {
         scanState.controller.abort();
-        summary.textContent = `Browser conversion stopped after ${scanned.toLocaleString()} completed item row(s). ${matches.length.toLocaleString()} match(es) from completed batches were kept.`;
+        summary.textContent = messages.scan.batchTimeoutSummary(
+          scanned.toLocaleString(),
+          matches.length.toLocaleString()
+        );
         renderRegexMatches();
         syncAddButtonState();
-        setStatus(`Browser conversion stopped because this JavaScript regex took longer than ${err.deadlineMs / 1000} second for one evaluation batch. This does not mean the pattern is invalid for AetherBags/.NET.`, 'err');
+        setStatus(messages.scan.batchTimeoutStatus(err.deadlineMs / 1000), 'err');
       } else if (err instanceof XivapiRequestTimeoutError) {
-        summary.textContent = `XIVAPI request timed out after ${scanned.toLocaleString()} completed item row(s). ${matches.length.toLocaleString()} match(es) from completed batches were kept.`;
+        summary.textContent = messages.scan.xivapiTimeoutSummary(
+          scanned.toLocaleString(),
+          matches.length.toLocaleString()
+        );
         renderRegexMatches();
         syncAddButtonState();
-        setStatus(`Regex scan stopped because XIVAPI did not respond within ${err.deadlineMs / 1000} seconds.`, 'err');
+        setStatus(messages.scan.xivapiTimeoutStatus(err.deadlineMs / 1000), 'err');
       } else if (scanState.canceled || err instanceof RegexWorkerCanceledError || isAbortError(err)) {
         scanState.canceled = true;
-        summary.textContent = `Scan canceled after ${scanned.toLocaleString()} item row(s). ${matches.length.toLocaleString()} match(es) found.`;
+        summary.textContent = messages.scan.canceledSummary(
+          scanned.toLocaleString(),
+          matches.length.toLocaleString()
+        );
         renderRegexMatches();
         syncAddButtonState();
-        setStatus('Regex scan canceled', 'ok');
+        setStatus(messages.scan.canceledStatus, 'ok');
       } else {
         if (matches.length) {
-          summary.textContent = `Regex scan stopped after ${scanned.toLocaleString()} completed item row(s). ${matches.length.toLocaleString()} match(es) from completed batches were kept.`;
+          summary.textContent = messages.scan.partialFailureSummary(
+            scanned.toLocaleString(),
+            matches.length.toLocaleString()
+          );
           renderRegexMatches();
           syncAddButtonState();
         }
-        setStatus('Regex scan failed: ' + err.message, 'err');
+        setStatus(messages.scan.failed(err), 'err');
       }
     } finally {
       evaluator.dispose();
@@ -333,7 +370,7 @@ export function openRegexToItemIdsTool(deps) {
     }
 
     if (!added && !removedPattern) {
-      setStatus('No new item IDs added; all matches were already present.');
+      setStatus(messages.add.noop);
       closeModal();
       return;
     }
@@ -341,10 +378,10 @@ export function openRegexToItemIdsTool(deps) {
     markDirty();
     setStatus(
       added && removedPattern
-        ? `Added ${added} item ID(s) and removed selected regex filter.`
+        ? messages.add.addedAndRemoved(added.toLocaleString())
         : added
-          ? `Added ${added} item ID(s).`
-          : 'Removed selected regex filter.',
+          ? messages.add.added(added.toLocaleString())
+          : messages.add.removed,
       'ok'
     );
     closeModal();

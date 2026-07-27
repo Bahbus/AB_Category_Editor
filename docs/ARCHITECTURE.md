@@ -122,6 +122,10 @@ The Regex-to-Item-ID tool separates concerns:
 - `src/tools/regexToItemIds.js` owns modal state, XIVAPI pagination, candidate
   extraction, progress, result caps, cancellation, cache writes, Add/no-op
   behavior, and saved-pattern removal;
+- `src/tools/regexToItemIdsMessages.js` owns converter presentation through a
+  DOM-free adapter that accepts the application translator; preformatted
+  counts, deadlines, saved patterns, item data, compiler/worker errors, and
+  XIVAPI details remain named untranslated inputs;
 - `src/tools/regexBatchEvaluator.js` owns module-worker lifecycle, batch
   identity, per-request deadline, stale-result rejection, and termination;
 - `src/tools/regexBatchWorker.js` is the only runtime owner of
@@ -193,17 +197,17 @@ messages; icon and pill controls retain visible theme-aware focus.
 rich-message part parsing. `src/locales/en.js` is the frozen flat plain-text
 catalog. `src/app.js` creates one fixed-English translator and injects it into
 application chrome, application-data and application-export workflows, the
-populated category list, and the selected-category shell. `categoryEditor.js`
-uses its shell adapter and forwards that translator to the Basics, Color, Item
-Ordering, Matching Rules, and Range/State leaves. The category list,
-application-data workflows, and application-export workflows own separate
-adapters for their sidebar, import/full-Raw-JSON, and output/compatibility
-families. The Range/State adapter supplies the same message object to editor
-cards, summaries, range controls, state choices, and accessible names. Its
-DOM-free summary and range-decision helpers, plus import-validation summary
-composition, retain optional exact-English defaults for existing callers.
-Translated values stay in escaped text or explicit text/property/attribute
-sinks.
+populated category list, the selected-category shell, and the Regex converter
+launcher. `categoryEditor.js` uses its shell adapter and forwards that
+translator to the Basics, Color, Item Ordering, Matching Rules, and Range/State
+leaves. The category list, application-data workflows, application-export
+workflows, and Regex tool own separate adapters for their sidebar,
+import/full-Raw-JSON, output/compatibility, and converter-presentation families.
+The Range/State adapter supplies the same message object to editor cards,
+summaries, range controls, state choices, and accessible names. Its DOM-free
+summary and range-decision helpers, plus import-validation summary composition,
+retain optional exact-English defaults for existing callers. Translated values
+stay in escaped text or explicit text/property/attribute sinks.
 
 UI modules own semantic node construction and safe sinks. Rich messages allow
 only caller-defined semantic parts; catalog content does not supply HTML.
@@ -221,6 +225,18 @@ sidebar, or editor horizontal overflow and observed normal global lookup,
 shared sheet labels, cache clearing/active guarding, and renumbering.
 Network-failure/partial/automatic outcomes and native-disabled defensive
 sort/renumber/cache-refusal branches were not forced in the browser.
+
+Phase 86 verification passed 251 focused Regex, worker, pattern-semantics,
+lookup/cache, action-availability, modal/focus, accessibility, localization,
+trust-boundary, and governance tests. `npm run check` passed 108 JavaScript
+files, static relative imports, and 53 test files / 596 tests. Comfortable and
+Compact browser QA at 1280 px, 840 px, and 390 px found no document, body,
+converter-modal, or results horizontal overflow and observed custom and saved
+patterns, browser incompatibility feedback, bounded scanning, cancellation,
+Add and saved-pattern removal outcomes, dirty state, and normal modal focus
+return. Timeout, worker-construction, service-failure, active cache-clear
+refusal, invalid-saved-pattern omission, truncation, partial-result, combined
+Add/remove, and all-duplicate Add branches were not forced in the browser.
 
 ## Reorder motion
 
