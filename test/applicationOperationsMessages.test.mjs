@@ -12,9 +12,6 @@ import { read } from '../testSupport/sourceFiles.mjs';
 test('application operation messages preserve exact English and dynamic data', () => {
   const messages = createApplicationOperationsMessages(createTranslator('en'));
 
-  assert.equal(messages.lookup.sheetLabel('Item'), 'Item');
-  assert.equal(messages.lookup.sheetLabel('ItemUICategory'), 'UI category');
-  assert.equal(messages.lookup.sheetLabel('FutureSheet'), 'FutureSheet');
   assert.equal(messages.lookup.noneReferenced, 'No referenced Item/UI Category IDs to look up.');
   assert.equal(messages.lookup.allCached(1), 'All 1 referenced ID name(s) already cached.');
   assert.equal(messages.lookup.allCached(2), 'All 2 referenced ID name(s) already cached.');
@@ -90,6 +87,22 @@ test('application operation adapter invokes every owned key with named parameter
     calls.find(call => call.key === 'applicationOperations.lookup.failed').parameters,
     { error: 'manual' }
   );
+});
+
+test('every application operation adapter member has a production consumer', () => {
+  const messages = createApplicationOperationsMessages(createTranslator('en'));
+  const app = read('src/app.js');
+  const members = Object.entries(messages).flatMap(([group, groupMessages]) =>
+    Object.keys(groupMessages).map(member => `${group}.${member}`)
+  );
+
+  for (const member of members) {
+    assert.match(
+      app,
+      new RegExp(`applicationOperationsMessages\\.${member.replaceAll('.', '\\.')}(?:\\b|\\()`),
+      member
+    );
+  }
 });
 
 test('lookup sheet label boundary translates known identifiers and preserves unknown identifiers', () => {

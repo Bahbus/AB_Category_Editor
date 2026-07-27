@@ -15,7 +15,6 @@ export function createApplicationOperationsMessages(translate) {
 
   return Object.freeze({
     lookup: Object.freeze({
-      sheetLabel,
       noneReferenced: translate('applicationOperations.lookup.noneReferenced'),
       allCached: total => translate('applicationOperations.lookup.allCached', { total }),
       busyTitle: translate('applicationOperations.lookup.busy.title'),

@@ -460,6 +460,34 @@ Verification on the exact implementation tree:
   warning and the advanced preset's expected three import warnings. No
   unexpected application error or CSP violation appeared.
 
+### Phase 85.1: operations-message surface cleanup
+
+The application-operations message adapter no longer returns its test-only
+`lookup.sheetLabel` member. Global lookup progress retains the private
+localized label closure, and the reusable list editor retains the exported
+`createLookupSheetLabel()` production boundary. Exact English output, stable
+sheet identifiers, unknown-sheet fallback, translator ownership, safe sinks,
+and all observable Phase 85 behavior remain unchanged.
+
+Verification on the exact implementation tree:
+
+- focused application-operations, list-editor, localization,
+  application-data-flow, lookup/cache, accessibility, trust-boundary, and
+  governance coverage passed all 148 tests;
+- `npm run check` passed: 106 JavaScript files syntax-checked, all static
+  relative imports resolved, and 52 test files / 592 tests passed;
+- direct coverage proves every remaining returned operations-adapter member
+  has a production consumer, and the shared helper still translates both known
+  identifiers while preserving an unknown identifier exactly;
+- `git diff --check origin/main` passed with no output;
+- changed runtime scope is limited to deleting the unused returned member; the
+  only other changes are its directly related tests and this durable review
+  record;
+- `docs/AI_PROJECT_CONTEXT.md` and `docs/ARCHITECTURE.md` remain accurate and
+  unchanged, so context and architecture updates are not applicable;
+- browser QA is not applicable because no executed runtime or presentation
+  path changed.
+
 ## Recording future work
 
 For each numbered phase implementation tree:
