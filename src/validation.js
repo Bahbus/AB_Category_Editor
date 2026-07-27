@@ -175,11 +175,12 @@ function sortPositionKey(category) {
   return `${order}:${priority}`;
 }
 
-function getCategoryIssueCountWithoutSortPosition(category) {
-  return validateCategory(category, []).filter(item => item.field !== 'SortPosition' && isIssueFinding(item)).length;
+function getCategoryIssueCountWithoutSortPosition(category, itemOrderingFindingMessages) {
+  return validateCategory(category, [], itemOrderingFindingMessages)
+    .filter(item => item.field !== 'SortPosition' && isIssueFinding(item)).length;
 }
 
-export function getCategoryIssueCounts(categories = []) {
+export function getCategoryIssueCounts(categories = [], itemOrderingFindingMessages) {
   const sortPositionCounts = new Map();
   for (const category of categories) {
     const key = sortPositionKey(category);
@@ -188,19 +189,22 @@ export function getCategoryIssueCounts(categories = []) {
 
   return new Map(categories.map(category => {
     const sortWarning = (sortPositionCounts.get(sortPositionKey(category)) || 0) > 1 ? 1 : 0;
-    return [category, getCategoryIssueCountWithoutSortPosition(category) + sortWarning];
+    return [category, getCategoryIssueCountWithoutSortPosition(category, itemOrderingFindingMessages) + sortWarning];
   }));
 }
 
-export function getCategoryIssueCount(category, allCategories = []) {
-  return getCategoryIssueCounts(allCategories.includes(category) ? allCategories : [category, ...allCategories]).get(category) || 0;
+export function getCategoryIssueCount(category, allCategories = [], itemOrderingFindingMessages) {
+  return getCategoryIssueCounts(
+    allCategories.includes(category) ? allCategories : [category, ...allCategories],
+    itemOrderingFindingMessages
+  ).get(category) || 0;
 }
 
-export function validateCategory(category, allCategories = []) {
+export function validateCategory(category, allCategories = [], itemOrderingFindingMessages) {
   const rules = rulesOf(category);
   const findings = [
     ...validateCategoryName(category),
-    ...categoryCompatibilityFindings(category),
+    ...categoryCompatibilityFindings(category, null, itemOrderingFindingMessages),
     ...validateCategorySortPosition(category, allCategories),
     ...duplicateFindings(rules.AllowedItemIds, 'AllowedItemIds', 'Item ID'),
     ...duplicateFindings(rules.AllowedUiCategoryIds, 'AllowedUiCategoryIds', 'UI Category ID'),
@@ -214,7 +218,7 @@ export function validateCategory(category, allCategories = []) {
   return findings;
 }
 
-export function analyzeImportedConfig(config) {
+export function analyzeImportedConfig(config, itemOrderingFindingMessages) {
   const categories = Array.isArray(config?.Categories) ? config.Categories : [];
   const rootFindings = rootCompatibilityFindings(config).filter(item =>
     item.field === 'Categories' || Object.prototype.hasOwnProperty.call(config || {}, item.field)
@@ -229,7 +233,7 @@ export function analyzeImportedConfig(config) {
     if (count > 1) findings.push(finding('warning', 'Id', 'Two or more categories share the same internal category ID.'));
   }
   for (const [index, category] of categories.entries()) {
-    for (const item of validateCategory(category, categories)) {
+    for (const item of validateCategory(category, categories, itemOrderingFindingMessages)) {
       if (item.field === 'SortPosition') continue;
       const categoryFinding = { ...item, categoryId: category?.Id, categoryName: label(category, index) };
       Object.defineProperty(categoryFinding, CATEGORY_INSTANCE, { value: category });

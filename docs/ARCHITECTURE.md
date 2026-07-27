@@ -60,7 +60,8 @@ Supporting authorities include:
 - `src/patternSemantics.js` — stored-pattern structural validity and browser
   converter compatibility;
 - `src/itemOrdering.js` — Item Sort Criteria and Custom Item Order decisions,
-  summaries, normalization, relevance, and focus-safe mutations;
+  summaries, normalization, relevance, focus-safe mutations, and the narrow
+  optional finding-message interface with exact-English defaults;
 - `src/exportCompatibility.js` — serialization fidelity and complete
   AetherBags export-envelope analysis.
 
@@ -203,6 +204,14 @@ translator to the Basics, Color, Item Ordering, Matching Rules, and Range/State
 leaves. The category list, application-data workflows, application-export
 workflows, and Regex tool own separate adapters for their sidebar,
 import/full-Raw-JSON, output/compatibility, and converter-presentation families.
+The Item Ordering adapter additionally owns the complete Item Sort Criteria and
+Custom Item Order finding interface. Application composition passes that same
+interface through the populated editor, category issue counts,
+selected-category validation, import/full Raw JSON pre/post-repair analysis,
+and the complete export-preflight chain. `analyzeItemOrdering()` supplies
+byte-for-byte English defaults when callers omit the interface, so XIVAPI and
+generated-description decision-only consumers do not acquire translator or UI
+ownership.
 The Range/State adapter supplies the same message object to editor cards,
 summaries, range controls, state choices, and accessible names. Its DOM-free
 summary and range-decision helpers, plus import-validation summary composition,
@@ -237,6 +246,17 @@ Add and saved-pattern removal outcomes, dirty state, and normal modal focus
 return. Timeout, worker-construction, service-failure, active cache-clear
 refusal, invalid-saved-pattern omission, truncation, partial-result, combined
 Add/remove, and all-duplicate Add branches were not forced in the browser.
+
+Phase 88 verification passed 328 focused Item Ordering/default-message/
+localization, selected-category validation, import/full Raw JSON,
+export-preflight/flow, category-editor/list, accessibility, modal/focus,
+localization, trust-boundary, governance, XIVAPI, and description-generation
+tests. `npm run check` passed 108 JavaScript files, static relative imports, and
+53 test files / 601 tests. Browser QA confirmed the same exact malformed
+criterion text in full Raw JSON review, populated Item Ordering presentation,
+and blocked export compatibility; selected-category Raw JSON correction cleared
+the finding and restored Export / Copy. Custom-order variants and unforced
+finding branches remain directly covered rather than claimed from browser QA.
 
 ## Reorder motion
 

@@ -45,8 +45,8 @@ export function createCategoryListMessages(translate) {
   });
 }
 
-export function computeCategoryIssueCounts(cats = []) {
-  return getCategoryIssueCounts(cats);
+export function computeCategoryIssueCounts(cats = [], itemOrderingFindingMessages) {
+  return getCategoryIssueCounts(cats, itemOrderingFindingMessages);
 }
 
 function clearDropClasses() {
@@ -72,7 +72,8 @@ export function renderCategoryList({
   markDirty,
   renderAll,
   commitActiveField = () => {},
-  translate
+  translate,
+  itemOrderingFindingMessages
 }) {
   const messages = createCategoryListMessages(translate);
   function filteredCategoryEntries() {
@@ -109,7 +110,7 @@ export function renderCategoryList({
   list.innerHTML = '';
 
   const entries = filteredCategoryEntries();
-  const issueCounts = computeCategoryIssueCounts(cats);
+  const issueCounts = computeCategoryIssueCounts(cats, itemOrderingFindingMessages);
   const searchActive = isCategorySearchActive();
   entries.forEach(({cat, idx}) => {
     const item = document.createElement('div');

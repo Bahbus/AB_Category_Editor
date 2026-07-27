@@ -7,6 +7,26 @@ const FIELD_VALUES = new Set(ITEM_SORT_FIELD_VALUES);
 const DIRECTION_VALUES = new Set(ITEM_SORT_DIRECTION_VALUES);
 const GLOBAL_CRITERION = Object.freeze({ Field: 0, Direction: 0 });
 
+export const DEFAULT_ITEM_ORDERING_FINDING_MESSAGES = Object.freeze({
+  criteriaMustBeArray: () => 'Item Sort Criteria must be an array of non-null objects.',
+  criterionMustBeObject: position => `Item Sort Criterion ${position} must be a non-null JSON object.`,
+  criterionFieldOmitted: position => `Item Sort Criterion ${position} Field is omitted; AetherBags will use Quantity.`,
+  criterionDirectionOmitted: position => `Item Sort Criterion ${position} Direction is omitted; AetherBags will use Descending.`,
+  criterionFieldInvalid: position => `Item Sort Criterion ${position} Field must be a signed 32-bit JSON-number integer.`,
+  criterionDirectionInvalid: position => `Item Sort Criterion ${position} Direction must be a signed 32-bit JSON-number integer.`,
+  criterionUnsupported: position => `Item Sort Criterion ${position} uses an unsupported Field or Direction and AetherBags will discard it during import normalization.`,
+  criterionRepeatedField: (position, field) => `Item Sort Criterion ${position} repeats Field ${field} and AetherBags will discard the duplicate.`,
+  criteriaUseGlobalNormalized: () => 'AetherBags will normalize Item Sort Criteria to a single Use Global / Ascending criterion.',
+  criteriaUnusableDefault: () => 'AetherBags will replace the empty or unusable Item Sort Criteria list with its Use Global default.',
+  customOrderMustBeArray: () => 'Custom Item Order must be an array of unsigned 32-bit JSON numbers.',
+  customOrderValuesInvalid: () => 'Custom Item Order must contain only JSON-number non-negative integers from 0 through 4294967295; numeric strings are not export-compatible.',
+  customOrderOmittedQuantityFallback: () => 'Custom Order is selected, but Custom Item Order is omitted; AetherBags will fall back to Quantity / Descending instead of applying custom item ranks.',
+  customOrderOmittedRemainingCriteria: () => 'Custom Order is selected, but Custom Item Order is omitted; Custom ranks cannot contribute; AetherBags will continue with the remaining sort criteria.',
+  customOrderEmptyQuantityFallback: () => 'Custom Order is selected, but Custom Item Order is empty; AetherBags will fall back to Quantity / Descending instead of applying custom item ranks.',
+  customOrderEmptyRemainingCriteria: () => 'Custom Order is selected, but Custom Item Order is empty; Custom ranks cannot contribute; AetherBags will continue with the remaining sort criteria.',
+  customOrderDuplicates: () => 'Custom Item Order contains duplicate item IDs; AetherBags will use only the first position for each item.'
+});
+
 function hasOwn(value, key) { return Object.prototype.hasOwnProperty.call(value, key); }
 function isPlainObject(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -28,7 +48,7 @@ function issue(severity, field, message, options = {}) {
   return { severity, field, message, blocksExport: false, ...options };
 }
 
-export function analyzeItemOrdering(category) {
+export function analyzeItemOrdering(category, messages = DEFAULT_ITEM_ORDERING_FINDING_MESSAGES) {
   const criteriaPresent = hasOwn(category || {}, 'ItemSortCriteria');
   const storedCriteria = category?.ItemSortCriteria;
   const criteriaIssues = [];
@@ -43,34 +63,34 @@ export function analyzeItemOrdering(category) {
     normalizedCriteria.push({ ...GLOBAL_CRITERION });
   } else if (!Array.isArray(storedCriteria)) {
     criteriaRepresentable = false;
-    criteriaIssues.push(issue('error', 'ItemSortCriteria', 'Item Sort Criteria must be an array of non-null objects.', { blocksExport: true }));
+    criteriaIssues.push(issue('error', 'ItemSortCriteria', messages.criteriaMustBeArray(), { blocksExport: true }));
   } else {
     for (const [index, criterion] of storedCriteria.entries()) {
       const position = index + 1;
       if (!isPlainObject(criterion)) {
         criteriaRepresentable = false;
-        criteriaIssues.push(issue('error', 'ItemSortCriteria', `Item Sort Criterion ${position} must be a non-null JSON object.`, { blocksExport: true }));
+        criteriaIssues.push(issue('error', 'ItemSortCriteria', messages.criterionMustBeObject(position), { blocksExport: true }));
         continue;
       }
       if (!hasOnlyStructuredCriterionProperties(criterion)) criteriaHasAdditionalProperties = true;
       const fieldMissing = !hasOwn(criterion, 'Field');
       const directionMissing = !hasOwn(criterion, 'Direction');
-      if (fieldMissing) criteriaIssues.push(issue('warning', 'ItemSortCriteria', `Item Sort Criterion ${position} Field is omitted; AetherBags will use Quantity.`));
-      if (directionMissing) criteriaIssues.push(issue('warning', 'ItemSortCriteria', `Item Sort Criterion ${position} Direction is omitted; AetherBags will use Descending.`));
+      if (fieldMissing) criteriaIssues.push(issue('warning', 'ItemSortCriteria', messages.criterionFieldOmitted(position)));
+      if (directionMissing) criteriaIssues.push(issue('warning', 'ItemSortCriteria', messages.criterionDirectionOmitted(position)));
       const field = fieldMissing ? 1 : criterion.Field;
       const direction = directionMissing ? 1 : criterion.Direction;
       if (!isSignedInt32Scalar(field)) {
         criteriaRepresentable = false;
-        criteriaIssues.push(issue('error', 'ItemSortCriteria', `Item Sort Criterion ${position} Field must be a signed 32-bit JSON-number integer.`, { blocksExport: true }));
+        criteriaIssues.push(issue('error', 'ItemSortCriteria', messages.criterionFieldInvalid(position), { blocksExport: true }));
         continue;
       }
       if (!isSignedInt32Scalar(direction)) {
         criteriaRepresentable = false;
-        criteriaIssues.push(issue('error', 'ItemSortCriteria', `Item Sort Criterion ${position} Direction must be a signed 32-bit JSON-number integer.`, { blocksExport: true }));
+        criteriaIssues.push(issue('error', 'ItemSortCriteria', messages.criterionDirectionInvalid(position), { blocksExport: true }));
         continue;
       }
       if (!FIELD_VALUES.has(field) || !DIRECTION_VALUES.has(direction)) {
-        criteriaIssues.push(issue('warning', 'ItemSortCriteria', `Item Sort Criterion ${position} uses an unsupported Field or Direction and AetherBags will discard it during import normalization.`));
+        criteriaIssues.push(issue('warning', 'ItemSortCriteria', messages.criterionUnsupported(position)));
         continue;
       }
       usableCount++;
@@ -79,7 +99,7 @@ export function analyzeItemOrdering(category) {
         continue;
       }
       if (seenFields.has(field)) {
-        criteriaIssues.push(issue('warning', 'ItemSortCriteria', `Item Sort Criterion ${position} repeats Field ${field} and AetherBags will discard the duplicate.`));
+        criteriaIssues.push(issue('warning', 'ItemSortCriteria', messages.criterionRepeatedField(position, field)));
         continue;
       }
       seenFields.add(field);
@@ -90,11 +110,11 @@ export function analyzeItemOrdering(category) {
       const direction = hasOwn(global, 'Direction') ? global.Direction : 1;
       normalizedCriteria.splice(0, normalizedCriteria.length, { ...GLOBAL_CRITERION });
       if (storedCriteria.length !== 1 || useGlobalIndex !== 0 || direction !== 0) {
-        criteriaIssues.push(issue('warning', 'ItemSortCriteria', 'AetherBags will normalize Item Sort Criteria to a single Use Global / Ascending criterion.'));
+        criteriaIssues.push(issue('warning', 'ItemSortCriteria', messages.criteriaUseGlobalNormalized()));
       }
     } else if (usableCount === 0) {
       normalizedCriteria.splice(0, normalizedCriteria.length, { ...GLOBAL_CRITERION });
-      criteriaIssues.push(issue('warning', 'ItemSortCriteria', 'AetherBags will replace the empty or unusable Item Sort Criteria list with its Use Global default.'));
+      criteriaIssues.push(issue('warning', 'ItemSortCriteria', messages.criteriaUnusableDefault()));
     }
   }
 
@@ -104,19 +124,20 @@ export function analyzeItemOrdering(category) {
   const customIssues = [];
   const customRepresentable = !customPresent || Array.isArray(storedCustomOrder);
   const validCustomOrder = Array.isArray(storedCustomOrder) && storedCustomOrder.every(isUnsignedIntegerScalar);
-  const customFallbackMessage = normalizedCriteria.length === 1
-    ? 'AetherBags will fall back to Quantity / Descending instead of applying custom item ranks.'
-    : 'Custom ranks cannot contribute; AetherBags will continue with the remaining sort criteria.';
   if (customPresent && !Array.isArray(storedCustomOrder)) {
-    customIssues.push(issue('error', 'CustomItemOrder', 'Custom Item Order must be an array of unsigned 32-bit JSON numbers.', { blocksExport: true }));
+    customIssues.push(issue('error', 'CustomItemOrder', messages.customOrderMustBeArray(), { blocksExport: true }));
   } else if (Array.isArray(storedCustomOrder) && !validCustomOrder) {
-    customIssues.push(issue('error', 'CustomItemOrder', 'Custom Item Order must contain only JSON-number non-negative integers from 0 through 4294967295; numeric strings are not export-compatible.', { blocksExport: true }));
+    customIssues.push(issue('error', 'CustomItemOrder', messages.customOrderValuesInvalid(), { blocksExport: true }));
   } else if (customCriterionActive && !customPresent) {
-    customIssues.push(issue('warning', 'CustomItemOrder', `Custom Order is selected, but Custom Item Order is omitted; ${customFallbackMessage}`));
+    customIssues.push(issue('warning', 'CustomItemOrder', normalizedCriteria.length === 1
+      ? messages.customOrderOmittedQuantityFallback()
+      : messages.customOrderOmittedRemainingCriteria()));
   } else if (customCriterionActive && storedCustomOrder.length === 0) {
-    customIssues.push(issue('warning', 'CustomItemOrder', `Custom Order is selected, but Custom Item Order is empty; ${customFallbackMessage}`));
+    customIssues.push(issue('warning', 'CustomItemOrder', normalizedCriteria.length === 1
+      ? messages.customOrderEmptyQuantityFallback()
+      : messages.customOrderEmptyRemainingCriteria()));
   } else if (customCriterionActive && new Set(storedCustomOrder).size !== storedCustomOrder.length) {
-    customIssues.push(issue('warning', 'CustomItemOrder', 'Custom Item Order contains duplicate item IDs; AetherBags will use only the first position for each item.'));
+    customIssues.push(issue('warning', 'CustomItemOrder', messages.customOrderDuplicates()));
   }
 
   const criteriaCanonical = criteriaPresent && criteriaRepresentable && sameCriteria(storedCriteria, normalizedCriteria);

@@ -591,6 +591,51 @@ Verification on the exact implementation tree:
 - `docs/AI_PROJECT_CONTEXT.md` and `docs/ARCHITECTURE.md` remain accurate and
   unchanged, so context and architecture updates are not applicable.
 
+### Phase 88: Item Ordering finding localization
+
+The complete Item Sort Criteria and Custom Item Order finding family routes
+through a narrow catalog-backed boundary on the existing Item Ordering message
+adapter. Application composition supplies that boundary to the populated
+editor, category issue counts and selected-category validation, import/full Raw
+JSON pre/post-repair review, and the complete export-preflight chain.
+`analyzeItemOrdering()` retains byte-for-byte exact-English default functions
+for direct, XIVAPI, generated-description, and other decision-only callers that
+do not inject messages.
+
+Finding conditions, severity, field, blocking state, order, counts, category
+metadata, import merge behavior, normalization and fallback decisions,
+structured editability, mutation/focus behavior, export snapshots, and
+serialization remain unchanged. Every non-Item-Ordering finding family remains
+exact English and outside this phase.
+
+Verification on the exact implementation tree:
+
+- focused Item Ordering/default-message/localization, selected-category
+  validation, import/full Raw JSON, export-preflight/flow,
+  category-editor/list, accessibility, modal/focus, localization,
+  trust-boundary, governance, XIVAPI, and description-generation coverage
+  passed all 328 tests;
+- direct coverage proves all 17 default finding functions and the injected
+  English adapter retain exact output, every stable key uses named dynamic
+  parameters, every returned member has a production consumer, and injected
+  findings retain metadata through validation, import review, and export
+  preflight;
+- `npm run check` passed: 108 JavaScript files syntax-checked, all static
+  relative imports resolved, and 53 test files / 601 tests passed;
+- browser QA loaded the Advanced preset, introduced a malformed first
+  criterion through full Raw JSON, and observed the exact finding in the Raw
+  JSON review, selected-category/sidebar issue counts, populated Item Ordering
+  card, and blocked AetherBags export dialog;
+- normal selected-category Raw JSON correction cleared both Item Ordering
+  findings and the selected-category issue count, then Export / Copy completed
+  with the `Exported` saved-state label and normal copy-success presentation;
+- browser diagnostics contained only the host Electron development CSP
+  warning, the preset's expected warnings, and intentionally triggered
+  validation/export-block diagnostics. Custom-order variants and other
+  unforced findings are proven by direct coverage rather than claimed from
+  browser QA;
+- `git diff --check origin/main` passed with no output.
+
 ## Recording future work
 
 For each numbered phase implementation tree:

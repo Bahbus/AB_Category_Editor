@@ -58,6 +58,25 @@ export function createItemOrderingMessages(translate) {
     },
     issueCount: count => translate(count === 1 ? 'itemOrdering.summary.issue.one' : 'itemOrdering.summary.issue.many', { count }),
     introduction: translate('itemOrdering.introduction'),
+    findings: Object.freeze({
+      criteriaMustBeArray: () => translate('itemOrdering.findings.criteria.mustBeArray'),
+      criterionMustBeObject: position => translate('itemOrdering.findings.criteria.criterion.mustBeObject', { position }),
+      criterionFieldOmitted: position => translate('itemOrdering.findings.criteria.criterion.fieldOmitted', { position }),
+      criterionDirectionOmitted: position => translate('itemOrdering.findings.criteria.criterion.directionOmitted', { position }),
+      criterionFieldInvalid: position => translate('itemOrdering.findings.criteria.criterion.fieldInvalid', { position }),
+      criterionDirectionInvalid: position => translate('itemOrdering.findings.criteria.criterion.directionInvalid', { position }),
+      criterionUnsupported: position => translate('itemOrdering.findings.criteria.criterion.unsupported', { position }),
+      criterionRepeatedField: (position, field) => translate('itemOrdering.findings.criteria.criterion.repeatedField', { position, field }),
+      criteriaUseGlobalNormalized: () => translate('itemOrdering.findings.criteria.useGlobalNormalized'),
+      criteriaUnusableDefault: () => translate('itemOrdering.findings.criteria.unusableDefault'),
+      customOrderMustBeArray: () => translate('itemOrdering.findings.customOrder.mustBeArray'),
+      customOrderValuesInvalid: () => translate('itemOrdering.findings.customOrder.valuesInvalid'),
+      customOrderOmittedQuantityFallback: () => translate('itemOrdering.findings.customOrder.omitted.quantityFallback'),
+      customOrderOmittedRemainingCriteria: () => translate('itemOrdering.findings.customOrder.omitted.remainingCriteria'),
+      customOrderEmptyQuantityFallback: () => translate('itemOrdering.findings.customOrder.empty.quantityFallback'),
+      customOrderEmptyRemainingCriteria: () => translate('itemOrdering.findings.customOrder.empty.remainingCriteria'),
+      customOrderDuplicates: () => translate('itemOrdering.findings.customOrder.duplicates')
+    }),
     criteria: Object.freeze({
       title: translate('itemOrdering.criteria.title'),
       hint: translate('itemOrdering.criteria.hint'),
@@ -122,9 +141,9 @@ export function renderItemOrderingEditor(category, deps = {}) {
     onOrderingChanged = () => {},
     openRawCategoryEditor = () => {},
     listEditorDeps = {},
-    translate
+    translate,
+    messages = createItemOrderingMessages(translate)
   } = deps;
-  const messages = createItemOrderingMessages(translate);
   const details = document.createElement('details');
   details.className = 'card item-ordering-card';
   details.innerHTML = '<summary></summary><div class="details-body item-ordering-body"></div>';
@@ -175,7 +194,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
   }
 
   function refreshOrderingOverview() {
-    const analysis = analyzeItemOrdering(category);
+    const analysis = analyzeItemOrdering(category, messages.findings);
     const issues = body.querySelector('.ordering-validation');
     if (issues) {
       issues.hidden = analysis.issues.length === 0;
@@ -330,7 +349,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
       button.type = 'button';
       button.textContent = messages.criteria.normalizedAction;
       button.onclick = () => {
-        const current = analyzeItemOrdering(category);
+        const current = analyzeItemOrdering(category, messages.findings);
         applyCriteriaDecision(decideCanonicalCriteriaRepair(category.ItemSortCriteria, current.normalizedCriteria), messages.criteria.normalizedSuccess);
       };
       repair.appendChild(button);
@@ -372,7 +391,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
       validateValue: text => parseTypedRowIdValue(text) === null
         ? [{ severity: 'error', field: 'CustomItemOrder', message: customItemRanksError }]
         : [],
-      validateList: () => analyzeItemOrdering({ ...category, CustomItemOrder: values }).customIssues,
+      validateList: () => analyzeItemOrdering({ ...category, CustomItemOrder: values }, messages.findings).customIssues,
       onItemsChanged: changedValues => {
         category.CustomItemOrder = changedValues.slice();
         onValidationChanged();
@@ -395,7 +414,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
   }
 
   function renderBody() {
-    const analysis = analyzeItemOrdering(category);
+    const analysis = analyzeItemOrdering(category, messages.findings);
     const issueId = `item-ordering-issues-${Math.random().toString(36).slice(2)}`;
     cancelReorderMotion(body);
     body.replaceChildren();
