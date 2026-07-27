@@ -45,6 +45,13 @@ The project intentionally has:
 - Basics- and Color-card-owned text and accessible names use the existing
   injected translator through focused DOM-free message adapters. Generated
   description templates and DOM-free validation findings remain exact English.
+- Generated-description lexical knowledge, contextual evidence classification,
+  useful cached-name handling, and explicit-rule summaries are isolated in a
+  DOM-free analysis boundary. The renderer remains deterministic,
+  dependency-free, network-free, and conservative: representative bundled
+  categories now distinguish materia-exchange clusters, crafting/gathering
+  tools, medicine, fishing supplies, and furnishings while ambiguous names
+  retain the generic fallback.
 - Populated Item Ordering editor-owned text, accessible names, and the complete
   Item Sort Criteria and Custom Item Order finding family use the existing
   injected translator. `analyzeItemOrdering()` retains exact-English default
@@ -104,6 +111,15 @@ The project intentionally has:
   malformed criterion through full Raw JSON review, category and Item Ordering
   issue presentation, blocked export compatibility, normal selected-category
   Raw JSON correction, finding clearance, and restored Export / Copy.
+- Phase 90 focused description-generator, preset-quality, Basics,
+  category-change, lookup-name, Item Ordering, localization/trust-boundary,
+  accessibility/source, preset, and governance coverage passed 168 tests.
+  `npm run check` passed 110 JavaScript files, static relative imports, and 54
+  test files / 608 tests. The bundled audit generated descriptions for all 79
+  Basic and Advanced categories, with 76 specific outputs and deliberate
+  generic fallbacks for only `Other`, `Soul Gems`, and `Jobstones`. Exact-tree
+  browser QA was unavailable after the in-app browser retained cached modules
+  and a fresh browser view failed to attach, so no browser result is claimed.
 - Phase 85 focused localization, lookup/cache, list-editor, category-operation,
   accessibility, trust-boundary, and governance coverage passed 237 tests.
   `npm run check` passed 106 JavaScript files, static relative imports, and 52

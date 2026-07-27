@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { defaultCategory } from '../src/config.js';
-import { analyzeCategoryIntent, analyzeExplicitSources, generateCategoryDescription, isUsefulGeneratedDescription } from '../src/descriptionGenerator.js';
+import { analyzeCategoryIntent, analyzeExplicitSources } from '../src/descriptionAnalysis.js';
+import { generateCategoryDescription, isUsefulGeneratedDescription } from '../src/descriptionGenerator.js';
 
 function category(overrides = {}) {
   const cat = defaultCategory(0);

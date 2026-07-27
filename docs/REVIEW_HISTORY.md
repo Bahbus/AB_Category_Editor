@@ -665,6 +665,59 @@ Verification on the exact implementation tree:
 - browser QA is not applicable because no runtime, DOM, CSS, interaction, data,
   preset, catalog, or deployment behavior changed.
 
+### Phase 90: preset-backed generated-description quality
+
+Generated-description lexical knowledge, contextual evidence classification,
+useful cached-name filtering, and explicit-source summaries are separated into
+a DOM-free analysis module. The generator retains sentence composition,
+qualifiers, cleanup, deliberate generic fallback, and final quality guards.
+Both boundaries remain deterministic, dependency-free, network-free, and
+non-mutating.
+
+Compound and contextual evidence replaces false confidence from broad
+single-word `gem` and `cluster` inference. Representative bundled categories
+now describe Materia Clusters as clusters exchanged for materia, DoH/DoL
+weapons and Tools as crafting/gathering tools, Drugs and Medicine as medicine
+consumables, Tacklebox as fishing supplies, and indoor/outdoor furnishings by
+their supported housing context. `Soul Gems` deliberately falls back to
+generic copy because its name and stored rules do not support a more specific
+claim. Existing materia, potion, gear, unlockable, token, explicit-ID,
+name-pattern, range/state, Custom Item Order, useful partial-cache, and
+sentinel-filtering behavior remains directly covered.
+
+Explicit Generate, review-before-replacement, confirmation/copy/cancel,
+blank-only opt-in automatic application, identical-output no-op,
+dirty/revision/render, focus/modal, preferences, import/export, validation,
+schema, AetherBags, preset payload, and localization contracts are unchanged.
+[Issue #126](https://github.com/Bahbus/AB_Category_Editor/issues/126) remains
+blocked until the required post-merge review decides whether the improved
+English model is stable enough to translate.
+
+Verification on the exact implementation tree:
+
+- focused description-generator, preset-quality, Basics, category-change,
+  lookup-name, Item Ordering, localization/trust-boundary,
+  accessibility/source, preset, and governance suites passed all 168 tests;
+- `npm run check` passed: 110 JavaScript files syntax-checked, all static
+  relative imports resolved, and 54 test files / 608 tests passed;
+- the generator audit covered all 24 Basic and 55 Advanced bundled categories:
+  76 produced specific output, while `Other`, `Soul Gems`, and `Jobstones`
+  retained conservative generic fallback. The verified misleading Materia
+  Clusters, DoH/DoL weapons, and Soul Gems semantic families were removed;
+- the representative corpus directly proves deterministic, concise,
+  non-mutating output across corrected and retained families, useful
+  partial/missing cache data, sentinel filtering, explicit rules, ranges,
+  states, and active Custom Item Order;
+- bundled preset payloads, locale catalogs, application services, schema,
+  import/export, validation, and AetherBags compatibility code are unchanged;
+- `git diff --check origin/main` passed with no output;
+- exact-tree browser QA was not available. The first local browser session
+  retained cached pre-change generator modules, so its otherwise successful
+  explicit generation, confirmation, cancel/focus-return, copy-status, and
+  identical-output observations are excluded from Phase 90 evidence. A fresh
+  browser view subsequently failed to attach. No exact-tree layout,
+  clipboard, automatic-generation, or other browser path is claimed.
+
 ## Recording future work
 
 For each numbered phase implementation tree:

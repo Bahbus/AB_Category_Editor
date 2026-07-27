@@ -108,6 +108,29 @@ Focused leaves own cohesive surfaces:
 Leaves accept model data and narrow callbacks. They do not own global revision,
 selection, persistence, locale state, or modal infrastructure.
 
+## Generated descriptions
+
+Generated descriptions have two explicit DOM-free boundaries:
+
+- `src/descriptionAnalysis.js` owns frozen lexical concepts, compound and
+  contextual evidence matching, role/stat classification, useful cached-name
+  filtering, and structured summaries of explicit item IDs, UI category IDs,
+  and name patterns;
+- `src/descriptionGenerator.js` owns ranges and state qualifiers, Custom Item
+  Order relevance, sentence assembly, cleanup, the deliberate generic
+  fallback, and the final quality guard.
+
+Both boundaries are deterministic, dependency-free, network-free, and
+non-mutating. They accept an optional synchronous lookup-name reader but never
+start lookup work or modify cache state. Compound/contextual evidence takes
+precedence over broad single-word guesses; ambiguous names remain generic
+rather than receiving unsupported semantics. `basicEditor.js` continues to own
+explicit review/replacement/copy/cancel and opt-in blank-only automatic
+application, while `categoryChanges.js` remains the no-op/mutation decision
+authority. Generated English templates do not use the localization catalog,
+and bundled preset payloads are not generation authorities or mutation
+targets.
+
 ## Lookup, cache, and tools
 
 `src/xivapiRequest.js` is the shared deadline/cancellation boundary.
@@ -383,9 +406,11 @@ repetitive history.
   locale persistence and a second catalog.
 - Generated-description localization
   [#126](https://github.com/Bahbus/AB_Category_Editor/issues/126) remains
-  blocked by significant base-generator improvement
-  [#175](https://github.com/Bahbus/AB_Category_Editor/issues/175); stabilizing
-  the improved English generation model and templates comes first.
+  blocked pending the post-merge review required after the base-generator
+  improvement tracked by
+  [#175](https://github.com/Bahbus/AB_Category_Editor/issues/175). Phase 90
+  establishes the English analysis/rendering boundary; the following review,
+  not this implementation, decides whether localization may resume.
 - A lightweight real-browser harness remains a Project candidate, not an
   implicit dependency mandate.
 
