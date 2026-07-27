@@ -12,6 +12,7 @@ import { applyApplicationChromeLocalization } from './ui/applicationChrome.js';
 import { createApplicationDataMessages } from './ui/applicationDataMessages.js';
 import { createApplicationExportMessages } from './ui/applicationExportMessages.js';
 import { createApplicationOperationsMessages } from './ui/applicationOperationsMessages.js';
+import { createItemOrderingMessages } from './ui/itemOrderingEditor.js';
 import { createTranslator } from './localization.js';
 import { openRegexToItemIdsTool as openRegexTool } from './tools/regexToItemIds.js';
 import { EXPORT_FILENAME, assertJsonTextWithinLimit, copyTextToClipboard, downloadText, makeBase64Export, parseImportedText, parseJsonText, readImportFileText } from './importExport.js';
@@ -47,6 +48,7 @@ const translate = createTranslator('en');
 const applicationDataMessages = createApplicationDataMessages(translate);
 const applicationExportMessages = createApplicationExportMessages(translate);
 const applicationOperationsMessages = createApplicationOperationsMessages(translate);
+const itemOrderingMessages = createItemOrderingMessages(translate);
 const lookupCacheOperations = createLookupCacheOperationCoordinator();
 let resolvingReferencedIds = false;
 
@@ -172,7 +174,7 @@ async function makeCompatibleRevisionedExportSnapshot(busyTitle, busyMessage, on
     onBusy();
     showBusy(busyTitle, busyMessage, null);
     return makeRevisionedExportSnapshot(data, () => dataRevision, makeBase64Export);
-  });
+  }, itemOrderingMessages.findings);
   if (!result.allowed) {
     showExportCompatibilitySummary(result);
     return null;
@@ -247,7 +249,8 @@ function renderList() {
     setSelectedIndex: value => { selectedIndex = value; },
     getDraggedIndex: () => draggedIndex,
     setDraggedIndex: value => { draggedIndex = value; },
-    renumberCategories, markDirty: markDirtyAndRenderList, renderAll, commitActiveField, translate
+    renumberCategories, markDirty: markDirtyAndRenderList, renderAll, commitActiveField, translate,
+    itemOrderingFindingMessages: itemOrderingMessages.findings
   });
   updateGlobalActionAvailability();
 }
@@ -273,7 +276,7 @@ function renderEditor() {
     getCategories,
     getSelectedIndex: () => selectedIndex,
     setSelectedIndex: value => { selectedIndex = value; },
-    ensureShape, markDirty, markDirtyAndRenderList, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, lookupName, commitActiveField, getEditorPreferences: () => editorPreferences, copyTextToClipboard, loadBasicPresets, loadAdvancedPresets, translate,
+    ensureShape, markDirty, markDirtyAndRenderList, renderAll, renderList, renumberCategories, openRegexToItemIdsTool, lookupName, commitActiveField, getEditorPreferences: () => editorPreferences, copyTextToClipboard, loadBasicPresets, loadAdvancedPresets, translate, itemOrderingMessages,
     listEditorDeps: { lookupName, fetchLookupBatch, searchXivapi, lookupCache, saveLookupCache, acquireLookupCacheProducer: lookupCacheOperations.acquire, markDirty, onAvailabilityChanged: updateGlobalActionAvailability }
   });
 }
@@ -342,9 +345,9 @@ function maybeAutoLookupImportedIds() {
 
 async function importText(text, sourceLabel='Import') {
   const parsed = await parseImportedText(text);
-  const preAnalysis = analyzeImportedConfig(parsed);
+  const preAnalysis = analyzeImportedConfig(parsed, itemOrderingMessages.findings);
   const validation = validateConfig(parsed);
-  const postAnalysis = analyzeImportedConfig(validation.config);
+  const postAnalysis = analyzeImportedConfig(validation.config, itemOrderingMessages.findings);
   const importAnalysis = mergeValidationFindings(preAnalysis, postAnalysis);
   if (!(await confirmReplacingCurrentWork())) return false;
   applyValidatedConfig(validation);
@@ -407,10 +410,10 @@ function showRawModal(initialText = JSON.stringify(data, null, 2), initialError 
       const text = rawFull.value;
       let validation;
       let preAnalysis;
-      try { const parsed = parseJsonText(text, { label: applicationDataMessages.raw.inputLimitLabel }); preAnalysis = analyzeImportedConfig(parsed); validation = validateConfig(parsed); }
+      try { const parsed = parseJsonText(text, { label: applicationDataMessages.raw.inputLimitLabel }); preAnalysis = analyzeImportedConfig(parsed, itemOrderingMessages.findings); validation = validateConfig(parsed); }
       catch (err) { const message = applicationDataMessages.raw.invalid(err); setInlineError('rawError', message); setStatus(message, 'err'); return; }
       setInlineError('rawError', '');
-      const rawAnalysis = mergeValidationFindings(preAnalysis, analyzeImportedConfig(validation.config));
+      const rawAnalysis = mergeValidationFindings(preAnalysis, analyzeImportedConfig(validation.config, itemOrderingMessages.findings));
       const rawSummary = configValidationSummaryText(validation.config, rawAnalysis, validation.repairs || [], applicationDataMessages.summary);
       const showRawSummary = () => {
         setStatus(rawSummary, importStatusSeverity(rawAnalysis, validation.repairs || []));

@@ -45,9 +45,13 @@ The project intentionally has:
 - Basics- and Color-card-owned text and accessible names use the existing
   injected translator through focused DOM-free message adapters. Generated
   description templates and DOM-free validation findings remain exact English.
-- Populated Item Ordering editor-owned text and accessible names use the
-  existing injected translator. DOM-free ordering decisions and compatibility
-  findings remain exact English.
+- Populated Item Ordering editor-owned text, accessible names, and the complete
+  Item Sort Criteria and Custom Item Order finding family use the existing
+  injected translator. `analyzeItemOrdering()` retains exact-English default
+  finding functions for DOM-free decision-only and direct callers, while
+  selected-category validation, import/full Raw JSON review, and export
+  preflight receive the application-composed finding boundary. Ordering
+  decisions and every non-Item-Ordering finding family remain unchanged.
 - Populated Range and State filter editor text, summaries, structured-control
   messages, and accessible names use one stable-keyed DOM-free message adapter
   and the existing injected translator. Schema, validation, and compatibility
@@ -91,6 +95,15 @@ The project intentionally has:
   Timeout, worker-construction, service-failure, active cache-clear refusal,
   invalid-saved-pattern omission, truncation, partial-result, combined
   Add/remove, and all-duplicate Add paths were not forced in the browser.
+- Phase 88 focused Item Ordering/default-message/localization,
+  selected-category validation, import/full Raw JSON, export-preflight/flow,
+  category-editor/list, accessibility, modal/focus, localization,
+  trust-boundary, governance, XIVAPI, and description-generation coverage
+  passed 328 tests. `npm run check` passed 108 JavaScript files, static
+  relative imports, and 53 test files / 601 tests. Browser QA exercised a
+  malformed criterion through full Raw JSON review, category and Item Ordering
+  issue presentation, blocked export compatibility, normal selected-category
+  Raw JSON correction, finding clearance, and restored Export / Copy.
 - Phase 85 focused localization, lookup/cache, list-editor, category-operation,
   accessibility, trust-boundary, and governance coverage passed 237 tests.
   `npm run check` passed 106 JavaScript files, static relative imports, and 52
@@ -238,6 +251,10 @@ capability or decision.
   or URLs.
 - Keep DOM-free validation/compatibility findings outside a UI-owned
   localization slice unless the issue explicitly includes that family.
+  Item Ordering is the current narrow exception: its analyzer accepts an
+  optional finding-message interface with exact-English defaults, and
+  application composition injects the catalog-backed interface only into
+  user-visible analysis routes.
 
 ### Layout, motion, CSP, and security
 

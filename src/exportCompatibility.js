@@ -251,8 +251,8 @@ function validateColor(category, index) {
   return findings;
 }
 
-function itemOrderingCompatibilityFindings(category, index) {
-  return analyzeItemOrdering(category).issues.map(item => categoryFinding(
+function itemOrderingCompatibilityFindings(category, index, itemOrderingFindingMessages) {
+  return analyzeItemOrdering(category, itemOrderingFindingMessages).issues.map(item => categoryFinding(
     category,
     index,
     item.severity,
@@ -313,7 +313,7 @@ function validateStateFilters(category, index, rules) {
   return findings;
 }
 
-export function categoryCompatibilityFindings(category, index = null) {
+export function categoryCompatibilityFindings(category, index = null, itemOrderingFindingMessages) {
   if (!isPlainObject(category)) {
     return [categoryFinding(category, index, 'error', 'Categories', 'Each category must be a non-null JSON object.', { blocksExport: true })];
   }
@@ -337,7 +337,7 @@ export function categoryCompatibilityFindings(category, index = null) {
     findings.push(blockingCategoryFinding(category, index, 'ForkedFromKey', 'ForkedFromKey must be null or a string when present.'));
   }
   findings.push(...validateColor(category, index));
-  findings.push(...itemOrderingCompatibilityFindings(category, index));
+  findings.push(...itemOrderingCompatibilityFindings(category, index, itemOrderingFindingMessages));
   if (!hasOwn(category, 'Rules')) {
     findings.push(defaultingCategoryFinding(category, index, 'Rules', 'Rules is omitted; AetherBags will use a complete default rule set.'));
     return findings;
@@ -392,23 +392,25 @@ export function countCompatibilityFindings(findings = []) {
   }, { error: 0, warning: 0, note: 0, blocking: 0 });
 }
 
-export function analyzeAetherBagsCompatibility(config) {
+export function analyzeAetherBagsCompatibility(config, itemOrderingFindingMessages) {
   const findings = jsonSerializationFidelityFindings(config);
   findings.push(...rootCompatibilityFindings(config));
   if (Array.isArray(config?.Categories)) {
-    for (const [index, category] of config.Categories.entries()) findings.push(...categoryCompatibilityFindings(category, index));
+    for (const [index, category] of config.Categories.entries()) {
+      findings.push(...categoryCompatibilityFindings(category, index, itemOrderingFindingMessages));
+    }
   }
   return { findings, counts: countCompatibilityFindings(findings) };
 }
 
-export function decideAetherBagsExportPreflight(config) {
-  const analysis = analyzeAetherBagsCompatibility(config);
+export function decideAetherBagsExportPreflight(config, itemOrderingFindingMessages) {
+  const analysis = analyzeAetherBagsCompatibility(config, itemOrderingFindingMessages);
   const blockingFindings = analysis.findings.filter(item => item.blocksExport);
   return { allowed: blockingFindings.length === 0, analysis, blockingFindings };
 }
 
-export async function runAetherBagsExportPreflight(config, makeExport) {
-  const decision = decideAetherBagsExportPreflight(config);
+export async function runAetherBagsExportPreflight(config, makeExport, itemOrderingFindingMessages) {
+  const decision = decideAetherBagsExportPreflight(config, itemOrderingFindingMessages);
   if (!decision.allowed) return { ...decision, value: undefined };
   return { ...decision, value: await makeExport() };
 }
