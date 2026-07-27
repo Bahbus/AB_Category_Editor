@@ -32,7 +32,8 @@ test('Item Ordering uses shared summary, issue styling, accessible controls, and
   assert.match(source, /button\.textContent = messages\.criteria\.normalizedAction/);
   assert.match(source, /rawCorrectionAction\(messages\.customOrder\.rawAction, messages\.customOrder\.rawDescription\)/);
   assert.match(source, /hint\.textContent = messages\.criteria\.normalizedPreview\(preview\)/);
-  assert.match(source, /ITEM_SORT_FIELDS\.filter\(option => option\.value !== 5\)[\s\S]*ITEM_SORT_FIELDS\.find\(option => option\.value === 5\)/);
+  assert.match(source, /ITEM_SORT_FIELD_VALUES\.filter\(value => value !== 5\)[\s\S]*ITEM_SORT_FIELD_VALUES\.find\(value => value === 5\)/);
+  assert.match(source, /optionNodes\(ITEM_SORT_DIRECTION_VALUES,[\s\S]*messages\.criteria\.directionLabel/);
   assert.doesNotMatch(source, /className = 'row ordering-(?:row-actions|add-row)'/);
   assert.ok(source.indexOf('section.appendChild(addRow)') < source.indexOf('section.appendChild(rows)'));
 });

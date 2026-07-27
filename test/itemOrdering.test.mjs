@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  ITEM_SORT_FIELDS,
-  ITEM_SORT_DIRECTIONS,
+  ITEM_SORT_FIELD_VALUES,
+  ITEM_SORT_DIRECTION_VALUES,
   analyzeItemOrdering,
   decideCanonicalCriteriaRepair,
   decideCriterionAdd,
@@ -12,14 +12,31 @@ import {
   listMutationFocusPlan
 } from '../src/itemOrdering.js';
 
-test('ordering metadata exposes every pinned upstream field and direction', () => {
-  assert.deepEqual(ITEM_SORT_FIELDS, [
-    { value: 0, label: 'Use Global Default' }, { value: 1, label: 'Quantity' },
-    { value: 2, label: 'Name' }, { value: 3, label: 'Rarity' },
-    { value: 4, label: 'Item ID' }, { value: 5, label: 'Custom Item Order' },
-    { value: 6, label: 'Game Category' }, { value: 7, label: 'Item Level' }
-  ]);
-  assert.deepEqual(ITEM_SORT_DIRECTIONS, [{ value: 0, label: 'Ascending' }, { value: 1, label: 'Descending' }]);
+test('ordering value tables expose every pinned upstream field and direction as frozen numbers', () => {
+  assert.deepEqual(ITEM_SORT_FIELD_VALUES, [0, 1, 2, 3, 4, 5, 6, 7]);
+  assert.deepEqual(ITEM_SORT_DIRECTION_VALUES, [0, 1]);
+  assert.equal(Object.isFrozen(ITEM_SORT_FIELD_VALUES), true);
+  assert.equal(Object.isFrozen(ITEM_SORT_DIRECTION_VALUES), true);
+  assert.ok(ITEM_SORT_FIELD_VALUES.every(value => typeof value === 'number'));
+  assert.ok(ITEM_SORT_DIRECTION_VALUES.every(value => typeof value === 'number'));
+});
+
+test('ordering analysis accepts and rejects the established field and direction values', () => {
+  for (const field of ITEM_SORT_FIELD_VALUES) {
+    for (const direction of ITEM_SORT_DIRECTION_VALUES) {
+      const analysis = analyzeItemOrdering({ ItemSortCriteria: [{ Field: field, Direction: direction }] });
+      assert.doesNotMatch(analysis.criteriaIssues.map(item => item.message).join('\n'), /unsupported/);
+    }
+  }
+  for (const criterion of [
+    { Field: -1, Direction: 0 },
+    { Field: 8, Direction: 0 },
+    { Field: 1, Direction: -1 },
+    { Field: 1, Direction: 2 }
+  ]) {
+    const analysis = analyzeItemOrdering({ ItemSortCriteria: [criterion] });
+    assert.match(analysis.criteriaIssues.map(item => item.message).join('\n'), /unsupported/);
+  }
 });
 
 test('omitted and empty criteria derive Use Global without inserting properties', () => {
