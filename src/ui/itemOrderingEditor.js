@@ -1,8 +1,8 @@
 import { escapeHtml, setStatus, syncButtonTooltip } from '../dom.js';
 import { parseTypedRowIdValue, normalizeRowIdValue } from '../rowIds.js';
 import {
-  ITEM_SORT_FIELDS,
-  ITEM_SORT_DIRECTIONS,
+  ITEM_SORT_FIELD_VALUES,
+  ITEM_SORT_DIRECTION_VALUES,
   analyzeItemOrdering,
   decideCanonicalCriteriaRepair,
   decideCriterionAdd,
@@ -22,9 +22,9 @@ import {
   syncOccurrenceMotionKeys
 } from '../reorderMotion.js';
 
-const UI_ITEM_SORT_FIELDS = Object.freeze([
-  ...ITEM_SORT_FIELDS.filter(option => option.value !== 5),
-  ITEM_SORT_FIELDS.find(option => option.value === 5)
+const UI_ITEM_SORT_FIELD_VALUES = Object.freeze([
+  ...ITEM_SORT_FIELD_VALUES.filter(value => value !== 5),
+  ITEM_SORT_FIELD_VALUES.find(value => value === 5)
 ]);
 
 const FIELD_MESSAGE_KEYS = new Map([
@@ -97,12 +97,12 @@ export function createItemOrderingMessages(translate) {
   });
 }
 
-function optionNodes(options, selected, labelForOption, excluded = new Set()) {
-  return options.filter(option => !excluded.has(option.value) || option.value === selected).map(option => {
+function optionNodes(values, selected, labelForValue, excluded = new Set()) {
+  return values.filter(value => !excluded.has(value) || value === selected).map(value => {
     const node = document.createElement('option');
-    node.value = String(option.value);
-    node.textContent = labelForOption(option.value);
-    node.selected = option.value === selected;
+    node.value = String(value);
+    node.textContent = labelForValue(value);
+    node.selected = value === selected;
     return node;
   });
 }
@@ -219,7 +219,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
       field.setAttribute('aria-label', messages.criteria.fieldAccessible(index + 1));
       field.dataset.orderingFocus = `field-${index}`;
       if (analysis.criteriaIssues.length) field.setAttribute('aria-describedby', issueId);
-      field.append(...optionNodes(UI_ITEM_SORT_FIELDS, criterion.Field, messages.criteria.fieldLabel, new Set([...usedFields].filter(value => value !== criterion.Field))));
+      field.append(...optionNodes(UI_ITEM_SORT_FIELD_VALUES, criterion.Field, messages.criteria.fieldLabel, new Set([...usedFields].filter(value => value !== criterion.Field))));
       field.onchange = () => applyCriteriaDecision(decideCriterionChange(criteria, index, 'Field', Number(field.value)), '', `field-${index}`);
       fieldLabel.appendChild(field);
 
@@ -230,7 +230,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
       direction.dataset.orderingFocus = `direction-${index}`;
       if (analysis.criteriaIssues.length) direction.setAttribute('aria-describedby', issueId);
       direction.disabled = criterion.Field === 0;
-      direction.append(...optionNodes(ITEM_SORT_DIRECTIONS, criterion.Field === 0 ? 0 : criterion.Direction, messages.criteria.directionLabel));
+      direction.append(...optionNodes(ITEM_SORT_DIRECTION_VALUES, criterion.Field === 0 ? 0 : criterion.Direction, messages.criteria.directionLabel));
       direction.onchange = () => applyCriteriaDecision(decideCriterionChange(criteria, index, 'Direction', Number(direction.value)), '', `direction-${index}`);
       directionLabel.appendChild(direction);
 
@@ -282,7 +282,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
       row.append(fieldLabel, directionLabel, actions);
       rows.appendChild(row);
     });
-    const available = UI_ITEM_SORT_FIELDS.filter(option => !usedFields.has(option.value) && !(criteria.length && option.value === 0));
+    const available = UI_ITEM_SORT_FIELD_VALUES.filter(value => !usedFields.has(value) && !(criteria.length && value === 0));
     if (available.length) {
       const addRow = document.createElement('div');
       addRow.className = 'ordering-add-row';
@@ -291,7 +291,7 @@ export function renderItemOrderingEditor(category, deps = {}) {
       const select = document.createElement('select');
       select.setAttribute('aria-label', messages.criteria.addField);
       select.dataset.orderingFocus = 'add-field';
-      select.append(...optionNodes(available, available[0].value, messages.criteria.fieldLabel));
+      select.append(...optionNodes(available, available[0], messages.criteria.fieldLabel));
       label.appendChild(select);
       const add = document.createElement('button');
       add.type = 'button';

@@ -561,6 +561,36 @@ Verification on the exact implementation tree:
 - browser QA is not applicable because this formatter-call correction changes
   no DOM structure, layout, control, focus, network, worker, or mutation path.
 
+### Phase 87: Item Ordering value-table cleanup
+
+The DOM-free Item Ordering field and direction authorities are frozen numeric
+value arrays without option wrappers or duplicate English display labels.
+Analyzer validation sets and the structured editor consume those numbers
+directly; the injected Item Ordering message adapter remains the sole runtime
+owner of field and direction labels. Established values, option ordering,
+selection, findings, normalization, structured editability, Custom Item Order
+relevance, mutations, focus, motion, dirty state, lookup, descriptions,
+validation, compatibility, import/export, and accessibility behavior remain
+unchanged.
+
+Verification on the exact implementation tree:
+
+- focused orphan-API, Item Ordering, Item Ordering localization,
+  accessibility/source, validation, export-compatibility, XIVAPI,
+  description-generator, localization, trust-boundary, and governance coverage
+  passed all 219 tests;
+- `npm run check` passed: 108 JavaScript files syntax-checked, all static
+  relative imports resolved, and 53 test files / 597 tests passed;
+- browser QA loaded the populated Advanced preset and confirmed all eight exact
+  field labels and both exact direction labels in established order, Custom
+  Item Order last, correct selected values, a successful field selection and
+  restoration, and enabled Add Criterion with the expected remaining choices;
+- browser diagnostics contained only the host's Electron development CSP
+  warning and the preset's expected three import warnings; no unexpected
+  application error appeared;
+- `docs/AI_PROJECT_CONTEXT.md` and `docs/ARCHITECTURE.md` remain accurate and
+  unchanged, so context and architecture updates are not applicable.
+
 ## Recording future work
 
 For each numbered phase implementation tree:

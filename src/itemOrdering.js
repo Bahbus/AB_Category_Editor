@@ -1,23 +1,10 @@
 import { isSignedInt32Scalar, isUnsignedIntegerScalar } from './filterScalars.js';
 
-export const ITEM_SORT_FIELDS = Object.freeze([
-  Object.freeze({ value: 0, label: 'Use Global Default' }),
-  Object.freeze({ value: 1, label: 'Quantity' }),
-  Object.freeze({ value: 2, label: 'Name' }),
-  Object.freeze({ value: 3, label: 'Rarity' }),
-  Object.freeze({ value: 4, label: 'Item ID' }),
-  Object.freeze({ value: 5, label: 'Custom Item Order' }),
-  Object.freeze({ value: 6, label: 'Game Category' }),
-  Object.freeze({ value: 7, label: 'Item Level' })
-]);
+export const ITEM_SORT_FIELD_VALUES = Object.freeze([0, 1, 2, 3, 4, 5, 6, 7]);
+export const ITEM_SORT_DIRECTION_VALUES = Object.freeze([0, 1]);
 
-export const ITEM_SORT_DIRECTIONS = Object.freeze([
-  Object.freeze({ value: 0, label: 'Ascending' }),
-  Object.freeze({ value: 1, label: 'Descending' })
-]);
-
-const FIELD_VALUES = new Set(ITEM_SORT_FIELDS.map(option => option.value));
-const DIRECTION_VALUES = new Set(ITEM_SORT_DIRECTIONS.map(option => option.value));
+const FIELD_VALUES = new Set(ITEM_SORT_FIELD_VALUES);
+const DIRECTION_VALUES = new Set(ITEM_SORT_DIRECTION_VALUES);
 const GLOBAL_CRITERION = Object.freeze({ Field: 0, Direction: 0 });
 
 function hasOwn(value, key) { return Object.prototype.hasOwnProperty.call(value, key); }
