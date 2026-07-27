@@ -636,6 +636,35 @@ Verification on the exact implementation tree:
   browser QA;
 - `git diff --check origin/main` passed with no output.
 
+### Phase 89: issue-first review triage
+
+Repository review guidance records every actionable evidence-backed finding in
+its most relevant issue before phase selection, classifies impact, severity,
+urgency, relationship, and deferral risk, and selects work from the updated
+tracker and Project #2. Small low-impact findings may remain tracked until they
+combine naturally or become worthwhile, while decimal phases are reserved for
+important, tightly related corrections that should not wait.
+
+Maintainer and pull-request templates support coherent phases that close or
+advance multiple related issues while preserving an explicit shared ownership
+and verification boundary. Publication names every completed or advanced issue
+and records new deferred findings in their most relevant new or existing issue.
+Generated-description localization
+[#126](https://github.com/Bahbus/AB_Category_Editor/issues/126) remains blocked
+by significant base-generator improvement
+[#175](https://github.com/Bahbus/AB_Category_Editor/issues/175).
+
+Verification on the exact implementation tree:
+
+- focused repository-governance coverage passed all 20 tests;
+- `npm run check` passed: 108 JavaScript files syntax-checked, all static
+  relative imports resolved, and 53 test files / 604 tests passed;
+- `git diff --check origin/main` passed with no output;
+- changed files are limited to the three durable documents, two governance
+  templates, and focused governance coverage;
+- browser QA is not applicable because no runtime, DOM, CSS, interaction, data,
+  preset, catalog, or deployment behavior changed.
+
 ## Recording future work
 
 For each numbered phase implementation tree:

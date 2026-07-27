@@ -132,27 +132,42 @@ capability or decision.
 2. Fetch `origin/main`; fast-forward only a clean local `main`; confirm local
    `HEAD` equals fetched `origin/main`.
 3. Read the three primary documents in the required order.
-4. Inspect the linked issue and its current Project item; do not repeatedly
+4. Before selecting phase work, record every actionable review finding in the
+   most relevant repository issue: create a focused issue, create or link a
+   sub-issue under the relevant roadmap issue, or update an existing issue that
+   already owns the finding. Require focused evidence; do not silently drop a
+   deferred finding.
+5. Classify findings by evidence, impact, severity, urgency, relationship, and
+   deferral risk. Distinguish confirmed bugs, material acceptance misses, test
+   gaps, maintainability debt, speculative risks, and optional polish, then
+   select work from the updated issue tracker and Project #2 instead of
+   reflexively selecting the newest finding.
+6. Inspect the selected issue and its current Project item; do not repeatedly
    load the entire completed board. Reconcile live `Status`, `Priority`, `Area`,
    and `Phase` fields with verified repository state in Project #2 rather than
    duplicating those values in durable documents.
-5. Use one unique `agent/...` branch unless the task explicitly requires
+7. A coherent numbered phase may close or advance multiple related tracked
+   issues when they share an explicit ownership and verification boundary and
+   packing them reduces repeated setup, verification, documentation, browser
+   QA, or publication overhead. Do not create unrelated grab-bag phases.
+8. Use one unique `agent/...` branch unless the task explicitly requires
    another strategy. Do not invent a worktree requirement.
-6. Implement only the written scope. Put newly verified deferred work in a
-   separate repository issue instead of widening the phase.
-7. Classify the changed-file scope before selecting runtime, browser, security,
+9. Implement only the written scope. Keep newly verified deferred work in its
+   owning repository issue instead of widening the phase.
+10. Classify the changed-file scope before selecting runtime, browser, security,
    or deployment reruns. Run focused checks, the complete check contract once
    per exact tree, and the requested diff checks. Use compact output for routine
    success when helpful, and rerun the ordinary command or a targeted test for
    failure diagnostics. State QA relevance and tooling limits honestly.
-8. Record delivered capabilities and verified evidence in merge-neutral terms,
+11. Record delivered capabilities and verified evidence in merge-neutral terms,
    without predicting a merge or copying live Project fields. Update
    architecture or another document only when its current content changed;
    explicitly record not applicable otherwise. Require a post-merge
    documentation correction only when merged code or verified behavior
    actually disagrees with the durable record.
-9. Synchronize the linked issue and Project item, publish the requested pull
-   request state, and never imply that an unrun check passed.
+12. Synchronize every issue the phase closes or advances and its relevant
+    Project item, publish the requested pull request state, and never imply that
+    an unrun check passed.
 
 ## Behavioral contracts
 
@@ -270,12 +285,27 @@ capability or decision.
 ## Review and scope decisions
 
 - Compare work to the written issue, not merely its theme.
-- Separate confirmed functional defects, acceptance misses, missing tests,
-  optional polish, and maintainability observations.
-- Require evidence from surrounding code and tests before calling something a
-  bug. File size alone is not proof that a source or test module should split.
-- Require a `.1` follow-up for incorrect behavior or a material acceptance miss,
-  not for speculative or aesthetic cleanup.
+- Record every actionable confirmed finding in its owning repository issue
+  before selecting phase work. Require evidence from surrounding code and tests
+  before calling something a bug; file size alone is not proof that a source or
+  test module should split.
+- Distinguish confirmed bugs, material acceptance misses, test gaps,
+  maintainability debt, speculative risks, and optional polish. Weigh severity,
+  user/data/security/compatibility impact, urgency, relationship to recent work,
+  and the cost and risk of deferral.
+- Reserve decimal phases for important, tightly related direct corrections to a
+  numbered phase, especially material regressions or acceptance failures that
+  should not wait. They are not the default for every newly confirmed finding.
+- Keep small low-priority findings tracked until they combine naturally with
+  related work, accumulate into worthwhile cleanup, or no higher-value work
+  remains.
+- Pack multiple related issues only when the phase retains a coherent ownership
+  and verification boundary; tracking does not justify unrelated grab-bag work.
+- Generated-description localization
+  [#126](https://github.com/Bahbus/AB_Category_Editor/issues/126) remains
+  blocked by significant base-generator improvement
+  [#175](https://github.com/Bahbus/AB_Category_Editor/issues/175). Do not begin
+  either redesign or localization as incidental review follow-up.
 - Read indexed history archives only when older evidence is relevant to the
   current question.
 - Prefer direct behavior tests. Use source checks for DOM-heavy wiring,
