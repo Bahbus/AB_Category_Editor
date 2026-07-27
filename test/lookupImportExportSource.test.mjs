@@ -37,7 +37,7 @@ test('regex add matched IDs does not dirty or say Added 0 when nothing changed',
   assert.match(addHandler, /let\s+removedPattern\s*=\s*false/);
   assert.match(addHandler, /removedPattern\s*=\s*removeSavedPatternAtSourceIndex/);
   assert.match(addHandler, /if\s*\(\s*!added\s*&&\s*!removedPattern\s*\)/);
-  assert.match(addHandler, /No new item IDs added; all matches were already present\./);
+  assert.match(addHandler, /setStatus\(messages\.add\.noop\)/);
 
   const noChangeIndex = addHandler.search(/if\s*\(\s*!added\s*&&\s*!removedPattern\s*\)/);
   const markDirtyIndex = addHandler.indexOf('markDirty()');
@@ -46,10 +46,9 @@ test('regex add matched IDs does not dirty or say Added 0 when nothing changed',
   assert.ok(markDirtyIndex !== -1);
   assert.ok(markDirtyIndex > noChangeIndex, 'markDirty should happen only after no-change branch returns');
 
-  assert.doesNotMatch(addHandler, /setStatus\(`Added \$\{added\} item ID\(s\)\.`, 'ok'\)/);
-  assert.match(addHandler, /Added \$\{added\} item ID\(s\) and removed selected regex filter\./);
-  assert.match(addHandler, /Added \$\{added\} item ID\(s\)\./);
-  assert.match(addHandler, /Removed selected regex filter\./);
+  assert.match(addHandler, /messages\.add\.addedAndRemoved\(added\.toLocaleString\(\)\)/);
+  assert.match(addHandler, /messages\.add\.added\(added\.toLocaleString\(\)\)/);
+  assert.match(addHandler, /messages\.add\.removed/);
 });
 
 test('number input blank blur restores previous value instead of committing zero', () => {
@@ -208,22 +207,21 @@ test('name-pattern entry preserves commas while numeric ID editors retain comma-
 
 test('regex converter distinguishes AetherBags storage from fixed JavaScript compatibility', () => {
   const converter = read('src/tools/regexToItemIds.js');
+  const messages = read('src/tools/regexToItemIdsMessages.js');
   const semantics = read('src/patternSemantics.js');
   const runBody = converter.match(/runButton\.onclick = async \(\) => \{(?<body>[\s\S]*?)\n  \};\n\n  addButton\.onclick/)?.groups.body ?? '';
 
   assert.doesNotMatch(converter, /regexFlags|Regex flags/);
   assert.match(semantics, /new RegExp\(pattern, 'i'\)/);
-  assert.match(converter, /case-insensitive, culture-invariant \.NET regex/);
-  assert.match(converter, /fixed case-insensitive JavaScript regex/);
-  assert.match(converter, /valid AetherBags patterns cannot be scanned here/);
-  assert.match(converter, /AetherBags\/\.NET pattern cannot be scanned by the browser converter/);
+  assert.match(messages, /regexConverter\.modal\.introduction/);
+  assert.match(messages, /regexConverter\.scan\.incompatiblePattern/);
 
   const compileIndex = runBody.indexOf('compileBrowserPattern(input.value)');
   assert.ok(compileIndex >= 0);
   for (const laterWork of [
     'matches = []',
     'acquireLookupCacheProducer()',
-    "showBusy('Scanning items'",
+    'showBusy(messages.scan.busyTitle',
     'fetchItemRowsPage(',
     'lookupCache.Item'
   ]) {
@@ -235,12 +233,14 @@ test('regex converter distinguishes AetherBags storage from fixed JavaScript com
 
 test('regex converter filters saved choices while preserving removal source indices', () => {
   const converter = read('src/tools/regexToItemIds.js');
+  const messages = read('src/tools/regexToItemIdsMessages.js');
   const semantics = read('src/patternSemantics.js');
 
   assert.match(converter, /selectUsableSavedPatterns\(patterns\)/);
   assert.match(converter, /\{ pattern, sourceIndex \}/);
   assert.match(converter, /option\.sourceIndex === Number\(select\.value\)/);
-  assert.match(converter, /Correct them in Allowed Item Name Patterns or Raw JSON/);
+  assert.match(converter, /messages\.modal\.omittedPatterns\(savedPatternSelection\.omittedCount\.toLocaleString\(\)\)/);
+  assert.match(messages, /regexConverter\.modal\.omittedPatterns/);
   assert.match(converter, /removeSavedPatternAtSourceIndex\(cat\.Rules\.AllowedItemNamePatterns, sourceIndex\)/);
   assert.match(semantics, /values\.splice\(sourceIndex, 1\)/);
 });
@@ -507,6 +507,7 @@ test('regex evaluation is isolated in a bounded repository-relative module worke
 
 test('regex timeout, Cancel, and modal Close share immediate idempotent cleanup without invalidating AetherBags syntax', () => {
   const converter = read('src/tools/regexToItemIds.js');
+  const messages = read('src/tools/regexToItemIdsMessages.js');
   const stopBody = converter.match(/const stopActiveScan = \(\) => \{(?<body>[\s\S]*?)\n  \};/)?.groups.body ?? '';
   const finallyBody = converter.match(/\} finally \{(?<body>[\s\S]*?)\n    \}/)?.groups.body ?? '';
 
@@ -518,12 +519,12 @@ test('regex timeout, Cancel, and modal Close share immediate idempotent cleanup 
   assert.match(finallyBody, /evaluator\.dispose\(\)/);
   assert.match(finallyBody, /releaseLookupCacheProducer\?\.\(\)/);
   assert.match(finallyBody, /if \(busyShown\) hideBusy\(\)/);
-  assert.match(converter, /This does not mean the pattern is invalid for AetherBags\/\.NET\./);
+  assert.match(messages, /regexConverter\.scan\.batchTimeoutStatus/);
   assert.match(converter, /err instanceof RegexBatchTimeoutError/);
   assert.match(converter, /err instanceof XivapiRequestTimeoutError/);
   assert.match(converter, /scanState\.canceled \|\| err instanceof RegexWorkerCanceledError \|\| isAbortError\(err\)/);
-  assert.match(converter, /XIVAPI request timed out after/);
-  assert.match(converter, /match\(es\) from completed batches were kept/);
+  assert.match(messages, /regexConverter\.scan\.xivapiTimeoutSummary/);
+  assert.match(messages, /regexConverter\.scan\.partialFailureSummary/);
   assert.doesNotMatch(converter, /timeout[^\n]*AetherBags[^\n]*invalid/i);
 });
 

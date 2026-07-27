@@ -488,6 +488,50 @@ Verification on the exact implementation tree:
 - browser QA is not applicable because no executed runtime or presentation
   path changed.
 
+### Phase 86: Regex converter presentation localization
+
+Regex-to-Item-ID converter-owned modal copy, compatibility explanations,
+progress and result summaries, status wrappers, and Add/remove outcomes route
+through a focused DOM-free message adapter and the one translator created at
+application composition. Exact English output is retained. Saved patterns,
+item names and IDs, preformatted counts, deadlines, compiler/worker/XIVAPI
+details, and pattern-compatibility decisions remain untranslated dynamic or
+lower-layer data.
+
+`src/tools/regexBatchEvaluator.js`, `src/tools/regexBatchWorker.js`,
+`src/patternSemantics.js`, XIVAPI request/decision ownership, worker isolation,
+cache leases and incremental saves, cancellation, partial-result retention,
+result caps, action availability, Add/no-op/dirty behavior, modal structure,
+focus, safe sinks, accessibility, and dependency boundaries remain unchanged.
+Direct coverage proves every returned adapter member has a production
+consumer.
+
+Verification on the exact implementation tree:
+
+- focused Regex message, worker, pattern-semantics, lookup/cache,
+  action-availability, modal/focus, accessibility, localization,
+  trust-boundary, and governance suites passed 251 tests;
+- `npm run check` passed: 108 JavaScript files syntax-checked, all static
+  relative imports resolved, and 53 test files / 596 tests passed;
+- `git diff --check origin/main` passed with no output;
+- browser QA used Comfortable and Compact density at 1280 px, 840 px, and 390
+  px with zero document, body, converter-modal, or results horizontal
+  overflow;
+- live browser checks covered exact converter copy and controls, custom and
+  saved-pattern selection, JavaScript-incompatible `.NET` pattern feedback, a
+  bounded five-match scan, live Scan/Cancel/Add availability, explicit
+  cancellation, added-ID and saved-pattern-removal outcomes, dirty state, and
+  normal Close focus return to `Convert patterns to Item IDs`;
+- timeout, worker-construction, service-failure, active cache-clear refusal,
+  invalid-saved-pattern omission, 300-row truncation, partial results,
+  combined Add/remove, and all-duplicate Add were not forced in the browser;
+  direct adapter, worker, pattern, lookup/cache, source, action-availability,
+  and modal coverage remains authoritative for those paths;
+- diagnostics contained the browser host's Electron development CSP warning,
+  the advanced preset's expected three import warnings, and the intentionally
+  triggered incompatible-pattern error. No unexpected application error or
+  CSP violation appeared.
+
 ## Recording future work
 
 For each numbered phase implementation tree:

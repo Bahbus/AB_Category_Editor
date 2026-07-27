@@ -75,6 +75,22 @@ The project intentionally has:
   `ItemUICategory` identifiers through one shared boundary; service identifiers,
   row IDs, failure details, counts, and lookup decisions remain untranslated
   data.
+- Regex-to-Item-ID converter-owned modal copy, progress, result summaries,
+  status wrappers, and Add/remove outcomes use a focused DOM-free adapter and
+  that same translator. Saved patterns, item names and IDs, preformatted
+  counts, deadlines, compiler/worker/XIVAPI details, and compatibility
+  decisions remain untranslated dynamic or lower-layer data.
+- Phase 86 focused Regex, worker, pattern-semantics, lookup/cache,
+  action-availability, modal/focus, accessibility, localization,
+  trust-boundary, and governance coverage passed 251 tests. `npm run check`
+  passed 108 JavaScript files, static relative imports, and 53 test files / 596
+  tests. Browser QA covered exact converter presentation, custom and saved
+  patterns, incompatible-pattern feedback, bounded success, cancellation, Add
+  and saved-pattern removal outcomes, dirty state, focus return, and both
+  densities at 1280 px, 840 px, and 390 px without horizontal overflow.
+  Timeout, worker-construction, service-failure, active cache-clear refusal,
+  invalid-saved-pattern omission, truncation, partial-result, combined
+  Add/remove, and all-duplicate Add paths were not forced in the browser.
 - Phase 85 focused localization, lookup/cache, list-editor, category-operation,
   accessibility, trust-boundary, and governance coverage passed 237 tests.
   `npm run check` passed 106 JavaScript files, static relative imports, and 52
