@@ -532,6 +532,35 @@ Verification on the exact implementation tree:
   triggered incompatible-pattern error. No unexpected application error or
   CSP violation appeared.
 
+### Phase 86.1: Regex Add count fidelity
+
+The Regex converter's two successful Add-result paths pass the raw numeric
+`added` count to the localized message adapter, restoring the established
+ungrouped presentation for four-digit counts. Every omission, progress, page,
+match, scan, timeout, cancellation, completion, partial-result, and truncation
+count that was already locale-formatted before Phase 86 remains formatted.
+Catalog keys, templates, translator ownership, safe sinks, adapter consumers,
+Add/remove decisions, mutation behavior, and all other Regex behavior remain
+unchanged.
+
+Verification on the exact implementation tree:
+
+- focused Regex-message, lookup/import/export source, localization,
+  action-availability, trust-boundary, and governance coverage passed all 92
+  tests;
+- `npm run check` passed: 108 JavaScript files syntax-checked, all static
+  relative imports resolved, and 53 test files / 596 tests passed;
+- source coverage proves both production Add-result call sites pass raw
+  `added`, direct coverage proves both four-digit outcomes remain ungrouped,
+  and `git diff --check origin/main` passed with no output;
+- changed runtime scope is limited to the two Add-result argument corrections;
+  the only other changes are focused regression coverage and this durable
+  review record;
+- `docs/AI_PROJECT_CONTEXT.md` and `docs/ARCHITECTURE.md` remain accurate and
+  unchanged, so context and architecture updates are not applicable;
+- browser QA is not applicable because this formatter-call correction changes
+  no DOM structure, layout, control, focus, network, worker, or mutation path.
+
 ## Recording future work
 
 For each numbered phase implementation tree:

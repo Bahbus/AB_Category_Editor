@@ -86,10 +86,10 @@ test('Regex converter messages preserve exact English and dynamic data', () => {
   assert.equal(messages.scan.failed(new Error('<XIVAPI detail>')), 'Regex scan failed: <XIVAPI detail>');
   assert.equal(messages.add.noop, 'No new item IDs added; all matches were already present.');
   assert.equal(
-    messages.add.addedAndRemoved('1,001'),
-    'Added 1,001 item ID(s) and removed selected regex filter.'
+    messages.add.addedAndRemoved(1000),
+    'Added 1000 item ID(s) and removed selected regex filter.'
   );
-  assert.equal(messages.add.added('1'), 'Added 1 item ID(s).');
+  assert.equal(messages.add.added(1000), 'Added 1000 item ID(s).');
   assert.equal(messages.add.removed, 'Removed selected regex filter.');
 });
 

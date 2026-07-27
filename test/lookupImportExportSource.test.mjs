@@ -46,8 +46,9 @@ test('regex add matched IDs does not dirty or say Added 0 when nothing changed',
   assert.ok(markDirtyIndex !== -1);
   assert.ok(markDirtyIndex > noChangeIndex, 'markDirty should happen only after no-change branch returns');
 
-  assert.match(addHandler, /messages\.add\.addedAndRemoved\(added\.toLocaleString\(\)\)/);
-  assert.match(addHandler, /messages\.add\.added\(added\.toLocaleString\(\)\)/);
+  assert.match(addHandler, /messages\.add\.addedAndRemoved\(added\)/);
+  assert.match(addHandler, /messages\.add\.added\(added\)/);
+  assert.doesNotMatch(addHandler, /messages\.add\.(?:addedAndRemoved|added)\(added\.toLocaleString\(\)\)/);
   assert.match(addHandler, /messages\.add\.removed/);
 });
 

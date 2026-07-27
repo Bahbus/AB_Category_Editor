@@ -378,9 +378,9 @@ export function openRegexToItemIdsTool(deps) {
     markDirty();
     setStatus(
       added && removedPattern
-        ? messages.add.addedAndRemoved(added.toLocaleString())
+        ? messages.add.addedAndRemoved(added)
         : added
-          ? messages.add.added(added.toLocaleString())
+          ? messages.add.added(added)
           : messages.add.removed,
       'ok'
     );
