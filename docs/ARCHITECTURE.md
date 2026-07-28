@@ -110,26 +110,50 @@ selection, persistence, locale state, or modal infrastructure.
 
 ## Generated descriptions
 
-Generated descriptions have two explicit DOM-free boundaries:
+Generated descriptions have three explicit DOM-free boundaries:
 
 - `src/descriptionAnalysis.js` owns frozen lexical concepts, compound and
-  contextual evidence matching, role/stat classification, useful cached-name
-  filtering, and structured summaries of explicit item IDs, UI category IDs,
-  and name patterns;
+  contextual evidence matching, source-aware representative intent/role/stat
+  classification, useful cached-name filtering, subtype context, and
+  structured summaries of explicit item IDs, UI category IDs, name patterns,
+  and complete stable-ID UI-family coverage;
 - `src/descriptionGenerator.js` owns ranges and state qualifiers, Custom Item
-  Order relevance, sentence assembly, cleanup, the deliberate generic
-  fallback, and the final quality guard.
+  Order relevance, semantic message selection, concise assembly, cleanup, the
+  deliberate generic fallback, and the final quality guard;
+- `src/descriptionMessages.js` owns default-English realization from stable
+  message/stat keys, named values, and list formatting behind an injectable
+  narrow message interface.
 
-Both boundaries are deterministic, dependency-free, network-free, and
+All boundaries are deterministic, dependency-free, network-free, and
 non-mutating. They accept an optional synchronous lookup-name reader but never
-start lookup work or modify cache state. Compound/contextual evidence takes
-precedence over broad single-word guesses; ambiguous names remain generic
-rather than receiving unsupported semantics. `basicEditor.js` continues to own
-explicit review/replacement/copy/cancel and opt-in blank-only automatic
-application, while `categoryChanges.js` remains the no-op/mutation decision
-authority. Generated English templates do not use the localization catalog,
-and bundled preset payloads are not generation authorities or mutation
-targets.
+start lookup work or modify cache state. Direct category-name evidence outranks
+stored name-pattern evidence, which outranks lookup-only evidence. For
+multi-row explicit sources, a cached-name concept must match a strict majority
+of the stored IDs before it can classify the category; a single incidental or
+partially resolved name cannot override the safe explicit-rule fallback.
+Ultimate/Extreme subtype context remains analysis-owned, augmentation purpose
+requires representative resolved material evidence, and generic UI-category
+summaries retain exact counts. Complete weapon, tool, armor, and accessory
+families are recognized by stable row IDs and may use an `all` quantifier only
+when no item, pattern, range, state, or rarity rule narrows that coverage.
+Known Savage-book name qualifiers map to stable raid-series/tier keys in
+analysis; the realization boundary owns localized raid names and one of five
+series-appropriate sentence frames. Stat materia and potion families select
+one of three controlled frames from a deterministic category-name hash, keeping
+variation reproducible and language-boundary-owned rather than random.
+Multiple supported stats compose through the same named-value/list boundary in
+source order. When user-authored evidence combines conflicting known Savage,
+token, unlockable, or gear subtypes, analysis selects safe family wording;
+unrelated cross-family combinations return the deliberate non-useful fallback
+instead of allowing priority order to create a false specific claim.
+`basicEditor.js`
+continues to own explicit review/replacement/copy/cancel and opt-in blank-only
+automatic application, while `categoryChanges.js` remains the no-op/mutation
+decision authority. Generated descriptions still default to English and do not
+use the localization catalog, so #126 remains blocked; the injected realization
+boundary lets a future locale provide wording without duplicating semantic
+analysis or generator decisions. Bundled preset payloads are not generation
+authorities or mutation targets.
 
 ## Lookup, cache, and tools
 
@@ -406,11 +430,12 @@ repetitive history.
   locale persistence and a second catalog.
 - Generated-description localization
   [#126](https://github.com/Bahbus/AB_Category_Editor/issues/126) remains
-  blocked pending the post-merge review required after the base-generator
-  improvement tracked by
-  [#175](https://github.com/Bahbus/AB_Category_Editor/issues/175). Phase 90
-  establishes the English analysis/rendering boundary; the following review,
-  not this implementation, decides whether localization may resume.
+  blocked pending the post-merge review required after the evidence-fidelity
+  work tracked by [#175](https://github.com/Bahbus/AB_Category_Editor/issues/175).
+  Phase 91 strengthens the semantic model and introduces an injectable
+  default-English realization boundary, including stable Savage raid/tier
+  terms; the following review, not this implementation, decides whether
+  localization may resume.
 - A lightweight real-browser harness remains a Project candidate, not an
   implicit dependency mandate.
 
