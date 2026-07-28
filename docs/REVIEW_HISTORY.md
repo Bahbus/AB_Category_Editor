@@ -718,6 +718,98 @@ Verification on the exact implementation tree:
   browser view subsequently failed to attach. No exact-tree layout,
   clipboard, automatic-generation, or other browser path is claimed.
 
+### Phase 91: evidence-faithful generated descriptions
+
+Lookup-backed intent, role, stat, and explicit-list classification is
+source-aware and representative. Category-name evidence outranks stored
+name-pattern evidence, which outranks cached lookup names; multi-row sources
+require a strict majority before a lookup-only concept may classify the whole
+category. Partial data and one incidental term therefore retain conservative
+explicit-source wording.
+
+Ultimate and Extreme totems preserve their distinct raid/trial subtype context.
+Augment Materials names tome-gear purpose only when the category identity and
+representative solvent/twine/glaze/ester evidence agree, while partial lookup
+data retains the conservative gear-augmentation phrase. Full deterministic
+lookup fixtures cover every stored ID in the audited categories rather than
+allowing partial-cache success to stand in for whole-category evidence.
+
+The follow-up prose iteration separates semantic analysis from realization.
+Analysis returns stable intent, message, stat, and UI-family coverage keys;
+`descriptionMessages.js` owns default-English wording, named interpolation,
+stat names, and list formatting behind an injectable interface. This prepares
+future locale work to replace realization without duplicating classification,
+coverage, or qualifier logic, but it does not add a locale catalog or unblock
+#126.
+
+Complete weapon, crafting/gathering-tool, armor, and accessory families are
+recognized by stable `ItemUICategory` IDs. Their concise descriptions may use
+`all` only when no item, pattern, range, state, or rarity rule narrows the
+category. Generic explicit lists retain counts and compact examples instead of
+dumping long resolved-name lists. Domain-specific phrasing covers buffs,
+coffers, alliance-raid coins, treasure maps, randomized materiel containers,
+Umbrite, Unsung raid tokens, manuals, Irregular Tomestones, and Extreme
+materials. A 140-character guard bounds all output.
+
+All fifteen Advanced Savage Books categories retain their specific raid tier.
+Stable semantic keys cover the Arcadion Light-heavyweight, Cruiserweight, and
+Heavyweight tiers; Pandaemonium Asphodelos, Abyssos, and Anabaseios; Eden's
+Gate, Verse, and Promise; the Delta-, Sigma-, and Alphascapes; and Alexander
+Gordias, Midas, and the Creator. Five series-appropriate sentence frames keep
+their prose distinct. Stat materia and stat potions use three controlled
+category-derived variants apiece. Variation remains deterministic and the
+default-English raid names and frames stay behind the injectable realization
+boundary.
+
+Combination handling is compositional where the evidence supports it and
+conservative otherwise. Multi-stat materia and potion names or stored patterns
+retain every recognized stat in source order. Multiple recognized Savage tiers
+do not select the first tier; Ultimate plus Extreme totems, multiple unlockable
+subtypes, and unsupported gear-subtype combinations use family-level prose.
+Names spanning unrelated intent families retain the deliberate non-useful
+fallback, preventing lexical priority from turning `Weapons and Materia` or
+`Potions and Meals` into a false single-family claim.
+
+Generation stays synchronous, deterministic, DOM-free, network-free,
+dependency-free, and non-mutating. Explicit Generate, review/copy/cancel/
+replace, blank-only automatic application, identical-output no-op,
+lookup-cache reads, dirty/revision/render, focus/modal, preferences,
+import/export, validation, schema, preset payload, AetherBags, and localization
+contracts are unchanged. [Issue #126](https://github.com/Bahbus/AB_Category_Editor/issues/126)
+remains on hold until the required post-merge review.
+
+Verification on the exact implementation tree:
+
+- focused description-generator, preset-quality, Basics, category-change,
+  lookup-name, localization/trust-boundary, accessibility/source, preset, and
+  governance coverage passed all 164 tests;
+- `npm run check` passed: 112 JavaScript files syntax-checked, all static
+  relative imports resolved, and 54 test files / 624 tests passed;
+- the deterministic full-lookup audit generated descriptions for all 24 Basic
+  and 55 Advanced categories. Basic output averaged 41.9 characters, with a
+  65-character maximum and deliberate fallbacks only for `Other`, `Soul Gems`,
+  and `Jobstones - Alphabetical - A -> Z`. Advanced output averaged 46.4
+  characters, with a 69-character maximum, 55 unique outputs, and no fallbacks;
+- live XIVAPI `ItemUICategory` names were consulted as development evidence for
+  current family membership; production generation and all fixtures remain
+  network-free and the application gains no runtime service dependency;
+- exact-tree browser QA loaded the Advanced preset and resolved all referenced
+  names. Weapons previewed `All job weapons for Disciples of War and Magic.`;
+  cancel preserved the original description and `No changes`, while replacement
+  updated the field, produced `Changes not exported`, and returned focus.
+  Repeating Generate reported the identical-output no-op without reopening the
+  modal;
+- follow-up exact-tree browser QA previewed the distinct
+  `Proof of clearing the Arcadion: Light-heavyweight Tier (Savage).` and
+  `Raid books from Alexander: Gordias (Savage), used to obtain gear.` frames
+  through the real Generate modal. Cancel preserved `No changes` and restored
+  focus. Diagnostics contained only the host Electron development CSP warning
+  and the Advanced preset's expected three import warnings. Replacement, copy,
+  blank-only automatic generation, fallback clipboard, failure paths, and the
+  other Savage tiers were not forced in this follow-up;
+- the runtime-module reachability audit and `git diff --check origin/main`
+  passed with no unreachable runtime modules or whitespace errors.
+
 ## Recording future work
 
 For each numbered phase implementation tree:

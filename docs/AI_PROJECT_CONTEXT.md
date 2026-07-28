@@ -44,14 +44,28 @@ The project intentionally has:
 
 - Basics- and Color-card-owned text and accessible names use the existing
   injected translator through focused DOM-free message adapters. Generated
-  description templates and DOM-free validation findings remain exact English.
+  descriptions still default to English, through a separate injectable
+  stable-keyed realization boundary; DOM-free validation findings remain exact
+  English.
 - Generated-description lexical knowledge, contextual evidence classification,
   useful cached-name handling, and explicit-rule summaries are isolated in a
-  DOM-free analysis boundary. The renderer remains deterministic,
-  dependency-free, network-free, and conservative: representative bundled
-  categories now distinguish materia-exchange clusters, crafting/gathering
-  tools, medicine, fishing supplies, and furnishings while ambiguous names
-  retain the generic fallback.
+  DOM-free analysis boundary. Stable semantic message/stat keys cross into a
+  separate default-English renderer, so a future locale can replace phrasing
+  without duplicating classification, coverage, or qualifier logic. Both
+  boundaries remain deterministic, dependency-free, network-free, and
+  conservative. Complete stable-ID UI families may say `all` only when no
+  additional rule narrows them; generic lists retain exact counts and compact
+  examples. Known Savage-book qualifiers resolve to stable raid-series and tier
+  keys, retaining Arcadion, Pandaemonium, Eden, Omega, and Alexander identity.
+  Controlled category-derived variants give related stat materia and potions
+  multiple deterministic sentence frames. Multi-stat category names and stored
+  patterns preserve every supported stat in source order. Conflicting known
+  Savage tiers, token subtypes, unlockable subtypes, and gear subtypes back off
+  to safe family wording; unrelated cross-family combinations retain the
+  deliberate non-useful fallback instead of selecting one claim. Category names
+  and stored patterns outrank lookup-only evidence, cached names must represent
+  their stored source, and Ultimate/Extreme and augmentation distinctions still
+  require supporting evidence.
 - Populated Item Ordering editor-owned text, accessible names, and the complete
   Item Sort Criteria and Custom Item Order finding family use the existing
   injected translator. `analyzeItemOrdering()` retains exact-English default
@@ -120,6 +134,20 @@ The project intentionally has:
   generic fallbacks for only `Other`, `Soul Gems`, and `Jobstones`. Exact-tree
   browser QA was unavailable after the in-app browser retained cached modules
   and a fresh browser view failed to attach, so no browser result is claimed.
+- Phase 91 focused description-generator, preset-quality, Basics,
+  category-change, lookup-name, localization/trust-boundary,
+  accessibility/source, preset, and governance coverage passed 164 tests.
+  `npm run check` passed 112 JavaScript files, static relative imports, and 54
+  test files / 624 tests. The deterministic network-free audit covered all 24
+  Basic and 55 Advanced categories with the full lookup fixture; Advanced
+  output averaged 46.4 characters, reached at most 69, was unique across all 55
+  categories, and never fell back. Basic output averaged 41.9 characters and
+  retained only three deliberate fallbacks.
+  Exact-tree browser QA verified Weapons preview, cancel, replacement/dirty,
+  focus return, and identical-output no-op behavior with the concise `all job
+  weapons` result. A follow-up verified distinct Arcadion LHW and Alexander
+  Gordias frames through the real Generate modal, including cancel/no-change
+  and focus return.
 - Phase 85 focused localization, lookup/cache, list-editor, category-operation,
   accessibility, trust-boundary, and governance coverage passed 237 tests.
   `npm run check` passed 106 JavaScript files, static relative imports, and 52

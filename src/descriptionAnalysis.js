@@ -1,28 +1,37 @@
 import { isUsefulLookupName } from './lookupNames.js';
 
-const STAT_PHRASES = Object.freeze({
-  'critical hit': 'Critical Hit',
-  'direct hit': 'Direct Hit',
-  determination: 'Determination',
-  'skill speed': 'Skill Speed',
-  'spell speed': 'Spell Speed',
-  tenacity: 'Tenacity',
-  piety: 'Piety',
-  craftsmanship: 'Craftsmanship',
-  control: 'Control',
-  cp: 'CP',
-  gathering: 'Gathering',
-  perception: 'Perception',
-  gp: 'GP',
-  strength: 'Strength',
-  dexterity: 'Dexterity',
-  intelligence: 'Intelligence',
-  mind: 'Mind'
+const STAT_KEYS = Object.freeze({
+  'critical hit': 'criticalHit',
+  'direct hit': 'directHit',
+  determination: 'determination',
+  'skill speed': 'skillSpeed',
+  'spell speed': 'spellSpeed',
+  tenacity: 'tenacity',
+  piety: 'piety',
+  craftsmanship: 'craftsmanship',
+  control: 'control',
+  cp: 'cp',
+  gathering: 'gathering',
+  perception: 'perception',
+  gp: 'gp',
+  strength: 'strength',
+  dexterity: 'dexterity',
+  intelligence: 'intelligence',
+  mind: 'mind'
 });
 
 const INTENT_CONCEPTS = Object.freeze([
   { intent: 'materiaClusters', subject: 'materia clusters', priority: 110, identityTerms: ['materia cluster', 'materia clusters'] },
   { intent: 'tools', subject: 'crafting and gathering tools', priority: 105, identityTerms: ['doh dol weapon', 'doh dol weapons', 'doh dol tool', 'doh dol tools'] },
+  { intent: 'augmentMaterials', subject: 'gear augmentation materials', priority: 100, identityTerms: ['augment material', 'augment materials'] },
+  { intent: 'buffs', subject: 'company buffs', priority: 95, identityTerms: ['buff', 'buffs', 'company buff', 'company buffs'] },
+  { intent: 'coffers', subject: 'item coffers', priority: 92, identityTerms: ['coffer', 'coffers'] },
+  { intent: 'allianceRaidCoins', subject: 'alliance raid coins', priority: 92, identityTerms: ['alliance raid coin', 'alliance raid coins'] },
+  { intent: 'treasureMaps', subject: 'treasure maps', priority: 92, identityTerms: ['treasure map', 'treasure maps'] },
+  { intent: 'gacha', subject: 'materiel containers', priority: 92, identityTerms: ['gacha', 'materiel container', 'materiel containers'] },
+  { intent: 'umbrite', subject: 'Umbrite', priority: 92, identityTerms: ['umbrite'] },
+  { intent: 'unsung', subject: 'Unsung tokens', priority: 92, identityTerms: ['unsung'] },
+  { intent: 'manuals', subject: 'manuals', priority: 88, exactNameOnly: true, identityTerms: ['manual', 'manuals'] },
   { intent: 'materia', subject: 'materia', priority: 90, identityTerms: ['materia'] },
   { intent: 'medicine', subject: 'medicine', priority: 85, identityTerms: ['medicine', 'medicines', 'drug', 'drugs'] },
   { intent: 'fishingSupplies', subject: 'fishing supplies', priority: 85, identityTerms: ['tacklebox', 'tackle box', 'fishing tackle', 'fishing supplies'] },
@@ -43,34 +52,44 @@ const ROLE_TERMS = Object.freeze({
   gathering: ['gathering', 'perception', 'gp', 'dol', 'disciple of land', 'disciples of land']
 });
 
-const EXPLICIT_CLASSIFIERS = Object.freeze([
-  ['materia', ['materia']],
-  ['potion', ['potion', 'tincture', 'draught', 'medicine']],
-  ['meal', ['meal', 'food', 'dish', 'soup', 'salad']],
-  ['mount', ['mount', 'whistle', 'horn', 'key']],
-  ['minion', ['minion']],
-  ['card', ['triple triad', 'card']],
-  ['emote', ['emote', 'ballroom etiquette']],
-  ['hairstyle', ['hairstyle', 'modern aesthetics']],
-  ['token', ['token', 'totem', 'book', 'tomestone', 'scrip', 'coin', 'voucher', 'certificate']],
-  ['material', ['material', 'ingredient', 'reagent', 'ore', 'log', 'cloth', 'leather', 'lumber', 'ingot', 'nugget']],
-  ['furnishing', ['furnishing', 'tabletop', 'wall-mounted', 'outdoor', 'housing']],
-  ['dye', ['dye']],
-  ['glamour', ['glamour', 'prism']],
-  ['weapon', ['weapon', 'arms']],
-  ['armor', ['armor', 'armour', 'shield', 'head', 'body', 'hands', 'legs', 'feet']],
-  ['accessory', ['accessory', 'bracelet', 'ring', 'earring', 'necklace']]
+const AUGMENT_MATERIAL_TERMS = Object.freeze(['solvent', 'twine', 'glaze', 'ester']);
+
+const UI_CATEGORY_COVERAGE = Object.freeze({
+  allCombatWeapons: Object.freeze([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 84, 87, 88, 89, 96, 97, 98, 105, 106, 107, 108, 109, 110, 111]),
+  allCraftingGatheringTools: Object.freeze([12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 99]),
+  allArmor: Object.freeze([34, 35, 36, 37, 38]),
+  allAccessories: Object.freeze([11, 40, 41, 42, 43])
+});
+
+const SAVAGE_RAID_SCOPES = Object.freeze([
+  { term: 'lhw', seriesKey: 'arcadion', tierKey: 'lightHeavyweight', messageKey: 'intent.tokens.savageBook.proof' },
+  { term: 'cw', seriesKey: 'arcadion', tierKey: 'cruiserweight', messageKey: 'intent.tokens.savageBook.proof' },
+  { term: 'hw', seriesKey: 'arcadion', tierKey: 'heavyweight', messageKey: 'intent.tokens.savageBook.proof' },
+  { term: 'asphodelos', seriesKey: 'pandaemonium', tierKey: 'asphodelos', messageKey: 'intent.tokens.savageBook.earned' },
+  { term: 'abyssos', seriesKey: 'pandaemonium', tierKey: 'abyssos', messageKey: 'intent.tokens.savageBook.earned' },
+  { term: 'anabaseios', seriesKey: 'pandaemonium', tierKey: 'anabaseios', messageKey: 'intent.tokens.savageBook.earned' },
+  { term: 'gate', seriesKey: 'eden', tierKey: 'gate', messageKey: 'intent.tokens.savageBook.awarded' },
+  { term: 'verse', seriesKey: 'eden', tierKey: 'verse', messageKey: 'intent.tokens.savageBook.awarded' },
+  { term: 'promise', seriesKey: 'eden', tierKey: 'promise', messageKey: 'intent.tokens.savageBook.awarded' },
+  { term: 'deltascape', seriesKey: 'omega', tierKey: 'deltascape', messageKey: 'intent.tokens.savageBook.exchange' },
+  { term: 'sigmascape', seriesKey: 'omega', tierKey: 'sigmascape', messageKey: 'intent.tokens.savageBook.exchange' },
+  { term: 'alphascape', seriesKey: 'omega', tierKey: 'alphascape', messageKey: 'intent.tokens.savageBook.exchange' },
+  { term: 'gordias', seriesKey: 'alexander', tierKey: 'gordias', messageKey: 'intent.tokens.savageBook.records' },
+  { term: 'midas', seriesKey: 'alexander', tierKey: 'midas', messageKey: 'intent.tokens.savageBook.records' },
+  { term: 'creator', seriesKey: 'alexander', tierKey: 'creator', messageKey: 'intent.tokens.savageBook.records' }
 ]);
 
 function rulesOf(category) { return category?.Rules || {}; }
 function hasItems(value) { return Array.isArray(value) && value.length > 0; }
 function uniq(values) { return [...new Set(values.filter(Boolean))]; }
 
-export function readableJoin(parts) {
-  const values = uniq(parts);
-  if (values.length <= 1) return values[0] || '';
-  if (values.length === 2) return `${values[0]} and ${values[1]}`;
-  return `${values.slice(0, -1).join(', ')}, and ${values.at(-1)}`;
+function deterministicVariant(text, count = 3) {
+  let hash = 2166136261;
+  for (const character of String(text)) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return Math.abs(hash >>> 0) % count;
 }
 
 export function normalizeDescriptionEvidence(text = '') {
@@ -104,20 +123,6 @@ function matchedTermsFor(text, terms) {
   return matches;
 }
 
-function inferTraits(text) {
-  return Object.entries(ROLE_TERMS)
-    .filter(([, terms]) => matchedTermsFor(text, terms).length)
-    .map(([trait]) => trait);
-}
-
-function lookupRuleNames(rules, options) {
-  if (typeof options.lookupName !== 'function') return '';
-  const names = [];
-  for (const id of rules.AllowedUiCategoryIds || []) names.push(options.lookupName('ItemUICategory', id));
-  for (const id of rules.AllowedItemIds || []) names.push(options.lookupName('Item', id));
-  return names.filter(isUsefulLookupName).join(' ');
-}
-
 function cachedNames(sheet, ids = [], options = {}) {
   if (typeof options.lookupName !== 'function') return [];
   return ids
@@ -126,158 +131,237 @@ function cachedNames(sheet, ids = [], options = {}) {
     .filter(isUsefulLookupName);
 }
 
-function bestStatPhrase(text) {
-  const matches = matchedTermsFor(text, Object.keys(STAT_PHRASES));
-  matches.sort((a, b) => b.length - a.length);
-  return matches.length ? STAT_PHRASES[normalizeDescriptionEvidence(matches[0])] : '';
+function representativeLookupMatches(names, totalCount, terms) {
+  const matches = names.filter(name => matchedTermsFor(name, terms).length);
+  if (totalCount <= 1) return matches;
+  return matches.length >= 2 && matches.length / totalCount > 0.5 ? matches : [];
 }
 
-function scoreIntent(entry, nameText, patternText, lookupText) {
+function evidenceSupportsTerms(nameText, patternText, lookupEvidence, terms) {
+  if (matchedTermsFor(`${nameText} ${patternText}`, terms).length) return true;
+  return Boolean(
+    representativeLookupMatches(lookupEvidence.itemNames, lookupEvidence.itemCount, terms).length
+    || representativeLookupMatches(lookupEvidence.uiNames, lookupEvidence.uiCount, terms).length
+  );
+}
+
+function inferTraits(nameText, patternText, lookupEvidence) {
+  return Object.entries(ROLE_TERMS)
+    .filter(([, terms]) => evidenceSupportsTerms(nameText, patternText, lookupEvidence, terms))
+    .map(([trait]) => trait);
+}
+
+function matchingStatKeys(nameText, patternText, lookupEvidence) {
+  const directText = `${nameText} ${patternText}`.trim();
+  const matches = Object.keys(STAT_KEYS)
+    .filter(term => evidenceSupportsTerms(nameText, patternText, lookupEvidence, [term]))
+    .sort((a, b) => {
+      const aIndex = directText.indexOf(normalizeDescriptionEvidence(a));
+      const bIndex = directText.indexOf(normalizeDescriptionEvidence(b));
+      if (aIndex >= 0 && bIndex >= 0 && aIndex !== bIndex) return aIndex - bIndex;
+      if (aIndex >= 0 && bIndex < 0) return -1;
+      if (bIndex >= 0 && aIndex < 0) return 1;
+      return b.length - a.length;
+    });
+  return uniq(matches.map(term => STAT_KEYS[normalizeDescriptionEvidence(term)]));
+}
+
+function scoreIntent(entry, nameText, patternText, lookupEvidence) {
   const nameMatches = matchedTermsFor(nameText, entry.identityTerms);
   const exactName = nameMatches.find(term => normalizeDescriptionEvidence(term) === nameText || normalizeDescriptionEvidence(`${term}s`) === nameText);
   const patternMatches = matchedTermsFor(patternText, entry.identityTerms);
-  const lookupMatches = matchedTermsFor(lookupText, entry.identityTerms);
+  const itemLookupMatches = representativeLookupMatches(lookupEvidence.itemNames, lookupEvidence.itemCount, entry.identityTerms);
+  const uiLookupMatches = representativeLookupMatches(lookupEvidence.uiNames, lookupEvidence.uiCount, entry.identityTerms);
+  const lookupMatches = matchedTermsFor([...itemLookupMatches, ...uiLookupMatches].join(' '), entry.identityTerms);
   const matchedTerms = uniq([...nameMatches, ...patternMatches, ...lookupMatches]);
   if (!matchedTerms.length) return null;
+  if (entry.exactNameOnly && !exactName) return null;
   const longest = Math.max(...matchedTerms.map(term => normalizeDescriptionEvidence(term).length));
-  const score = (exactName ? 1000 : 0) + (nameMatches.length ? 500 : 0) + (lookupMatches.length ? 90 : 0) + (patternMatches.length ? 40 : 0) + longest;
+  const score = (exactName ? 1000 : 0) + (nameMatches.length ? 500 : 0) + (patternMatches.length ? 300 : 0) + (lookupMatches.length ? 90 : 0) + longest;
   return { ...entry, matchedTerms, nameMatches, exactName: Boolean(exactName), longest, score };
 }
 
-function phraseForIntent(intent, traits = [], statPhrase = '', text = '') {
-  if (intent === 'materiaClusters') return 'clusters exchanged for materia';
+function messageKeyForIntent(intent, traits = [], statKey = '', evidence = {}) {
+  const { combinedText = '', nameText = '', itemNames = [], itemCount = itemNames.length } = evidence;
+  if (intent === 'materiaClusters') return 'intent.materiaClusters';
+  if (intent === 'augmentMaterials') {
+    const supportingNames = representativeLookupMatches(itemNames, itemCount, AUGMENT_MATERIAL_TERMS);
+    return supportingNames.length ? 'intent.augmentMaterials.tome' : 'intent.augmentMaterials.general';
+  }
+  if (intent === 'buffs') return 'intent.buffs';
+  if (intent === 'coffers') return 'intent.coffers';
+  if (intent === 'allianceRaidCoins') return 'intent.allianceRaidCoins';
+  if (intent === 'treasureMaps') return 'intent.treasureMaps';
+  if (intent === 'manuals') return 'intent.manuals';
+  if (intent === 'gacha') return 'intent.gacha';
+  if (intent === 'umbrite') return 'intent.umbrite';
+  if (intent === 'unsung') return 'intent.unsung';
   if (intent === 'materia') {
-    if (traits.includes('crafting')) return `crafting materia used to improve ${statPhrase || 'crafting stats'} through melding`;
-    if (traits.includes('gathering')) return statPhrase === 'Gathering' ? 'gathering materia used to improve gathering stats through melding' : `gathering materia used to improve ${statPhrase || 'gathering stats'} through melding`;
-    return `combat materia used to improve ${statPhrase || 'combat stats'} through melding`;
+    if (evidence.statKeys.length > 1) return `intent.materia.stats.v${evidence.variant + 1}`;
+    const role = traits.includes('crafting') ? 'crafting' : traits.includes('gathering') ? 'gathering' : 'combat';
+    return `intent.materia.${role}.${statKey ? `stat.v${evidence.variant + 1}` : 'general'}`;
   }
-  if (intent === 'medicine') return 'medicine consumables';
-  if (intent === 'fishingSupplies') return 'fishing tackle and supplies';
+  if (intent === 'medicine') return 'intent.medicine';
+  if (intent === 'fishingSupplies') return 'intent.fishingSupplies';
   if (intent === 'furnishings') {
-    if (descriptionTermMatches(text, 'outdoor')) return 'furnishings for outdoor housing spaces';
-    if (descriptionTermMatches(text, 'indoor')) return 'furnishings for indoor housing spaces';
-    return 'furnishings for housing spaces';
+    if (descriptionTermMatches(combinedText, 'outdoor') && descriptionTermMatches(combinedText, 'indoor')) {
+      return 'intent.furnishings.general';
+    }
+    if (descriptionTermMatches(combinedText, 'outdoor')) return 'intent.furnishings.outdoor';
+    if (descriptionTermMatches(combinedText, 'indoor')) return 'intent.furnishings.indoor';
+    return 'intent.furnishings.general';
   }
-  if (intent === 'meals') return 'meal consumables that provide temporary stat bonuses';
+  if (intent === 'meals') return 'intent.meals';
   if (intent === 'potions') {
-    if (traits.includes('crafting')) return statPhrase ? `${statPhrase} potions used for temporary crafting resource boosts` : 'crafting potions used for temporary crafting resource boosts';
-    if (traits.includes('gathering')) return `${statPhrase || 'gathering'} potions used for temporary gathering boosts`;
-    return `${statPhrase || 'stat'} potions used for temporary combat stat boosts`;
+    if (evidence.statKeys.length > 1) return `intent.potions.stats.v${evidence.variant + 1}`;
+    if (statKey) return `intent.potions.stat.v${evidence.variant + 1}`;
+    if (traits.includes('crafting')) return 'intent.potions.crafting';
+    if (traits.includes('gathering')) return 'intent.potions.gathering';
+    return 'intent.potions.combat';
   }
   if (intent === 'tools') {
-    if (traits.includes('crafting') && traits.includes('gathering')) return 'crafting and gathering tools';
-    if (traits.includes('crafting')) return 'crafting tools';
-    if (traits.includes('gathering')) return 'gathering tools';
-    return 'crafting and gathering tools';
+    return evidence.coverage === 'allCraftingGatheringTools' ? 'intent.tools.all' : 'intent.tools.general';
   }
   if (intent === 'gear') {
-    if (descriptionTermMatches(text, 'weapon')) {
-      if (traits.includes('crafting') && traits.includes('gathering')) return 'crafting and gathering tools';
-      if (traits.includes('crafting')) return 'crafting tools';
-      if (traits.includes('gathering')) return 'gathering tools';
-      return 'weapons and combat equipment';
+    const hasWeapons = descriptionTermMatches(combinedText, 'weapon');
+    const hasArmor = descriptionTermMatches(combinedText, 'armor') || descriptionTermMatches(combinedText, 'armour');
+    const hasAccessories = descriptionTermMatches(combinedText, 'accessory');
+    const gearSubtypeCount = [hasWeapons, hasArmor, hasAccessories].filter(Boolean).length;
+    if (descriptionTermMatches(nameText, 'weapon') && (descriptionTermMatches(nameText, 'armor') || descriptionTermMatches(nameText, 'armour')) && !hasAccessories) {
+      return 'intent.gear.combatSet';
     }
-    if (descriptionTermMatches(text, 'armor') || descriptionTermMatches(text, 'armour')) return 'protective armor and equipment';
-    if (descriptionTermMatches(text, 'accessory')) return 'equippable accessories';
-    return 'equippable gear';
+    if (gearSubtypeCount > 1) return 'intent.gear.general';
+    if (hasWeapons) {
+      if (descriptionTermMatches(nameText, 'blu')) return 'intent.gear.weapons.blueMage';
+      if (traits.includes('crafting') || traits.includes('gathering')) {
+        return evidence.coverage === 'allCraftingGatheringTools' ? 'intent.tools.all' : 'intent.tools.general';
+      }
+      return evidence.coverage === 'allCombatWeapons' ? 'intent.gear.weapons.all' : 'intent.gear.weapons.general';
+    }
+    if (hasArmor) {
+      return evidence.coverage === 'allArmor' ? 'intent.gear.armor.all' : 'intent.gear.armor.general';
+    }
+    if (hasAccessories) {
+      return evidence.coverage === 'allAccessories' ? 'intent.gear.accessories.all' : 'intent.gear.accessories.general';
+    }
+    return 'intent.gear.general';
   }
-  if (intent === 'unlockables') return unlockablePhrase(text);
-  if (intent === 'tokens') return tokenPhrase(text);
-  if (intent === 'materials') return traits.includes('gathering') ? 'gathered materials used in crafting recipes' : 'crafting materials and recipe components';
-  if (intent === 'appearance') return descriptionTermMatches(text, 'dye') ? 'dyes for color and appearance customization' : 'glamour items for appearance customization';
-  return 'items matched by selected rules';
+  if (intent === 'unlockables') return unlockableMessageKey(combinedText);
+  if (intent === 'tokens') return tokenMessageKey(nameText, combinedText, evidence.savageScope);
+  if (intent === 'materials') {
+    if (descriptionTermMatches(nameText, 'extreme')) return 'intent.materials.extreme';
+    return traits.includes('gathering') ? 'intent.materials.gathered' : 'intent.materials.crafting';
+  }
+  if (intent === 'appearance') return descriptionTermMatches(combinedText, 'dye') ? 'intent.appearance.dye' : 'intent.appearance.glamour';
+  return '';
 }
 
-function unlockablePhrase(text) {
-  if (descriptionTermMatches(text, 'mount')) return 'mount unlock items for collection and character travel';
-  if (descriptionTermMatches(text, 'minion')) return 'minion unlock items for cosmetic companions and collection';
-  if (descriptionTermMatches(text, 'triple triad') || descriptionTermMatches(text, 'card')) return 'Triple Triad card unlocks for collection and card play';
-  if (descriptionTermMatches(text, 'orchestrion')) return 'orchestrion roll unlocks for music collection';
-  if (descriptionTermMatches(text, 'emote')) return 'emote unlock items for character expression';
-  if (descriptionTermMatches(text, 'hairstyle')) return 'hairstyle unlock items for character customization';
-  if (descriptionTermMatches(text, 'fashion accessory')) return 'fashion accessory unlocks for cosmetic customization';
-  return 'collectible unlock items for character collection';
+function unlockableMessageKey(text) {
+  const matches = [
+    [descriptionTermMatches(text, 'mount'), 'intent.unlockables.mount'],
+    [descriptionTermMatches(text, 'minion'), 'intent.unlockables.minion'],
+    [descriptionTermMatches(text, 'triple triad') || descriptionTermMatches(text, 'card'), 'intent.unlockables.card'],
+    [descriptionTermMatches(text, 'orchestrion'), 'intent.unlockables.orchestrion'],
+    [descriptionTermMatches(text, 'emote'), 'intent.unlockables.emote'],
+    [descriptionTermMatches(text, 'hairstyle'), 'intent.unlockables.hairstyle'],
+    [descriptionTermMatches(text, 'fashion accessory'), 'intent.unlockables.fashionAccessory']
+  ].filter(([matched]) => matched);
+  return matches.length === 1 ? matches[0][1] : 'intent.unlockables.general';
 }
 
-function tokenPhrase(text) {
-  if (descriptionTermMatches(text, 'totem')) return 'trial totems used to exchange for weapons, mounts, or other rewards';
-  if (descriptionTermMatches(text, 'book')) return 'savage raid books used to exchange for raid gear and rewards';
-  if (descriptionTermMatches(text, 'tome') || descriptionTermMatches(text, 'tomestone')) return 'tomestone currency and exchange items used for progression rewards';
-  if (descriptionTermMatches(text, 'scrip')) return 'crafting and gathering scrip items used for vendor exchanges';
-  return 'exchange tokens and reward items used for vendors or progression turn-ins';
+function tokenMessageKey(nameText, combinedText, savageScope) {
+  const ultimateTotem = descriptionTermMatches(nameText, 'ultimate') && descriptionTermMatches(nameText, 'totem');
+  const extremeTotem = descriptionTermMatches(nameText, 'extreme') && descriptionTermMatches(nameText, 'totem');
+  if (ultimateTotem && extremeTotem) return 'intent.tokens.totem';
+  if (ultimateTotem) return 'intent.tokens.ultimate';
+  if (extremeTotem) return 'intent.tokens.extreme';
+  if (descriptionTermMatches(combinedText, 'totem')) return 'intent.tokens.totem';
+  if (descriptionTermMatches(combinedText, 'book')) return savageScope?.messageKey || 'intent.tokens.savageBook';
+  if (descriptionTermMatches(nameText, 'irregular') && (descriptionTermMatches(combinedText, 'tome') || descriptionTermMatches(combinedText, 'tomestone'))) return 'intent.tokens.irregularTomestone';
+  if (descriptionTermMatches(combinedText, 'tome') || descriptionTermMatches(combinedText, 'tomestone')) return 'intent.tokens.tomestone';
+  if (descriptionTermMatches(combinedText, 'scrip')) return 'intent.tokens.scrip';
+  return 'intent.tokens.general';
+}
+
+function savageRaidScope(nameText) {
+  if (!descriptionTermMatches(nameText, 'savage') || !descriptionTermMatches(nameText, 'book')) return null;
+  const matches = SAVAGE_RAID_SCOPES.filter(scope => descriptionTermMatches(nameText, scope.term));
+  return matches.length === 1 ? matches[0] : null;
+}
+
+function hasAmbiguousNamedIntents(candidates, best, nameText) {
+  if (best.exactName) return false;
+  const intents = uniq(candidates.filter(candidate => candidate.nameMatches.length).map(candidate => candidate.intent));
+  if (intents.length <= 1) return false;
+  const pair = intents.sort().join('|');
+  if (pair === 'gear|unlockables' && descriptionTermMatches(nameText, 'fashion accessory')) return false;
+  if (pair === 'appearance|gear' && (descriptionTermMatches(nameText, 'dye') || descriptionTermMatches(nameText, 'glamour'))) return false;
+  const allowed = new Set([
+    'augmentMaterials|materials',
+    'materia|materiaClusters'
+  ]);
+  return !allowed.has(pair);
+}
+
+function exactIdCoverage(ids = []) {
+  const normalized = [...new Set(ids.map(Number).filter(Number.isInteger))].sort((a, b) => a - b);
+  for (const [key, expected] of Object.entries(UI_CATEGORY_COVERAGE)) {
+    if (normalized.length === expected.length && normalized.every((id, index) => id === expected[index])) return key;
+  }
+  return '';
 }
 
 export function analyzeCategoryIntent(category, options = {}) {
   const rules = rulesOf(category);
   const nameText = normalizeDescriptionEvidence(category?.Name);
   const patternText = hasItems(rules.AllowedItemNamePatterns) ? normalizeDescriptionEvidence(rules.AllowedItemNamePatterns.join(' ')) : '';
-  const lookupText = normalizeDescriptionEvidence(lookupRuleNames(rules, options));
+  const itemNames = cachedNames('Item', rules.AllowedItemIds || [], options);
+  const uiNames = cachedNames('ItemUICategory', rules.AllowedUiCategoryIds || [], options);
+  const lookupEvidence = {
+    itemNames,
+    itemCount: rules.AllowedItemIds?.length || 0,
+    uiNames,
+    uiCount: rules.AllowedUiCategoryIds?.length || 0
+  };
+  const lookupText = normalizeDescriptionEvidence([...itemNames, ...uiNames].join(' '));
   const combinedText = [nameText, patternText, lookupText].filter(Boolean).join(' ');
-  const traits = inferTraits(combinedText);
-  const statPhrase = bestStatPhrase(combinedText);
-  const candidates = INTENT_CONCEPTS.map(entry => scoreIntent(entry, nameText, patternText, lookupText)).filter(Boolean);
+  const traits = inferTraits(nameText, patternText, lookupEvidence);
+  const statKeys = matchingStatKeys(nameText, patternText, lookupEvidence);
+  const statKey = statKeys[0] || '';
+  const coverage = exactIdCoverage(rules.AllowedUiCategoryIds || []);
+  const variant = deterministicVariant(nameText);
+  const savageScope = savageRaidScope(nameText);
+  const candidates = INTENT_CONCEPTS.map(entry => scoreIntent(entry, nameText, patternText, lookupEvidence)).filter(Boolean);
   candidates.sort((a, b) => b.score - a.score || Number(b.nameMatches.length > 0) - Number(a.nameMatches.length > 0) || b.longest - a.longest || b.priority - a.priority);
   const best = candidates[0];
 
-  if (!best) {
-    return { intent: 'generic', subject: 'items', phrase: 'items matched by selected rules', confidence: 'low', matchedTerms: [], traits, statPhrase };
+  if (!best || hasAmbiguousNamedIntents(candidates, best, nameText)) {
+    return { intent: 'generic', subject: 'items', messageKey: '', confidence: 'low', matchedTerms: [], traits, statKey, statKeys, coverage, variant };
   }
 
   return {
     intent: best.intent,
     subject: best.subject,
-    phrase: phraseForIntent(best.intent, traits, statPhrase, combinedText),
+    messageKey: messageKeyForIntent(best.intent, traits, statKey, {
+      combinedText,
+      nameText,
+      itemNames,
+      itemCount: lookupEvidence.itemCount,
+      coverage,
+      variant,
+      savageScope,
+      statKeys
+    }),
     confidence: best.nameMatches.length ? 'high' : 'medium',
     matchedTerms: best.matchedTerms,
     traits,
-    statPhrase
+    statKey,
+    statKeys,
+    coverage,
+    variant,
+    raidSeriesKey: savageScope?.seriesKey || '',
+    raidTierKey: savageScope?.tierKey || ''
   };
-}
-
-function classifyNames(names = []) {
-  const text = normalizeDescriptionEvidence(names.join(' '));
-  const found = EXPLICIT_CLASSIFIERS.find(([, terms]) => terms.some(term => descriptionTermMatches(text, term)));
-  return found?.[0] || '';
-}
-
-function classLabel(kind, source) {
-  if (!kind) return '';
-  if (kind === 'potion') return source === 'category' ? 'medicine' : 'potion';
-  if (kind === 'meal') return 'meal';
-  if (kind === 'material') return source === 'category' ? 'crafting material' : 'material';
-  if (kind === 'furnishing') return source === 'category' ? 'furnishing' : 'housing';
-  return kind;
-}
-
-function shortNames(names, limit = 3) {
-  return names.filter(name => name.length <= 42).slice(0, limit);
-}
-
-function itemPhrase(names) {
-  const kind = classLabel(classifyNames(names), 'item');
-  if (names.length === 1 && names[0].length <= 60) return `the selected item ${names[0]}`;
-  const examples = shortNames(names, 3);
-  if (examples.length >= 2 && examples.join(', ').length <= 120) return `selected items such as ${readableJoin(examples)}`;
-  if (kind === 'mount' || kind === 'minion') return `selected ${kind} unlock items`;
-  if (kind) return `selected ${kind} entries`;
-  return names.length ? 'selected cached item entries' : 'selected item entries';
-}
-
-function uiCategoryPhrase(names, count) {
-  const kind = classLabel(classifyNames(names), 'category');
-  const examples = shortNames(names, 3);
-  if (examples.length === 1 && count === 1) return `items from the ${examples[0]} category`;
-  if (examples.length >= 2 && examples.join(', ').length <= 90) return `items from ${readableJoin(examples)} categories`;
-  if (kind) return `selected ${kind} categories`;
-  return names.length ? 'selected cached item categories' : 'selected item categories';
-}
-
-function combineExplicitPhrases(parts) {
-  if (parts.length === 1) {
-    if (parts[0].kind === 'patterns') return 'items matched by selected name patterns';
-    return parts[0].phrase;
-  }
-  return readableJoin(parts.map(part => part.shortPhrase || part.phrase));
 }
 
 export function analyzeExplicitSources(rules, options = {}) {
@@ -286,19 +370,15 @@ export function analyzeExplicitSources(rules, options = {}) {
   const itemNames = cachedNames('Item', rules.AllowedItemIds || [], options);
   const uiNames = cachedNames('ItemUICategory', rules.AllowedUiCategoryIds || [], options);
   const patternCount = rules.AllowedItemNamePatterns?.length || 0;
-  const item = { count: itemCount, names: itemNames, uncachedCount: Math.max(0, itemCount - itemNames.length), label: classLabel(classifyNames(itemNames), 'item'), phrase: itemPhrase(itemNames) };
-  const ui = { count: uiCount, names: uiNames, uncachedCount: Math.max(0, uiCount - uiNames.length), label: classLabel(classifyNames(uiNames), 'category'), phrase: uiCategoryPhrase(uiNames, uiCount) };
-  const patterns = { count: patternCount, examples: (rules.AllowedItemNamePatterns || []).map(String).filter(Boolean).slice(0, 2), phrase: 'name-pattern matches' };
-  const parts = [];
-  if (itemCount) parts.push({ kind: 'item', phrase: item.phrase, shortPhrase: item.label ? `selected ${item.label} entries` : 'selected item entries' });
-  if (uiCount) parts.push({ kind: 'ui', phrase: ui.phrase, shortPhrase: ui.label ? `selected ${ui.label} categories` : 'item categories' });
-  if (patternCount) parts.push({ kind: 'patterns', phrase: 'items matched by selected name patterns', shortPhrase: 'name-pattern matches' });
+  const item = { count: itemCount, names: itemNames, uncachedCount: Math.max(0, itemCount - itemNames.length) };
+  const ui = { count: uiCount, names: uiNames, uncachedCount: Math.max(0, uiCount - uiNames.length) };
+  ui.coverage = exactIdCoverage(rules.AllowedUiCategoryIds || []);
+  const patterns = { count: patternCount, examples: (rules.AllowedItemNamePatterns || []).map(String).filter(Boolean).slice(0, 2) };
   return {
     itemIds: item,
     uiCategoryIds: ui,
     namePatterns: patterns,
-    hasExplicitRules: parts.length > 0,
-    phrase: combineExplicitPhrases(parts),
+    hasExplicitRules: itemCount + uiCount + patternCount > 0,
     confidence: itemNames.length || uiNames.length ? 'medium' : 'low'
   };
 }
